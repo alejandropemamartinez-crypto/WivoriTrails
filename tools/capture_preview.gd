@@ -27,6 +27,10 @@ func capture() -> void:
 		game.add_child(actor); actor.position=Vector3((i-1)*1.65,0,2); models.append(actor)
 	game.camera.position=Vector3(0,3.6,11); game.camera.fov=39; game.camera.look_at(Vector3(0,1.35,2),Vector3.UP)
 	await shot("faces")
+	for actor in models:
+		actor.set_process(false)
+		actor.rotation.y=PI
+	await shot("faces_opposite")
 	for actor in models:actor.queue_free()
 	game.player.visible=true; game.hud.root.visible=true; game.camera.fov=48
 	game.player.set_process(false); game.player.position=Vector3(0,0,4); game.player.last_position=game.player.position; camera_reset()

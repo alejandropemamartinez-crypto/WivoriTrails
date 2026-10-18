@@ -1,8 +1,15 @@
-# Wivori Trails · 0.7.0
+# Wivori Trails · 0.8.0 — primera revisión de arte
 
 Juego móvil 3D de comercio, automatización y defensa en **Godot 4.4.1**.
 Vos controlás al protagonista. Los empleados cosechan y reponen mientras vos
 cumplís metas, entregás pedidos premium y protegés el puesto de mapaches ladrones.
+
+## Cambios de arte en 0.8.0
+- El protagonista es ahora un perrito aventurero con ropa turquesa y sombrero terracota; el vendedor conserva su identidad canina.
+- Cabeza orgánica: malla continua reutilizable de polígonos suavizados, hocico integrado y rasgos faciales pintados mediante shader. Elimina la cabeza-esfera como modelo principal; ojos y nariz no son piezas 3D separadas.
+- Iluminación fílmica con exposición limitada, color ambiental menos blanco y senderos de piedra en tonos arena.
+- Conserva el control manual, capítulos, defensas y todas las mecánicas de 0.7.0. La nueva dirección de arte aún necesita artistas 3D para alcanzar el estilo de las ilustraciones originales.
+- Nuevo control automatizado comprueba especie protagonista, malla de cabeza, material facial y tonemapping.
 
 ## Cambios de 0.7.0
 

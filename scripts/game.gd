@@ -97,7 +97,7 @@ func _ready() -> void:
 	player = ActorScript.new()
 	player.ground_sampler=Callable(world,"ground_height")
 	player.name = "Personaje controlable"
-	player.setup("player",Color("#398a9b"))
+	player.setup("player",Color("#338f8b"),"dog")
 	add_child(player)
 	player.position = Vector3(0,0,4)
 	world.shape(player,"cylinder",Vector3(0,.06,0),Vector3(1.05,.025,1.05),Color("#328c87"),"Tu personaje")
@@ -125,19 +125,21 @@ func _ready() -> void:
 
 func _engine_world() -> void:
 	var environment := WorldEnvironment.new()
+	environment.name = "WivoriEnvironment"
 	var sky := Environment.new()
 	sky.background_mode = Environment.BG_COLOR
-	sky.background_color = Color("#b4dcf0")
+	sky.background_color = Color("#b8dce1")
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	sky.ambient_light_color = Color("#edf4fa")
-	sky.ambient_light_energy = .34
-	sky.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	sky.ambient_light_color = Color("#c8ddca")
+	sky.ambient_light_energy = .25
+	sky.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	sky.tonemap_exposure = 0.88
 	environment.environment = sky
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52,-37,0)
-	sun.light_color = Color("#fff8ed")
-	sun.light_energy = .40
+	sun.light_color = Color("#ffe8cc")
+	sun.light_energy = .66
 	sun.shadow_enabled = true
 	add_child(sun)
 
@@ -362,7 +364,7 @@ func _buy(kind: String) -> void:
 func _spawn_worker(index: int, saved: Dictionary = {}) -> void:
 	var actor: MarketActor=ActorScript.new()
 	actor.ground_sampler=Callable(world,"ground_height")
-	actor.setup("helper",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][index%3])
+	actor.setup("helper",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][index%3],["dog","cat","rabbit"][index%3])
 	add_child(actor)
 	actor.position=world.navigation.nearest_free(SaveStore.position(saved.get("position"), UPGRADE_POS["helper"]+Vector3(float(index%3)*.95,0,1.3+float(index/3)*.8)))
 	var helper := {"actor":actor,"state":"search","crop":{},"cargo":"", "cargo_amount":0,"timer":0.0}

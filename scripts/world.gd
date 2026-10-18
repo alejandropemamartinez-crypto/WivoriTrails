@@ -121,19 +121,19 @@ func build_land() -> void:
 	shape(self,"box",Vector3(0,-.42,0),Vector3(65,.8,65),GREEN,"Base de isla")
 	shape(self,"box",Vector3(0,-.84,0),Vector3(66,.35,66),Color("#c6aa72"),"Corte de isla")
 	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
-	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#cabb9e"),"Paseo principal")
-	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#cabb9e"),"Plaza comercial")
-	shape(self,"box",Vector3(9.5,.045,4.6),Vector3(3.5,.14,8.6),Color("#c1b89d"),"Zona de fila")
+	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#b9a887"),"Paseo principal")
+	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#b9a887"),"Plaza comercial")
+	shape(self,"box",Vector3(9.5,.045,4.6),Vector3(3.5,.14,8.6),Color("#b6a283"),"Zona de fila")
 	for z in [-9.0,0.0,8.5]:
-		shape(self,"box",Vector3(-5,.04,z),Vector3(9,.12,1.8),Color("#cabb9e"))
+		shape(self,"box",Vector3(-5,.04,z),Vector3(9,.12,1.8),Color("#b9a887"))
 	var stones: Array[Dictionary]=[]
 	for z in range(-10,11):
 		for x in [-2.7,2.7]:
-			stones.append({"pos":Vector3(x,.04,float(z)*2),"scale":Vector3(.24,.16,1.5),"color":Color("#d2c5a4")})
+			stones.append({"pos":Vector3(x,.04,float(z)*2),"scale":Vector3(.24,.16,1.5),"color":Color("#c2b291")})
 	batch_paving(stones)
 	for i in range(6):
 		var at := Vector3(8.3,.14,.6) if i==0 else Vector3(9.5+(.55 if i%2==0 else 0),.14,.8+float(i)*1.4)
-		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#f6eedc"),"Lugar de cliente %d" % i)
+		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#e1cfaa"),"Lugar de cliente %d" % i)
 	# Shallow pond with solid shore, decorative and not in player movement area.
 	shape(self,"cylinder",Vector3(18,.08,15),Vector3(7,.12,6),Color("#c8e5ca"))
 	shape(self,"cylinder",Vector3(18,.12,15),Vector3(6,.14,5),Color("#5aaec2"))

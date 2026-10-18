@@ -4,6 +4,7 @@ class_name MarketActor
 # All face detail is painted by the head material: no detached eyes, nose,
 # whiskers or teeth. Unit-sized meshes make attachment dimensions explicit.
 const FacePaint=preload("res://scripts/face_paint.gdshader")
+const SculptedHead=preload("res://scripts/stylized_head.gd")
 var character_role := "player"
 var species := "human"
 var outfit := Color("#348eb0")
@@ -13,6 +14,7 @@ var anim_t := 0.0
 var body_root: Node3D
 var head_root: Node3D
 var head_mesh: MeshInstance3D
+var tail_root: Node3D
 var left_arm: Node3D
 var right_arm: Node3D
 var left_leg: Node3D
@@ -64,10 +66,14 @@ func _ready() -> void:
 	_solid(body_root,"sphere",outfit.lightened(.13),Vector3(0,1.13,.18),Vector3(.54,.30,.32))
 	_solid(body_root,"box",Color("#e9d5a4"),Vector3(0,.68,.27),Vector3(.56,.10,.06))
 	head_root=_pivot(Vector3(0,1.66,.01),body_root)
-	head_mesh=_solid(head_root,"sphere",skin,Vector3.ZERO,Vector3(1.06,.96,.91))
-	head_mesh.name="Cabeza con cara pintada"
+	# The face and muzzle belong to ONE continuous low-poly mesh.
+	# Painted facial features cannot detach when the actor walks or turns.
+	head_mesh=MeshInstance3D.new()
+	head_mesh.mesh=SculptedHead.build(species)
+	head_root.add_child(head_mesh)
+	head_mesh.name="Cabeza esculpida con hocico integrado"
 	var face:=ShaderMaterial.new(); face.shader=FacePaint; face.set_shader_parameter("skin",skin)
-	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("masked",character_role=="thief")
+	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("canine",species in ["dog","fox"]); face.set_shader_parameter("masked",character_role=="thief")
 	face.set_shader_parameter("phase",float(get_instance_id()%19))
 	head_mesh.material_override=face
 	if species=="rabbit":
@@ -89,7 +95,7 @@ func _ready() -> void:
 		_solid(head_root,"sphere",Color("#49382f"),Vector3(0,.29,-.09),Vector3(1.04,.41,.85))
 		for x in [-.49,.49]:_solid(head_root,"sphere",skin,Vector3(x,0,0),Vector3(.18,.24,.18))
 	if character_role in ["player","helper","guard"]:
-		var cap: Color=Color("#258a86") if character_role=="player" else (Color("#e6ae50") if character_role=="helper" else Color("#526e9d"))
+		var cap: Color=Color("#c46b49") if character_role=="player" else (Color("#e6ae50") if character_role=="helper" else Color("#526e9d"))
 		_solid(head_root,"cylinder",cap,Vector3(0,.43,.015),Vector3(1.13,.075,1.02))
 		_solid(head_root,"sphere",cap,Vector3(0,.47,-.05),Vector3(.92,.41,.85))
 		_solid(head_root,"box",Color("#fff1cc"),Vector3(0,.47,.37),Vector3(.20,.11,.035))
@@ -104,6 +110,9 @@ func _ready() -> void:
 		_solid(foot,"sphere",Color("#455357"),Vector3.ZERO,Vector3(.36,.20,.49))
 		if leg==left_leg:left_foot=foot
 		else:right_foot=foot
+	if species!="human":
+		tail_root=_pivot(Vector3(0,.76,-.29),body_root)
+		_solid(tail_root,"sphere",skin.darkened(.13),Vector3(0,0,-.25),Vector3(.22,.24,.48))
 	if character_role in ["player","helper","thief"]:
 		_solid(body_root,"sphere",Color("#ba8b58") if character_role!="thief" else Color("#786f88"),Vector3(0,1.03,-.35),Vector3(.58,.65,.39))
 	goods_root=_pivot(Vector3(0,1.37,-.36),body_root)
@@ -146,6 +155,7 @@ func _process(delta: float) -> void:
 	body_root.rotation.x=walk_amount*.045
 	head_root.rotation.x=-walk_amount*.035
 	for i in range(ears.size()):ears[i].rotation.x=sin(anim_t-.5)*walk_amount*.10
+	if tail_root!=null:tail_root.rotation.y=sin(anim_t*1.2)*(.11+.19*walk_amount)
 	if action_left>0:
 		action_left=maxf(0,action_left-delta)
 		var emphasis:=sin((1-action_left/action_duration)*PI)
