@@ -123,7 +123,7 @@ func build_land() -> void:
 			stones.append({"pos":Vector3(x,.04,float(z)*2),"scale":Vector3(.24,.16,1.5),"color":Color("#d2c5a4")})
 	batch_paving(stones)
 	for i in range(6):
-		var at := Vector3(8.3,.14,.6) if i==0 else Vector3(9.5,.14,.8+float(i)*1.4)
+		var at := Vector3(8.3,.14,.6) if i==0 else Vector3(9.5+(.55 if i%2==0 else 0),.14,.8+float(i)*1.4)
 		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#f6eedc"),"Lugar de cliente %d" % i)
 	# Shallow pond with solid shore, decorative and not in player movement area.
 	shape(self,"cylinder",Vector3(18,.08,15),Vector3(7,.12,6),Color("#c8e5ca"))
@@ -210,12 +210,12 @@ func build_scenery() -> void:
 		if absf(p.x)<14 and absf(p.z)<14:continue
 		shape(self,"sphere",p,Vector3(.12,.15,.12),Color("#f9eab8") if i%2 == 0 else Color("#ffc1d0"))
 	# Chicken pen and rustic lamp posts.
-	shape(self,"box",Vector3(12,.20,3.2),Vector3(7,.35,5.5),Color("#83bb6b"))
-	for x in [8.6,15.4]:
-		for z in [.5,5.8]:
+	shape(self,"box",Vector3(16.5,.20,4.0),Vector3(5.5,.35,5.5),Color("#83bb6b"))
+	for x in [13.8,19.2]:
+		for z in [1.3,6.7]:
 			shape(self,"cylinder",Vector3(x,.62,z),Vector3(.20,1.25,.20),WOOD)
 	for i in range(4):
-		var n := Node3D.new(); n.position = Vector3(10.3+float(i%2)*2.2,.20,2.1+float(i/2)*2); add_child(n)
+		var n := Node3D.new(); n.position = Vector3(15.3+float(i%2)*2.2,.20,3.0+float(i/2)*2); add_child(n)
 		shape(n,"sphere",Vector3(0,.48,0),Vector3(.75,.63,.65),Color("#f8f2d9"))
 		shape(n,"sphere",Vector3(0,.96,.25),Vector3(.36,.35,.38),Color("#fff7e5"))
 		shape(n,"cone",Vector3(0,.90,.59),Vector3(.22,.29,.22),Color("#f2b14b"))

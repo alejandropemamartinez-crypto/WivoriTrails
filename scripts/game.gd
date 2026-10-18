@@ -362,7 +362,7 @@ func _checkout_duration() -> float:
 	return [4.6,2.6,1.55,.95][checkout_level]
 
 func _queue_position(index: int) -> Vector3:
-	return Vector3(8.3,0,.6) if index==0 else Vector3(9.5,0,.8+float(index)*1.4)
+	return Vector3(8.3,0,.6) if index==0 else Vector3(9.5+(.55 if index%2==0 else 0),0,.8+float(index)*1.4)
 
 func _spawn_customer() -> void:
 	if _queue_count()>=6:return
