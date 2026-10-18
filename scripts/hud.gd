@@ -2,6 +2,7 @@ extends CanvasLayer
 
 const IconScript=preload("res://scripts/ui_icon.gd")
 const TouchButtonScript=preload("res://scripts/touch_button.gd")
+const RabbitWarning=preload("res://scripts/rabbit_warning.gd")
 const INK=Color("#24494b")
 const MUTED=Color("#718783")
 const PAPER=Color("#fffaf0")
@@ -41,12 +42,15 @@ var mission_panel: PanelContainer
 var status_row: HBoxContainer
 var view_button: Button
 var footer_panel: PanelContainer
+var rabbit_banner: RabbitWarningBanner
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
 	node.text=text_
 	node.add_theme_font_size_override("font_size",size_)
 	node.add_theme_color_override("font_color",color_)
+	node.add_theme_color_override("font_shadow_color",Color(1,1,1,.31))
+	node.add_theme_constant_override("shadow_offset_y",1)
 	node.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	return node
 
@@ -80,9 +84,18 @@ func button(text_: String, color_: Color=TEAL, font_size_: int=21) -> Button:
 	node.add_theme_color_override("font_hover_color",PAPER)
 	node.add_theme_color_override("font_pressed_color",PAPER)
 	node.add_theme_color_override("font_disabled_color",Color("#7f9690"))
-	node.add_theme_stylebox_override("normal",style(color_,18))
-	node.add_theme_stylebox_override("hover",style(color_.lightened(.08),18))
-	node.add_theme_stylebox_override("pressed",style(color_.darkened(.12),18))
+	var normal:=style(color_,21)
+	normal.border_color=color_.darkened(.30)
+	normal.border_width_bottom=5; normal.border_width_left=2; normal.border_width_right=2
+	normal.shadow_color=Color(.06,.19,.18,.24)
+	normal.shadow_size=8; normal.shadow_offset=Vector2(0,5)
+	var hover:=style(color_.lightened(.11),21)
+	hover.border_color=color_.darkened(.16);hover.border_width_bottom=5
+	var pressed:=style(color_.darkened(.11),21)
+	pressed.border_color=color_.darkened(.29);pressed.border_width_bottom=2
+	node.add_theme_stylebox_override("normal",normal)
+	node.add_theme_stylebox_override("hover",hover)
+	node.add_theme_stylebox_override("pressed",pressed)
 	node.add_theme_stylebox_override("disabled",style(Color("#e3ebe4"),18))
 	node.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
 	node.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
@@ -112,7 +125,10 @@ func build(game: Node3D) -> void:
 	name="Interfaz móvil"
 	root=Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var ui_theme := Theme.new()
-	ui_theme.default_font=ThemeDB.fallback_font.duplicate()
+	var playful:=FontVariation.new()
+	playful.base_font=ThemeDB.fallback_font
+	playful.variation_embolden=.45
+	ui_theme.default_font=playful
 	root.theme=ui_theme
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(root)
 
@@ -225,6 +241,8 @@ func build(game: Node3D) -> void:
 	wayfinder=load("res://scripts/wayfinder.gd").new(); wayfinder.g=g
 	root.add_child(wayfinder); wayfinder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	build_shop()
+	rabbit_banner=RabbitWarning.new()
+	root.add_child(rabbit_banner)
 	# The emergency interception control must win hit-testing over any nearby
 	# contextual purchase panels when several UI elements overlap.
 	root.move_child(intercept_button,root.get_child_count()-1)
@@ -428,7 +446,13 @@ func refresh() -> void:
 	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
 	wayfinder.objective=objective
 	var alert: Dictionary=g.director.alert()
-	alert_panel.visible=not alert.is_empty() and not g.shop_panel.visible and not city_mode
+	var raid_phase: String=""
+	if not city_mode and not g.shop_panel.visible:
+		if g.run.warning>0:raid_phase="warning"
+		if not g.run.threat().is_empty():
+			raid_phase="escape" if g.run.threat()["state"]=="escape" else "approach"
+	rabbit_banner.sync_state(raid_phase)
+	alert_panel.visible=not alert.is_empty() and raid_phase.is_empty() and not g.shop_panel.visible and not city_mode
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
