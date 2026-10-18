@@ -2,11 +2,18 @@ extends Control
 
 var kind := "coin"
 var tint := Color("#24494b")
+var artwork: Texture2D
 
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var path: String="res://assets/ui/icons/"+kind+".svg"
+	if ResourceLoader.exists(path):artwork=load(path)
 
 func _draw() -> void:
+	if artwork!=null:
+		var side:=minf(size.x,size.y)-4
+		draw_texture_rect(artwork,Rect2((size-Vector2.ONE*side)*.5,Vector2.ONE*side),false)
+		return
 	var center := size*.5
 	var radius := minf(size.x,size.y)*.35
 	var width := maxf(2.0,radius*.14)

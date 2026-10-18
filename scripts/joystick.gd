@@ -27,6 +27,7 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree():return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and active_finger == -1:
 		_clear()
 	if event is InputEventScreenTouch:
@@ -47,7 +48,8 @@ func _input(event: InputEvent) -> void:
 func _apply_local(local: Vector2) -> void:
 	var displacement := local-size*.5
 	var deadzone := 10.0
-	axis = Vector2.ZERO if displacement.length()<deadzone else (displacement / MAX_RADIUS).limit_length(1.0)
+	var strength:=clampf((displacement.length()-deadzone)/(MAX_RADIUS-deadzone),0,1)
+	axis=displacement.normalized()*pow(strength,1.15) if strength>0 else Vector2.ZERO
 	queue_redraw()
 
 func _clear() -> void:
@@ -62,10 +64,16 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
 	var center: Vector2 = size * .5
-	draw_circle(center,97,Color(.07,.24,.23,.13))
-	draw_circle(center,82,Color(.99,.98,.92,.89))
-	draw_arc(center,83,0,TAU,64,Color(.20,.44,.40,.24),3.0,true)
+	draw_circle(center+Vector2(0,6),94,Color(.06,.19,.22,.17))
+	draw_circle(center,86,Color(.17,.34,.37,.64))
+	draw_arc(center,86,0,TAU,64,Color(.99,.91,.70,.73),3.0,true)
+	draw_circle(center,74,Color(.95,.91,.78,.20))
+	for i in range(4):
+		var at:=center+Vector2.from_angle(float(i)*PI*.5)*64
+		draw_circle(at,3,Color(.99,.94,.78,.55))
 	var stick := center + axis * MAX_RADIUS
-	draw_circle(stick,39,Color("#2b8a7b"))
-	draw_arc(stick,40,0,TAU,48,Color("#fffdf3"),4.0,true)
-	draw_circle(stick,9,Color("#f3ce7b"))
+	draw_circle(stick+Vector2(0,5),40,Color("#1f555a"))
+	draw_circle(stick,39,Color("#65b0a0"))
+	draw_circle(stick+Vector2(0,-5),32,Color("#7cbead"))
+	draw_arc(stick,39,PI,TAU,48,Color("#d7ead0"),3.0,true)
+	draw_circle(stick,8,Color("#f2d99c"))

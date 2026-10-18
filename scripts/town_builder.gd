@@ -3,6 +3,9 @@ class_name WivoriTown
 
 # An independent, playable village layer. Player agency is preserved:
 # selecting a plot never moves the character or spends coins.
+const Art=preload("res://scripts/art_library.gd")
+const DISTRICT_LEVELS=[1,1,2,3,3,4,4,5,5]
+const BUILDING_LEVELS={"house":1,"cafe":2,"depot":2,"bakery":3,"greenhouse":4,"workshop":3,"park":2,"watchtower":4,"mill":5}
 const TYPES = {
 	"house":{"name":"CASA DE VECINOS","price":180,"benefit":"Llegan compradores 25 % más rápido."},
 	"cafe":{"name":"CAFÉ DEL PUEBLO","price":340,"benefit":"Las ventas generan 20 % más monedas."},
@@ -24,6 +27,8 @@ var in_build_mode:=false
 var camera_center:=Vector3(-1,0,1)
 var harvested_count:=0
 var selected:=0
+var move_source: int=-1
+var building_nodes: Dictionary={}
 var constructed: Array[String]=["","","","","","","","",""]
 var plot_nodes: Array[Node3D]=[]
 var plot_signs: Array[Label3D]=[]
@@ -87,8 +92,14 @@ func pan_camera(relative: Vector2) -> void:
 
 func toggle_mode() -> void:
 	in_build_mode=not in_build_mode
+	move_source=-1
 	if in_build_mode:
 		camera_center=g.player.position
+		var closest:=INF
+		for i in range(LOCATIONS.size()):
+			if not constructed[i].is_empty() or not is_plot_open(i):continue
+			var distance: float=g.player.position.distance_squared_to(LOCATIONS[i])
+			if distance<closest:closest=distance;selected=i;camera_center=LOCATIONS[i]
 		g.boost_active=false
 		g.input_stick._clear()
 		g.has_tap_destination=false
@@ -99,6 +110,7 @@ func toggle_mode() -> void:
 func _refresh_plots() -> void:
 	for i in range(plot_nodes.size()):
 		var active: bool=in_build_mode and constructed[i].is_empty()
+		plot_signs[i].text="SOLAR %d" % (i+1) if is_plot_open(i) else "BARRIO · NIVEL %d" % DISTRICT_LEVELS[i]
 		plot_signs[i].visible=active
 		plot_glows[i].visible=active
 		if active:
@@ -114,6 +126,8 @@ func select_at(point: Vector3) -> bool:
 			choice=i
 	if choice<0:
 		return false
+	if move_source>=0 and choice!=move_source:
+		return move_building(choice)
 	selected=choice
 	camera_center=camera_center.lerp(LOCATIONS[selected],.12)
 	_refresh_plots()
@@ -121,7 +135,9 @@ func select_at(point: Vector3) -> bool:
 	return true
 
 func selection_description() -> String:
+	if move_source>=0:return "Tocá un solar vacío para trasladar el edificio."
 	var result: String="Solar %d / %d" % [selected+1,LOCATIONS.size()]
+	if not is_plot_open(selected):return result+" · Disponible en nivel %d" % DISTRICT_LEVELS[selected]
 	if not constructed[selected].is_empty():
 		return result+" · "+TYPES[constructed[selected]]["name"]+" construido"
 	return result+" · vacío. Tocá un edificio para construirlo."
@@ -131,7 +147,7 @@ func build(kind: String) -> bool:
 		return false
 	if not constructed[selected].is_empty():
 		return false
-	if has_building(kind):
+	if has_building(kind) or not can_build(kind):
 		return false
 	var cost: int=TYPES[kind]["price"]
 	if g.coins<cost:
@@ -144,6 +160,7 @@ func build(kind: String) -> bool:
 		g.max_capacity=mini(300,g.max_capacity+6)
 	g.world.navigation.add_obstacle(Rect2(
 		Vector2(LOCATIONS[selected].x-2.2,LOCATIONS[selected].z-1.9),Vector2(4.4,3.8)))
+	g.player.position=g.world.navigation.nearest_free(g.player.position)
 	g._notice("¡NUEVA CONSTRUCCIÓN!\n%s" % TYPES[kind]["name"],2.5)
 	_refresh_plots()
 	g._save_progress()
@@ -154,76 +171,78 @@ func _part(root: Node3D,kind: String,at: Vector3,size: Vector3,color: Color) -> 
 	return g.world.shape(root,kind,at,size,color)
 
 func _make_building(plot: Node3D, kind: String, animated: bool) -> void:
-	var building:=Node3D.new()
+	var building:=Art.place(plot,kind)
 	building.name=TYPES[kind]["name"]
-	plot.add_child(building)
-	_part(building,"box",Vector3(0,.20,0),Vector3(4.7,.30,4.2),Color("#ae9672"))
-	if kind in ["house","park"]:
-		_part(building,"box",Vector3(0,1.55,0),Vector3(3.85,2.7,3.25),Color("#f5ddae"))
-		for x in [-1.08,1.08]:
-			var roof:=_part(building,"box",Vector3(x,3.00,0),Vector3(2.60,.30,3.78),Color("#b96552"))
-			roof.rotation.z=(-.47 if x<0 else .47)
-		_part(building,"box",Vector3(0,.96,1.67),Vector3(1.05,1.82,.16),Color("#688c83"))
-		for x in [-1.20,1.20]:
-			_part(building,"box",Vector3(x,1.95,1.68),Vector3(.63,.7,.10),Color("#95d6dc"))
-	elif kind in ["cafe","bakery"]:
-		_part(building,"box",Vector3(0,1.24,0),Vector3(4.15,2.00,3.55),Color("#f0d0a0"))
-		_part(building,"box",Vector3(0,2.45,0),Vector3(4.85,.45,4.2),Color("#ce765a"))
-		_part(building,"box",Vector3(0,.95,1.81),Vector3(1.28,1.5,.12),Color("#477c74"))
-		for x in [-1.40,1.40]:
-			_part(building,"box",Vector3(x,1.53,1.81),Vector3(.90,1.0,.15),Color("#9edbd5"))
-		for x in [-1.52,-.52,.52,1.52]:
-			_part(building,"box",Vector3(x,2.14,1.97),Vector3(.91,.52,.44),Color("#fff0db") if absf(x)<1.0 else Color("#d27f60"))
-	else:
-		_part(building,"box",Vector3(0,1.40,0),Vector3(4.35,2.5,3.80),Color("#9eaa91"))
-		_part(building,"box",Vector3(0,2.80,0),Vector3(4.9,.38,4.2),Color("#5c8782"))
-		_part(building,"box",Vector3(0,1.02,1.96),Vector3(2.3,1.90,.12),Color("#b99565"))
-		for x in [-1.3,1.3]:
-			_part(building,"box",Vector3(x,1.9,1.98),Vector3(.42,.53,.08),Color("#ead6a9"))
-	# The more advanced buildings get silhouette features and animated details.
-	if kind=="greenhouse":
-		for x in [-1.4,-.5,.5,1.4]:
-			_part(building,"box",Vector3(x,1.1,2.03),Vector3(.17,1.85,.12),Color("#4d8270"))
-		_part(building,"box",Vector3(0,2.65,0),Vector3(4.7,.24,4.1),Color("#a9d8ce"))
-		for x in [-1.2,1.2]:
-			for z in [-1.2,1.2]:
-				_part(building,"sphere",Vector3(x,.39,z),Vector3(.8,.65,.75),Color("#7cae79"))
-	if kind=="workshop":
-		_part(building,"box",Vector3(1.55,2.0,1.92),Vector3(.63,.75,.34),Color("#ce8358"))
-		for i in range(3):
-			_part(building,"box",Vector3(-1.5+float(i)*.65,.56,2.00),Vector3(.43,.39,.41),Color("#b78957"))
+	building_nodes[plot_nodes.find(plot)]=building
 	if kind=="mill":
-		_part(building,"cylinder",Vector3(0,3.30,-.3),Vector3(1.4,3.5,1.4),Color("#f0d7b8"))
-		_part(building,"cone",Vector3(0,5.30,-.3),Vector3(2.3,1.3,2.3),Color("#b66b54"))
-		var wheel:=Node3D.new();wheel.name="Aspas giratorias"
-		wheel.position=Vector3(0,3.7,1.1);building.add_child(wheel)
-		for i in range(4):
-			var blade:=_part(wheel,"box",Vector3(0,1.15,0),Vector3(.42,2.15,.18),Color("#e9e0c2"))
-			blade.rotation.z=float(i)*PI*.5
-	if kind=="watchtower":
-		for x in [-1.6,1.6]:
-			for z in [-1.3,1.3]:
-				_part(building,"box",Vector3(x,2.9,z),Vector3(.26,5.6,.26),Color("#a87951"))
-		_part(building,"box",Vector3(0,5.50,0),Vector3(4.7,.36,4.5),Color("#a3744e"))
-		_part(building,"box",Vector3(0,6.02,0),Vector3(5.1,.36,4.9),Color("#dca873"))
-	if kind=="park":
-		for x in [-1.5,1.5]:
-			for z in [-1.5,1.5]:
-				_part(building,"sphere",Vector3(x,.40,z),Vector3(.65,.62,.61),Color("#629965"))
-		_part(building,"cylinder",Vector3(0,.58,0),Vector3(1.45,.35,1.45),Color("#7baeb1"))
-		_part(building,"sphere",Vector3(0,1.12,0),Vector3(.55,.52,.55),Color("#9ed7dc"))
-	var sign: Label3D=g.world.make_label(building,TYPES[kind]["name"],Vector3(0,3.65,0),30)
-	sign.pixel_size=.008
-	sign.modulate=Color("#355952")
+		var rotor:=building.find_child("WindmillRotor",true,false)
+		if rotor!=null:
+			var spin:=create_tween().set_loops()
+			spin.tween_property(rotor,"rotation:z",TAU,14.0).from(0.0)
 	if animated:
-		building.scale=Vector3(.08,.02,.08)
+		building.scale=Vector3(.98,.02,.98)
 		var tween:=create_tween()
-		tween.tween_property(building,"scale",Vector3(1.08,1.08,1.08),.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_property(building,"scale",Vector3.ONE,.19)
+		tween.tween_interval(.65)
+		tween.tween_property(building,"scale",Vector3(1.02,1.02,1.02),1.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(building,"scale",Vector3.ONE,.20)
 		_construction_effect(plot)
+		var builder: MarketActor=g.ActorScript.new()
+		builder.setup("helper",Color("#d8ad64"),"rabbit")
+		g.add_child(builder)
+		builder.position=plot.global_position+Vector3(-2.6,0,2.4)
+		builder.act("build")
+		var work:=create_tween()
+		work.tween_interval(1.1)
+		work.tween_callback(func():
+			if is_instance_valid(builder):builder.act("build"))
+		work.tween_interval(1.3)
+		work.tween_callback(builder.queue_free)
+		g.player.act("build")
+
+func is_plot_open(index: int) -> bool:
+	return not constructed[index].is_empty() or g.run.level>=DISTRICT_LEVELS[index]
+
+func can_build(kind: String) -> bool:
+	return TYPES.has(kind) and g.run.level>=BUILDING_LEVELS[kind] and is_plot_open(selected)
+
+func begin_move() -> bool:
+	if not in_build_mode or constructed[selected].is_empty():return false
+	move_source=selected
+	g._refresh_ui()
+	return true
+
+func move_building(destination: int) -> bool:
+	if move_source<0 or destination==move_source or not constructed[destination].is_empty() or not is_plot_open(destination):return false
+	var source:=move_source
+	var kind: String=constructed[source]
+	var before:=Rect2(Vector2(LOCATIONS[source].x-2.2,LOCATIONS[source].z-1.9),Vector2(4.4,3.8))
+	g.world.navigation.remove_obstacle(before)
+	constructed[source]=""
+	constructed[destination]=kind
+	var building: Node3D=building_nodes[source]
+	building.reparent(plot_nodes[destination])
+	var tween:=create_tween()
+	tween.tween_property(building,"position",Vector3.ZERO,.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	building_nodes.erase(source)
+	building_nodes[destination]=building
+	g.world.navigation.add_obstacle(Rect2(Vector2(LOCATIONS[destination].x-2.2,LOCATIONS[destination].z-1.9),Vector2(4.4,3.8)))
+	g.player.position=g.world.navigation.nearest_free(g.player.position)
+	selected=destination
+	move_source=-1
+	_refresh_plots()
+	g._save_progress()
+	g._refresh_ui()
+	return true
 
 func _construction_effect(plot: Node3D) -> void:
-	# Build-site dust scatters and fades on real construction.
+	# Temporary work-site timber and supplies disappear as the final model rises.
+	var scaffold:=Node3D.new();plot.add_child(scaffold)
+	for x in [-2.40,2.40]:
+		for z in [-1.98,1.98]:g.world.shape(scaffold,"box",Vector3(x,1.55,z),Vector3(.13,3.1,.13),Color("#a67e53"))
+	for z in [-1.98,1.98]:
+		for y in [.72,1.62,2.56]:g.world.shape(scaffold,"box",Vector3(0,y,z),Vector3(4.9,.13,.14),Color("#c29a6b"))
+	var clear:=create_tween();clear.tween_interval(2.25);clear.tween_callback(scaffold.queue_free)
+	# Work-site dust scatters and fades.
 	for i in range(10):
 		var angle:=TAU*float(i)/10.0
 		var dust: MeshInstance3D=g.world.shape(plot,"sphere",Vector3(0,.6,0),Vector3(.2,.2,.2),Color("#efcf91"))

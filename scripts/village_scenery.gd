@@ -3,6 +3,7 @@ class_name WivoriVillageScenery
 
 # Lightweight 3D neighborhood art. Streets actually join the existing market,
 # while the new buildable plots remain clear for player-placed structures.
+const Art=preload("res://scripts/art_library.gd")
 var w: MarketWorld
 var wind_vanes: Array[Node3D]=[]
 var fountains: Array[Node3D]=[]
@@ -48,29 +49,7 @@ func _build_roads() -> void:
 		_p("cone",at+Vector3(0,2.66,0),Vector3(.85,.42,.85),Color("#598778"))
 
 func _cottage(self_root: Node3D, accent: Color, roof: Color, awning: bool) -> void:
-	_p("box",Vector3(0,.17,0),Vector3(5.1,.30,4.9),Color("#b99a74"),self_root)
-	_p("box",Vector3(0,1.70,0),Vector3(4.4,2.78,4.1),accent,self_root)
-	# Ridged roof with two sloped, layered halves rather than a plain lid.
-	for x in [-1.26,1.26]:
-		var panel:=_p("box",Vector3(x,3.36,0),Vector3(3.10,.24,4.77),roof,self_root)
-		panel.rotation.z=(-.48 if x<0 else .48)
-		var trim:=_p("box",Vector3(x,3.16,2.22),Vector3(2.95,.14,.17),roof.darkened(.20),self_root)
-		trim.rotation.z=(-.48 if x<0 else .48)
-	_p("box",Vector3(-1.29,1.10,2.11),Vector3(.95,1.9,.16),Color("#916c53"),self_root)
-	for x in [.3,1.52]:
-		_p("box",Vector3(x,2.0,2.14),Vector3(.78,.78,.12),Color("#eff0d6"),self_root)
-		_p("box",Vector3(x,2.0,2.22),Vector3(.52,.51,.06),Color("#9dcfce"),self_root)
-		_p("box",Vector3(x,1.61,2.24),Vector3(1.0,.16,.34),Color("#a97d5c"),self_root)
-		_p("box",Vector3(x,1.74,2.40),Vector3(.73,.22,.25),Color("#79a779"),self_root)
-	_p("box",Vector3(-1.2,4.0,-.6),Vector3(.68,1.1,.70),Color("#bb855b"),self_root)
-	if awning:
-		for x in [-1.1,-.25,.6,1.45]:
-			_p("box",Vector3(x,1.23,2.38),Vector3(.81,.10,1.04),
-			Color("#f3ddbd") if x<0 else Color("#ba7863"),self_root)
-	# Very cheap detail makes architecture legible from isometric camera.
-	for z in [-1.6,1.6]:
-		_p("box",Vector3(2.2,.59,z),Vector3(.22,.35,.61),Color("#86ab75"),self_root)
-		_p("sphere",Vector3(2.2,1.01,z),Vector3(.74,.60,.80),Color("#70a371"),self_root)
+	Art.place(self_root,"cafe" if awning else "house")
 
 func _build_neighborhoods() -> void:
 	var coords=[
@@ -118,25 +97,12 @@ func _build_market_details() -> void:
 		wind_vanes.append(flag)
 
 func _build_park() -> void:
-	# Small civic square with benches, planters and moving fountain.
-	var core:=Vector3(-8,0,22)
-	_p("box",core+Vector3(0,.09,0),Vector3(6.6,.17,7.0),Color("#dbcca8"))
-	_p("cylinder",core+Vector3(0,.33,0),Vector3(3.2,.43,3.2),Color("#b9c5af"))
-	_p("cylinder",core+Vector3(0,.62,0),Vector3(2.45,.18,2.45),Color("#82c5c7"))
-	var jet:=Node3D.new()
-	jet.position=core+Vector3(0,1.04,0);jet.name="Fuente animada"
-	add_child(jet)
-	_p("sphere",Vector3.ZERO,Vector3(.41,.65,.41),Color("#ace1e0"),jet)
-	fountains.append(jet)
-	for x in [-2.55,2.55]:
-		_p("box",core+Vector3(x,.58,0),Vector3(.5,.15,1.28),Color("#986f55"))
-		for z in [-.45,.45]:
-			_p("box",core+Vector3(x,.28,z),Vector3(.38,.55,.15),Color("#785a43"))
-	for j in range(12):
-		var angle:=TAU*float(j)/12.0
-		var where:=core+Vector3(cos(angle)*4.1,.19,sin(angle)*4.0)
-		_p("sphere",where,Vector3(.36,.33,.37),
-			Color("#f2bb66") if j%3==0 else Color("#cc8b97"))
+	var fountain:=Art.place(self,"park",Vector3(-8,0,22))
+	var drops:=Node3D.new();drops.position=Vector3(-8,1.65,22);add_child(drops)
+	for i in range(8):
+		var a:=TAU*float(i)/8
+		_p("sphere",Vector3(cos(a)*.35,.1,sin(a)*.35),Vector3(.055,.16,.055),Color("#b5e3df"),drops)
+	fountains.append(drops)
 
 func _process(delta: float) -> void:
 	sparkle_time+=delta

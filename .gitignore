@@ -4,3 +4,6 @@ build/
 export_credentials.cfg
 *.keystore
 !tools/android/debug.keystore
+
+art/source/*.blend[0-9]
+art/source/__pycache__/

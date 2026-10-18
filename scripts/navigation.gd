@@ -4,10 +4,24 @@ extends RefCounted
 # Geometry is registered by the world, so the visuals and routes stay in sync.
 const CELL_SIZE := 0.5
 const LIMIT := 34.0
+const AGENT_RADIUS := .25
 var grid := AStarGrid2D.new()
 var obstacles: Array[Rect2] = []
 var revision := 0
 var grid_ready := false
+
+func remove_obstacle(bounds: Rect2) -> void:
+	var index:=obstacles.find(bounds)
+	if index<0:return
+	obstacles.remove_at(index)
+	if not grid_ready:return
+	revision+=1
+	# Only revisit the released footprint; moving a house must not stall the
+	# whole town by rebuilding every cell in the 137 by 137 navigation map.
+	for cx in range(floori((bounds.position.x-.28)/CELL_SIZE),ceili((bounds.end.x+.28)/CELL_SIZE)+1):
+		for cz in range(floori((bounds.position.y-.28)/CELL_SIZE),ceili((bounds.end.y+.28)/CELL_SIZE)+1):
+			var id:=Vector2i(cx,cz)
+			if grid.is_in_boundsv(id):grid.set_point_solid(id,not is_walkable(Vector3(cx*CELL_SIZE,0,cz*CELL_SIZE),.26))
 
 func add_obstacle(bounds: Rect2) -> void:
 	obstacles.append(bounds)
@@ -50,7 +64,7 @@ func is_walkable(at: Vector3, margin: float = 0.0) -> bool:
 
 func nearest_free(at: Vector3) -> Vector3:
 	var clamped := Vector3(clampf(at.x, -LIMIT, LIMIT), 0, clampf(at.z, -LIMIT, LIMIT))
-	if is_walkable(clamped):
+	if is_walkable(clamped,AGENT_RADIUS):
 		return clamped
 	var best := Vector3.ZERO
 	var distance := INF
@@ -69,7 +83,7 @@ func nearest_free(at: Vector3) -> Vector3:
 func segment_clear(start: Vector3, end: Vector3) -> bool:
 	var samples := maxi(1, int(ceil(start.distance_to(end) / 0.12)))
 	for i in range(1, samples + 1):
-		if not is_walkable(start.lerp(end, float(i) / samples)):
+		if not is_walkable(start.lerp(end, float(i) / samples),AGENT_RADIUS):
 			return false
 	return true
 
@@ -117,20 +131,20 @@ func find_path(start: Vector3, destination: Vector3) -> PackedVector3Array:
 	return route
 
 func slide(start: Vector3, motion: Vector3) -> Vector3:
-	var position := start
+	var position := start if is_walkable(start,AGENT_RADIUS) else nearest_free(start)
 	var steps := maxi(1, int(ceil(motion.length() / 0.12)))
 	var step := motion / steps
 	for i in range(steps):
 		var next := position + step
 		next.x = clampf(next.x, -LIMIT, LIMIT)
 		next.z = clampf(next.z, -LIMIT, LIMIT)
-		if is_walkable(next):
+		if is_walkable(next,AGENT_RADIUS):
 			position = next
 		else:
 			var along_x := Vector3(next.x, 0, position.z)
-			if is_walkable(along_x):
+			if is_walkable(along_x,AGENT_RADIUS):
 				position = along_x
 			var along_z := Vector3(position.x, 0, next.z)
-			if is_walkable(along_z):
+			if is_walkable(along_z,AGENT_RADIUS):
 				position = along_z
 	return position

@@ -31,6 +31,7 @@ func _next_investment() -> String:
 	if g.run.level>=5 and not g.pier_owned:return "pier"
 	if g.run.level>=4 and g.run.guard_level==0:return "guard"
 	if g.run.level>=3 and g.run.alarm_level==0:return "alarm"
+	if g.run.level>=3 and not g.cash.collector_hired and g.earned>=500:return "collector"
 	if g.run.level<=2:return "checkout" if g.run.level==2 and g.checkout_level==0 else ""
 	var choice := ""
 	var cheapest := 2000000001
@@ -83,6 +84,12 @@ func objective() -> Dictionary:
 		data["title"]=security["title"]; data["target"]=security["target"]
 		return data
 	var bag: int=g._total_bag()
+	var next_kind:=recommended()
+	var saving_for_upgrade: bool=not next_kind.is_empty() and g.coins<g._upgrade(next_kind)["price"]
+	if g.cash.total_pending()>0 and (g.worker_count==0 or not g.cash.collector_hired and g.cash.total_pending()>=75 or saving_for_upgrade):
+		var box: int=0 if g.cash.pending[0]>=g.cash.pending[1] else 1
+		data.merge({"title":"Recogé lo que ganaste","detail":"Las ventas quedan en la caja. Acercate para cobrarlas.","target":g.cash.REGISTERS[box]},true)
+		return data
 	if g.run.level>=4 and g.run.contract_done<g.run.contract_goal() and g.stash[g.run.contract_kind()]>0:
 		data["title"]="Entregá el pedido premium ×2"; data["target"]=g.run.CART
 		return data
