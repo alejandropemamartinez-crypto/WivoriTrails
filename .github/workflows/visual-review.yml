@@ -1,0 +1,55 @@
+name: Wivori Trails - Visual Review
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v4
+      - name: Install virtual display and Mesa
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 mesa-utils >/dev/null
+      - name: Import scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --import
+      - name: Render actual game captures, not mockups
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "3.3"
+        run: |
+          set -euo pipefail
+          mkdir -p previews
+          timeout 180 xvfb-run -a -s "-screen 0 720x1280x24" \
+            godot --path . --rendering-driver opengl3 --resolution 720x1280 \
+            --script res://tools/capture_preview.gd -- "$PWD/previews"
+          test -s previews/start.png
+          test -s previews/faces.png
+          test -s previews/scottish_terrier_closeup.png
+          test -s previews/rabbit_robbery_alert.png
+          test -s previews/cash_collection_flight.png
+          test -s previews/town_overview.png
+          ls -lh previews
+      - name: Publish visual screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WivoriTrails_Visual_Snapshots
+          path: previews/*.png
+          if-no-files-found: warn
+          retention-days: 14

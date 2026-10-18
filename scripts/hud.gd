@@ -2,7 +2,10 @@ extends CanvasLayer
 
 const IconScript=preload("res://scripts/ui_icon.gd")
 const TouchButtonScript=preload("res://scripts/touch_button.gd")
-const INK=Color("#24494b")
+const RabbitWarning=preload("res://scripts/rabbit_warning.gd")
+const INK=Color("#2c4e54")
+const Bold=preload("res://assets/fonts/Quicksand-Bold.ttf")
+const Medium=preload("res://assets/fonts/Quicksand-Medium.ttf")
 const MUTED=Color("#718783")
 const PAPER=Color("#fffaf0")
 const TEAL=Color("#238577")
@@ -17,6 +20,7 @@ var guide_button: Button
 var next_label: Label
 var team_label: Label
 var shop_coins: Label
+var uncollected_label: Label
 var run_button: Button
 var shop_details := {}
 var objective := {}
@@ -32,12 +36,29 @@ var pad_title: Label
 var pad_detail: Label
 var pad_button: Button
 var wayfinder
+var intercept_button: Button
+var town_button: Button
+var town_panel: PanelContainer
+var town_description: Label
+var town_choices: Dictionary={}
+var mission_panel: PanelContainer
+var status_row: HBoxContainer
+var view_button: Button
+var footer_panel: PanelContainer
+var rabbit_banner: RabbitWarningBanner
+var move_button: Button
+var shop_cards: Dictionary={}
+var shop_category: String="team"
+var previous_wallet: int=-1
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
 	node.text=text_
 	node.add_theme_font_size_override("font_size",size_)
+	node.add_theme_font_override("font",Bold if size_>=19 else Medium)
 	node.add_theme_color_override("font_color",color_)
+	node.add_theme_color_override("font_shadow_color",Color(1,1,1,.31))
+	node.add_theme_constant_override("shadow_offset_y",1)
 	node.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	return node
 
@@ -45,6 +66,9 @@ func style(color_: Color, radius_: int=22) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color=color_
 	box.set_corner_radius_all(radius_)
+	box.border_color=color_.lightened(.10)
+	box.set_border_width_all(2)
+	box.border_width_bottom=4
 	box.content_margin_left=20; box.content_margin_right=20
 	box.content_margin_top=16; box.content_margin_bottom=16
 	return box
@@ -63,17 +87,34 @@ func icon(kind: String, tint: Color=INK, dimensions: Vector2=Vector2(42,42)) -> 
 	node.custom_minimum_size=dimensions
 	return node
 
+func action_icon(index: int) -> Texture2D:
+	return load("res://assets/ui/icons/button_"+["town","shop","speed","arrow","guard"][index]+".svg")
+
 func button(text_: String, color_: Color=TEAL, font_size_: int=21) -> Button:
 	var node := TouchButtonScript.new()
+	node.expand_icon=false
+	node.add_theme_constant_override("icon_max_width",28)
 	node.text=text_
 	node.add_theme_font_size_override("font_size",font_size_)
+	node.add_theme_font_override("font",Bold)
+	node.add_theme_color_override("font_shadow_color",Color(.06,.20,.21,.28))
+	node.add_theme_constant_override("shadow_offset_y",2)
 	node.add_theme_color_override("font_color",PAPER)
 	node.add_theme_color_override("font_hover_color",PAPER)
 	node.add_theme_color_override("font_pressed_color",PAPER)
 	node.add_theme_color_override("font_disabled_color",Color("#7f9690"))
-	node.add_theme_stylebox_override("normal",style(color_,18))
-	node.add_theme_stylebox_override("hover",style(color_.lightened(.08),18))
-	node.add_theme_stylebox_override("pressed",style(color_.darkened(.12),18))
+	var normal:=style(color_,21)
+	normal.border_color=color_.darkened(.30)
+	normal.border_width_bottom=5; normal.border_width_left=2; normal.border_width_right=2
+	normal.shadow_color=Color(.06,.19,.18,.24)
+	normal.shadow_size=8; normal.shadow_offset=Vector2(0,5)
+	var hover:=style(color_.lightened(.11),21)
+	hover.border_color=color_.darkened(.16);hover.border_width_bottom=5
+	var pressed:=style(color_.darkened(.11),21)
+	pressed.border_color=color_.darkened(.29);pressed.border_width_bottom=2
+	node.add_theme_stylebox_override("normal",normal)
+	node.add_theme_stylebox_override("hover",hover)
+	node.add_theme_stylebox_override("pressed",pressed)
 	node.add_theme_stylebox_override("disabled",style(Color("#e3ebe4"),18))
 	node.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
 	node.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
@@ -103,26 +144,31 @@ func build(game: Node3D) -> void:
 	name="Interfaz móvil"
 	root=Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var ui_theme := Theme.new()
-	ui_theme.default_font=ThemeDB.fallback_font.duplicate()
+	ui_theme.default_font=Bold
 	root.theme=ui_theme
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(root)
 
-	var header := panel(); root.add_child(header); position_top(header,24,88)
-	var row := HBoxContainer.new(); row.add_theme_constant_override("separation",10); header.add_child(row)
-	row.add_child(icon("coin",INK,Vector2(48,48)))
-	var money := VBoxContainer.new(); money.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(money)
-	money.add_child(label("MONEDAS",13,MUTED))
-	g.total_label=label("50",30); money.add_child(g.total_label)
-	var level := VBoxContainer.new(); level.custom_minimum_size=Vector2(91,0); row.add_child(level)
-	level.add_child(label("NIVEL",12,TEAL))
-	level_label=label("01",23,TEAL); level.add_child(level_label)
-	level_progress=progress(); level_progress.max_value=20; level.add_child(level_progress)
-	row.add_child(icon("bag",TEAL,Vector2(37,48)))
-	var bag := VBoxContainer.new(); bag.custom_minimum_size=Vector2(120,0); row.add_child(bag)
-	g.backpack_label=label("0 / 12",23); bag.add_child(g.backpack_label)
-	bag_progress=progress(GOLD); bag.add_child(bag_progress)
+	var header:=panel(Color("#28565b"));root.add_child(header);position_top(header,22,105)
+	var row:=HBoxContainer.new();row.add_theme_constant_override("separation",14);header.add_child(row)
+	row.add_child(icon("coin",GOLD,Vector2(54,54)))
+	var wallet:=VBoxContainer.new();wallet.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(wallet)
+	wallet.add_child(label("TU TESORERÍA",12,Color("#e3cd9f")))
+	g.total_label=label("50",34,Color("#fff5d7"));wallet.add_child(g.total_label)
+	uncollected_label=label("EN CAJAS  0",13,Color("#bed9c9"));wallet.add_child(uncollected_label)
+	var badge:=panel(Color("#e8b95e"));badge.custom_minimum_size=Vector2(97,0);row.add_child(badge)
+	var badge_style:=style(Color("#e8b95e"),19);badge_style.content_margin_top=5;badge_style.content_margin_bottom=5;badge_style.content_margin_left=12;badge_style.content_margin_right=12;badge.add_theme_stylebox_override("panel",badge_style)
+	var level:=VBoxContainer.new();badge.add_child(level)
+	var small:=label("NIVEL",11,Color("#76532b"));small.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(small)
+	level_label=label("01",27,Color("#fff5dc"));level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(level_label)
+	level_progress=progress(Color("#fdf0c5"));level_progress.custom_minimum_size.y=5;level.add_child(level_progress)
+	row.add_child(icon("bag",Color("#e8cb9b"),Vector2(35,45)))
+	var bag:=VBoxContainer.new();bag.custom_minimum_size=Vector2(111,0);row.add_child(bag)
+	bag.add_child(label("MOCHILA",11,Color("#bed9c9")))
+	g.backpack_label=label("0 / 12",24,Color("#fff4d9"));bag.add_child(g.backpack_label)
+	bag_progress=progress(GOLD);bag.add_child(bag_progress)
 
-	var mission := panel(); root.add_child(mission); position_top(mission,128,136)
+	var mission := panel(); root.add_child(mission); position_top(mission,141,130)
+	mission_panel=mission
 	var mission_row := HBoxContainer.new(); mission_row.add_theme_constant_override("separation",12); mission.add_child(mission_row)
 	var mission_column := VBoxContainer.new(); mission_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	mission_column.add_theme_constant_override("separation",3); mission_row.add_child(mission_column)
@@ -130,14 +176,16 @@ func build(game: Node3D) -> void:
 	g.mission_label=label("Tu primera cosecha",23); mission_column.add_child(g.mission_label)
 	g.mission_label.clip_text=true
 	next_label.clip_text=true
-	mission_detail=label("",17,MUTED); mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	mission_detail=label("",16,MUTED); mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	mission_detail.custom_minimum_size=Vector2(370,0); mission_column.add_child(mission_detail)
+	mission_detail.max_lines_visible=2
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",TEAL,16); guide_button.custom_minimum_size=Vector2(122,70)
+	guide_button=button("GUIAR",TEAL,16); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(138,96)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
-	var status := HBoxContainer.new(); root.add_child(status); position_top(status,280,36)
+	var status := HBoxContainer.new(); root.add_child(status); position_top(status,281,36)
+	status_row=status
 	status.add_theme_constant_override("separation",12)
 	var stock := panel(Color(.98,.97,.90,.90)); status.add_child(stock)
 	var chip_style := style(Color(.98,.97,.90,.90),12)
@@ -151,14 +199,15 @@ func build(game: Node3D) -> void:
 	queue.add_theme_stylebox_override("panel",chip_style)
 	queue_label=label("Fila  0/6",17); queue.add_child(queue_label)
 	var shipping := panel(Color(.12,.31,.31,.94)); root.add_child(shipping)
-	position_top(shipping,340,58,24,-130)
+	position_top(shipping,300,50,24,-130)
 	shipping.add_theme_stylebox_override("panel",style(Color(.12,.31,.31,.94),14))
 	g.shipping_label=label("",16,PAPER); shipping.add_child(g.shipping_label); shipping.visible=false
 
 	var view := button("VISTA",PAPER,14); root.add_child(view)
+	view_button=view
 	view.add_theme_color_override("font_color",INK); view.add_theme_color_override("font_hover_color",INK)
 	view.anchor_left=1; view.anchor_right=1
-	view.offset_left=-108; view.offset_right=-24; view.offset_top=280; view.offset_bottom=324
+	view.offset_left=-108; view.offset_right=-24; view.offset_top=283; view.offset_bottom=329
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
@@ -166,27 +215,40 @@ func build(game: Node3D) -> void:
 	g.input_stick.anchor_top=1; g.input_stick.anchor_bottom=1
 	g.input_stick.offset_left=18; g.input_stick.offset_right=223
 	g.input_stick.offset_top=-252; g.input_stick.offset_bottom=-37
-	var run := button("CORRER",Color("#d79b41"),18); root.add_child(run)
+	var run := button("CORRER",Color("#cb8b46"),18); root.add_child(run)
 	run_button=run
+	run.icon=action_icon(2);run.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	run.anchor_left=1; run.anchor_right=1; run.anchor_top=1; run.anchor_bottom=1
-	run.offset_left=-182; run.offset_right=-24; run.offset_top=-240; run.offset_bottom=-168
+	run.offset_left=-182; run.offset_right=-24; run.offset_top=-272; run.offset_bottom=-176
 	run.button_down.connect(func():g.boost_active=true)
 	run.button_up.connect(func():g.boost_active=false)
-	g.shop_button=button("MEJORAS",TEAL,23); root.add_child(g.shop_button)
+	g.shop_button=button("MEJORAS",TEAL,17); g.shop_button.icon=action_icon(1);g.shop_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT; root.add_child(g.shop_button)
 	g.shop_button.anchor_left=1; g.shop_button.anchor_right=1
 	g.shop_button.anchor_top=1; g.shop_button.anchor_bottom=1
-	g.shop_button.offset_left=-286; g.shop_button.offset_right=-24
-	g.shop_button.offset_top=-152; g.shop_button.offset_bottom=-68
+	g.shop_button.offset_left=-154; g.shop_button.offset_right=-24
+	g.shop_button.offset_top=-160; g.shop_button.offset_bottom=-64
 	g.shop_button.pressed.connect(func():g._toggle_shop())
+	town_button=button("PUEBLO",Color("#5d8490"),17);town_button.icon=action_icon(0);town_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(town_button)
+	town_button.anchor_left=1; town_button.anchor_right=1; town_button.anchor_top=1; town_button.anchor_bottom=1
+	town_button.offset_left=-286; town_button.offset_right=-163
+	town_button.offset_top=-160; town_button.offset_bottom=-64
+	town_button.pressed.connect(func():g._toggle_build_mode())
+
+	intercept_button=button("AHUYENTAR",Color("#b55d50"),19);intercept_button.icon=action_icon(4);intercept_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(intercept_button)
+	intercept_button.anchor_left=1; intercept_button.anchor_right=1; intercept_button.anchor_top=1; intercept_button.anchor_bottom=1
+	intercept_button.offset_left=-286; intercept_button.offset_right=-24; intercept_button.offset_top=-384; intercept_button.offset_bottom=-288
+	intercept_button.pressed.connect(func():g._intercept())
+	intercept_button.visible=false
 
 	var footer := panel(Color(.98,.97,.90,.92)); root.add_child(footer)
+	footer_panel=footer
 	footer.anchor_top=1; footer.anchor_bottom=1; footer.anchor_right=1
 	footer.offset_left=242; footer.offset_right=-24; footer.offset_top=-55; footer.offset_bottom=-12
 	var footer_style := style(Color(.98,.97,.90,.92),12)
 	footer_style.content_margin_left=10; footer_style.content_margin_right=10
 	footer_style.content_margin_top=4; footer_style.content_margin_bottom=4
 	footer.add_theme_stylebox_override("panel",footer_style)
-	g.hint_label=label("Movete o tocá el camino",14); g.hint_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	g.hint_label=label("Vos movés al personaje con el joystick",14); g.hint_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	footer.add_child(g.hint_label)
 
 	g.event_label=label("",23,PAPER); root.add_child(g.event_label)
@@ -197,21 +259,27 @@ func build(game: Node3D) -> void:
 	g.event_label.add_theme_stylebox_override("normal",style(Color(.10,.26,.26,.94),18))
 	g.event_label.visible=false
 	build_action_cards()
+	build_town_controls()
 	wayfinder=load("res://scripts/wayfinder.gd").new(); wayfinder.g=g
 	root.add_child(wayfinder); wayfinder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	build_shop()
+	rabbit_banner=RabbitWarning.new()
+	root.add_child(rabbit_banner)
+	# The emergency interception control must win hit-testing over any nearby
+	# contextual purchase panels when several UI elements overlap.
+	root.move_child(intercept_button,root.get_child_count()-1)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)
 
 func build_action_cards() -> void:
 	alert_panel=panel(Color("#fff1de")); root.add_child(alert_panel)
-	position_top(alert_panel,336,88)
+	position_top(alert_panel,336,128)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation",12); alert_panel.add_child(row)
 	var column := VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(column)
 	alert_title=label("",19,Color("#ab593d")); column.add_child(alert_title)
 	alert_detail=label("",15,MUTED); alert_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	alert_detail.custom_minimum_size=Vector2(350,0); column.add_child(alert_detail)
-	alert_button=button("REPONER",Color("#b96a40"),15); alert_button.custom_minimum_size=Vector2(132,54)
+	alert_button=button("REPONER",Color("#b96a40"),15); alert_button.custom_minimum_size=Vector2(132,88)
 	alert_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; row.add_child(alert_button)
 	alert_button.pressed.connect(func():g._follow_alert())
 	alert_panel.visible=false
@@ -225,10 +293,98 @@ func build_action_cards() -> void:
 	pad_title=label("",23); pad_title.clip_text=true; description.add_child(pad_title)
 	pad_detail=label("",17,MUTED); pad_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	pad_detail.custom_minimum_size=Vector2(340,0); description.add_child(pad_detail)
-	pad_button=button("COMPRAR",TEAL,18); pad_button.custom_minimum_size=Vector2(156,76)
+	pad_button=button("COMPRAR",TEAL,18); pad_button.custom_minimum_size=Vector2(156,96)
 	pad_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; pad_row.add_child(pad_button)
 	pad_button.pressed.connect(func():g._purchase_nearby())
 	pad_panel.visible=false
+
+func build_town_controls() -> void:
+	# Township-inspired compact horizontal catalog: the town stays on screen.
+	town_panel=panel(Color("#fff8e9"))
+	root.add_child(town_panel)
+	town_panel.anchor_left=0; town_panel.anchor_right=1
+	town_panel.anchor_top=1; town_panel.anchor_bottom=1
+	town_panel.offset_left=20; town_panel.offset_right=-20
+	town_panel.offset_top=-458; town_panel.offset_bottom=-169
+	var column:=VBoxContainer.new(); column.add_theme_constant_override("separation",5)
+	town_panel.add_child(column)
+	var top:=HBoxContainer.new()
+	top.add_theme_constant_override("separation",10)
+	column.add_child(top)
+	var title:=label("CONSTRUIR",20,INK)
+	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	move_button=button("MOVER EDIFICIO",Color("#6d8797"),13)
+	move_button.pressed.connect(func():g.town.begin_move())
+	top.add_child(move_button)
+	top.add_child(label("Deslizá",13,MUTED))
+	town_description=label("Elegí un solar tocándolo en el mapa",15,MUTED)
+	town_description.clip_text=true
+	column.add_child(town_description)
+	var scroller:=ScrollContainer.new()
+	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+	scroller.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	scroller.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	column.add_child(scroller)
+	var listing:=HBoxContainer.new()
+	listing.add_theme_constant_override("separation",10)
+	scroller.add_child(listing)
+	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
+		var detail: Dictionary=g.town.TYPES[kind]
+		var card:=panel(Color("#f0e8d5"))
+		card.custom_minimum_size=Vector2(186,0)
+		var border:=style(Color("#f0e8d5"),14)
+		border.content_margin_top=7; border.content_margin_bottom=6
+		border.content_margin_left=12; border.content_margin_right=12
+		card.add_theme_stylebox_override("panel",border)
+		listing.add_child(card)
+		var stack:=VBoxContainer.new()
+		stack.add_theme_constant_override("separation",3)
+		card.add_child(stack)
+		var picture:=TextureRect.new()
+		picture.texture=load("res://assets/ui/buildings/"+kind+".png")
+		picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		picture.custom_minimum_size=Vector2(0,94);picture.mouse_filter=Control.MOUSE_FILTER_IGNORE;stack.add_child(picture)
+		var heading:=label(detail["name"],14,INK)
+		heading.clip_text=true
+		stack.add_child(heading)
+		var info:=label(detail["benefit"],12,MUTED)
+		info.clip_text=true
+		stack.add_child(info)
+		var buy:=button("%d" % detail["price"],TEAL,16)
+		buy.custom_minimum_size=Vector2(0,43)
+		stack.add_child(buy)
+		buy.pressed.connect(Callable(g,"_build_town").bind(kind))
+		town_choices[kind]=buy
+	town_panel.visible=false
+
+func animate_income(amount: int, source: Vector2) -> void:
+	if root==null:return
+	var note:=label("+%d" % amount,26,Color("#e0a33b"))
+	note.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	note.add_theme_color_override("font_shadow_color",Color(0.13,0.21,0.18,.36))
+	note.add_theme_constant_override("shadow_offset_y",2)
+	root.add_child(note)
+	# Animated real coins converge on the treasury, rather than just a number.
+	var origin:=Vector2(clampf(source.x,32,600),clampf(source.y,260,1000))
+	for i in range(5):
+		var coin:=icon("coin",GOLD,Vector2(29,29))
+		coin.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		root.add_child(coin)
+		coin.position=origin+Vector2(float(i-2)*12.0,-absf(float(i-2))*4.0)
+		coin.pivot_offset=Vector2(15,15)
+		var coin_tween:=create_tween().set_parallel(true)
+		var target:=Vector2(79+float(i%2)*13.0,77)
+		coin_tween.tween_property(coin,"position",target,.63+float(i)*.055).set_delay(.04*float(i)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		coin_tween.tween_property(coin,"scale",Vector2.ONE*.30,.63+float(i)*.055).set_delay(.04*float(i))
+		coin_tween.chain().tween_callback(coin.queue_free)
+	note.position=origin
+	note.scale=Vector2.ONE*1.15
+	var tween:=create_tween().set_parallel(true)
+	tween.tween_property(note,"position",Vector2(110,62),.86).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(note,"scale",Vector2.ONE*.75,.86)
+	tween.tween_property(note,"modulate:a",0.0,.86).set_delay(.04)
+	tween.chain().tween_callback(note.queue_free)
 
 func _apply_safe_area() -> void:
 	if OS.get_name()!="Android":return
@@ -256,18 +412,25 @@ func build_shop() -> void:
 	var column := VBoxContainer.new(); g.shop_panel.add_child(column)
 	column.add_theme_constant_override("separation",12)
 	var heading := HBoxContainer.new(); column.add_child(heading)
-	var title := label("Hacé crecer tu mercado",29); title.size_flags_horizontal=Control.SIZE_EXPAND_FILL; heading.add_child(title)
+	var title := label("El taller de Wivori",29); title.size_flags_horizontal=Control.SIZE_EXPAND_FILL; heading.add_child(title)
 	var close := button("X",Color("#dbe7dc"),20); close.add_theme_color_override("font_color",INK)
 	close.custom_minimum_size=Vector2(52,52); heading.add_child(close); close.pressed.connect(func():g._toggle_shop())
 	shop_coins=label("",20,TEAL); column.add_child(shop_coins)
-	column.add_child(label("Cada mejora cambia cómo trabajás.",17,MUTED))
+	var tabs:=HBoxContainer.new();tabs.add_theme_constant_override("separation",10);column.add_child(tabs)
+	for category in ["team","tools"]:
+		var tab:=button("CONTRATAR" if category=="team" else "MEJORAR",TEAL if category=="team" else Color("#6d8797"),17)
+		tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		tab.custom_minimum_size.y=52;tabs.add_child(tab)
+		tab.pressed.connect(func():shop_category=category;_filter_shop())
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL; column.add_child(scroll)
 	var upgrades := VBoxContainer.new(); upgrades.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	upgrades.add_theme_constant_override("separation",12); scroll.add_child(upgrades)
-	var names := {"helper":"Ayudante automático","checkout":"Caja rápida","speed":"Zapatillas turbo","bag":"Mochila más grande","expand":"Huerto de manzanas","pier":"Muelle de exportación"}
-	for key in ["helper","checkout","bag","speed","expand","pier"]:
-		var card := panel(Color("#eef2e6")); upgrades.add_child(card)
+	var names := {}
+	for kind in g.UPGRADE_POS:names[kind]=g._upgrade(kind)["name"]
+	for key in ["helper","collector","checkout","lock","alarm","guard","bag","speed","expand","pier"]:
+		var card := panel(Color("#f3ebd9")); upgrades.add_child(card)
+		shop_cards[key]=card
 		card.add_theme_stylebox_override("panel",style(Color("#eef2e6"),16))
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",14); card.add_child(row)
 		row.add_child(icon(key,TEAL,Vector2(42,50)))
@@ -276,22 +439,53 @@ func build_shop() -> void:
 		description.add_child(label(names[key],20))
 		var detail := label("",16,MUTED); detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		detail.custom_minimum_size=Vector2(270,0); description.add_child(detail); shop_details[key]=detail
-		var buy := button("",TEAL,18); buy.custom_minimum_size=Vector2(132,64)
+		var buy := button("",TEAL,18); buy.custom_minimum_size=Vector2(132,96)
 		buy.size_flags_vertical=Control.SIZE_SHRINK_CENTER; row.add_child(buy)
 		buy.pressed.connect(Callable(g,"_buy").bind(key)); g.store_buttons[key]=buy
 	var done := button("VOLVER AL MERCADO",TEAL,20); done.custom_minimum_size=Vector2(0,62)
 	done.pressed.connect(func():g._toggle_shop()); column.add_child(done)
+	_filter_shop()
+
+func _filter_shop() -> void:
+	for key in shop_cards:shop_cards[key].visible=(key in ["helper","collector","guard"]) if shop_category=="team" else (key not in ["helper","collector","guard"])
 
 func refresh() -> void:
+	var city_mode: bool=g.town!=null and g.town.in_build_mode
+	mission_panel.visible=not city_mode
+	status_row.visible=false
+	view_button.visible=not city_mode
+	footer_panel.visible=false
+	g.input_stick.visible=not city_mode
+	run_button.visible=not city_mode
+	g.shop_button.visible=not city_mode
+	town_panel.visible=city_mode
+	town_button.text="VOLVER" if city_mode else "PUEBLO"
+	if city_mode:
+		town_description.text=g.town.selection_description()
+		move_button.visible=not g.town.constructed[g.town.selected].is_empty()
+		move_button.text="ELEGÍ UN SOLAR" if g.town.move_source>=0 else "MOVER EDIFICIO"
+		for kind in town_choices:
+			var detail: Dictionary=g.town.TYPES[kind]
+			var built: bool=g.town.has_building(kind)
+			town_choices[kind].disabled=built or not g.town.constructed[g.town.selected].is_empty() or g.coins<detail["price"] or not g.town.can_build(kind)
+			town_choices[kind].text="LISTO" if built else ("NIVEL %d" % g.town.BUILDING_LEVELS[kind] if g.run.level<g.town.BUILDING_LEVELS[kind] else "%d MON." % detail["price"])
 	g.total_label.text=_number(g.coins)
+	if previous_wallet>=0 and previous_wallet!=g.coins:
+		g.total_label.pivot_offset=g.total_label.size*.5
+		g.total_label.scale=Vector2.ONE*1.10
+		create_tween().tween_property(g.total_label,"scale",Vector2.ONE,.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	previous_wallet=g.coins
+	uncollected_label.text="EN CAJAS · %s" % _number(g.cash.total_pending())
+	uncollected_label.modulate=Color.WHITE
+	if g.cash.in_transit()>0:uncollected_label.text+=" · EN CAMINO %d" % g.cash.in_transit()
 	g.backpack_label.text="%d / %d" % [g._total_bag(),g.max_capacity]
 	bag_progress.max_value=g.max_capacity; bag_progress.value=g._total_bag()
 	g.stock_label.text="Puesto  %s" % _number(g._total_stock())
 	team_label.text="Equipo  %d" % g.worker_count
 	queue_label.text="Fila  %d/6" % g._waiting_count()
 	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
-	level_label.text="%02d" % g.quest_level
-	level_progress.value=g.sold%20
+	level_label.text="%02d" % g.run.level
+	level_progress.max_value=1.0; level_progress.value=g.run.progress()
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	g.mission_label.text=objective["title"]
@@ -301,24 +495,39 @@ func refresh() -> void:
 	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
 	wayfinder.objective=objective
 	var alert: Dictionary=g.director.alert()
-	alert_panel.visible=not alert.is_empty() and not g.shop_panel.visible
+	var raid_phase: String=""
+	if not city_mode and not g.shop_panel.visible:
+		if g.run.warning>0:raid_phase="warning"
+		if not g.run.threat().is_empty():
+			raid_phase="escape" if g.run.threat()["state"]=="escape" else "approach"
+	rabbit_banner.sync_state(raid_phase)
+	if not g.run.threat().is_empty():rabbit_banner.point_to(g.run.threat()["actor"].position,g.player.position)
+	alert_panel.visible=not alert.is_empty() and raid_phase.is_empty() and not g.shop_panel.visible and not city_mode
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
-	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible
+	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode
 	if not g.active_pad.is_empty():
 		var upgrade: Dictionary=g._upgrade(g.active_pad)
 		pad_title.text=upgrade["name"]
 		pad_detail.text=upgrade["benefit"]
 		pad_button.text="COMPRAR\n%d monedas" % upgrade["price"]
-		pad_button.disabled=g.coins<upgrade["price"]
+		pad_button.disabled=g.coins<upgrade["price"] or upgrade["locked"]
 		if pad_button.disabled:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
-	g.event_label.offset_top=-542 if pad_panel.visible else -337
+	var raiding: bool=not g.run.threat().is_empty()
+	intercept_button.visible=raiding and not g.shop_panel.visible and not city_mode
+	intercept_button.disabled=not g.run.can_intercept()
+	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"
+	intercept_button.add_theme_font_size_override("font_size",19 if not intercept_button.disabled else 15)
+	pad_panel.offset_top=-544 if raiding else -424
+	pad_panel.offset_bottom=-404 if raiding else -292
+	g.event_label.offset_top=(-634 if raiding else -542) if pad_panel.visible else (-420 if raiding else -337)
 	g.event_label.offset_bottom=g.event_label.offset_top+72
-	wayfinder.bottom_margin=500 if pad_panel.visible else 290
-	wayfinder.top_margin=438 if alert_panel.visible else 332
-	g.shipping_label.get_parent().visible=g.pier_owned
-	position_top(g.shipping_label.get_parent(),438 if alert_panel.visible else 336,54)
+	wayfinder.visible=not city_mode
+	wayfinder.bottom_margin=(590 if raiding else 500) if pad_panel.visible else (380 if raiding else 290)
+	wayfinder.top_margin=480 if alert_panel.visible else 332
+	g.shipping_label.get_parent().visible=g.pier_owned and g.shipment["kind"]!="" and not city_mode
+	position_top(g.shipping_label.get_parent(),480 if alert_panel.visible else 296,50)
 	if g.pier_owned:wayfinder.top_margin+=64
 	if g.shipment["kind"]=="": g.shipping_label.text="MUELLE AUTO   ·   Esperando excedente   ·   +50%"
 	else:g.shipping_label.text="BARCO EN CAMINO   ·   %ds   ·   +%d monedas" % [ceili(g.shipment["remaining"]),g._shipment_income()]
@@ -327,11 +536,11 @@ func refresh() -> void:
 	var affordable := 0
 	for key in g.UPGRADE_POS:
 		var upgrade: Dictionary=g._upgrade(key)
-		g.store_buttons[key].disabled=upgrade["done"] or g.coins<upgrade["price"]
-		g.store_buttons[key].text="LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"])
+		g.store_buttons[key].disabled=upgrade["done"] or upgrade["locked"] or g.coins<upgrade["price"]
+		g.store_buttons[key].text=("NIVEL 4" if key=="guard" else "NIVEL 3") if upgrade["locked"] else ("LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"]))
 		shop_details[key].text=upgrade["benefit"]
-		if not upgrade["done"] and g.coins>=upgrade["price"]:affordable+=1
-	g.shop_button.text="MEJORAS  ·  %d" % affordable if affordable>0 else "MEJORAS"
+		if not upgrade["done"] and not upgrade["locked"] and g.coins>=upgrade["price"]:affordable+=1
+	g.shop_button.text="MEJORAS"
 
 func _number(value: int) -> String:
 	if value>=1000000:return "%.1f M" % (float(value)/1000000)

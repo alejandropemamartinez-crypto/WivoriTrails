@@ -2,11 +2,18 @@ extends Control
 
 var kind := "coin"
 var tint := Color("#24494b")
+var artwork: Texture2D
 
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var path: String="res://assets/ui/icons/"+kind+".svg"
+	if ResourceLoader.exists(path):artwork=load(path)
 
 func _draw() -> void:
+	if artwork!=null:
+		var side:=minf(size.x,size.y)-4
+		draw_texture_rect(artwork,Rect2((size-Vector2.ONE*side)*.5,Vector2.ONE*side),false)
+		return
 	var center := size*.5
 	var radius := minf(size.x,size.y)*.35
 	var width := maxf(2.0,radius*.14)
@@ -28,6 +35,10 @@ func _draw() -> void:
 			draw_arc(center+Vector2(0,radius*.75),radius*.77,PI,TAU,24,tint,width*2,true)
 		"speed":
 			draw_colored_polygon(PackedVector2Array([center+Vector2(radius*.2,-radius),center+Vector2(-radius*.7,radius*.1),center+Vector2(0,radius*.1),center+Vector2(-radius*.2,radius),center+Vector2(radius*.7,-radius*.1),center+Vector2(0,-radius*.1)]),tint)
+		"lock","alarm","guard":
+			draw_colored_polygon(PackedVector2Array([center+Vector2(-radius*.8,-radius*.8),center+Vector2(radius*.8,-radius*.8),center+Vector2(radius*.65,radius*.35),center+Vector2(0,radius),center+Vector2(-radius*.65,radius*.35)]),tint)
+			draw_line(center+Vector2(0,-radius*.4),center+Vector2(0,radius*.45),Color("#fff3d4"),width,true)
+			draw_line(center-Vector2(radius*.35,0),center+Vector2(radius*.35,0),Color("#fff3d4"),width,true)
 		"checkout":
 			draw_rect(Rect2(center+Vector2(-radius*.9,0),Vector2(radius*1.8,radius*.8)),tint,false,width)
 			draw_rect(Rect2(center+Vector2(-radius*.7,-radius*.9),Vector2(radius*1.1,radius*.7)),tint,false,width)

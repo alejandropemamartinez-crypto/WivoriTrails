@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 384 384">
+<defs>
+ <linearGradient id="fur" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#fffef4"/><stop offset=".6" stop-color="#f8e9d5"/><stop offset="1" stop-color="#e4cdb2"/></linearGradient>
+ <linearGradient id="ear" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#f8b0b7"/><stop offset="1" stop-color="#dd7e93"/></linearGradient>
+ <linearGradient id="shirt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#62bf9d"/><stop offset="1" stop-color="#207f79"/></linearGradient>
+ <linearGradient id="scarf" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffcb68"/><stop offset="1" stop-color="#e98b46"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="170%" height="170%"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>
+<!-- very light backlight and occlusion -->
+<ellipse cx="189" cy="345" rx="116" ry="20" fill="#244b43" opacity=".20" filter="url(#shadow)"/>
+<ellipse cx="189" cy="345" rx="100" ry="12" fill="#3d7c6e" opacity=".13"/>
+<!-- ears: sculpted softly with highlights -->
+<g stroke="#9c7866" stroke-width="6" stroke-linejoin="round">
+ <path d="M105 174C65 107 71 18 102 17c37-1 68 105 72 144" fill="url(#fur)"/>
+ <path d="M243 166C258 100 299 17 327 39c23 18 13 113-21 166" fill="url(#fur)"/>
+</g>
+<path d="M109 158C84 102 89 42 104 40c18 0 49 77 48 117" fill="url(#ear)"/>
+<path d="M263 166C277 107 307 60 317 64c11 8-2 86-28 112" fill="url(#ear)"/>
+<path d="M114 75C116 65 123 60 129 62" fill="none" stroke="#fff7ee" stroke-width="6" opacity=".8"/>
+<!-- shirt / body -->
+<path d="M94 330c-14-74 14-109 89-118 83-8 129 32 128 115-28 23-65 34-112 34-44 0-78-9-105-31z" fill="url(#shirt)" stroke="#286f68" stroke-width="8"/>
+<path d="M132 262c15-18 43-22 59-24 14 16 26 31 37 34-30 17-62 18-96-10z" fill="url(#scarf)" stroke="#d88742" stroke-width="5"/>
+<path d="M190 261l-22 57 53-13z" fill="#f2a34e" stroke="#d88742" stroke-width="5"/>
+<!-- arms in panicked pose -->
+<g stroke="#9e806e" stroke-width="7" stroke-linejoin="round">
+<path d="M113 268C56 264 36 242 52 220c16-22 31-5 37 9l38 9" fill="url(#fur)"/>
+<path d="M269 266c40-9 58-28 45-48-15-22-33-8-39 7l-25 11" fill="url(#fur)"/>
+<ellipse cx="52" cy="219" rx="24" ry="30" transform="rotate(-28 52 219)" fill="url(#fur)"/>
+<ellipse cx="313" cy="214" rx="23" ry="29" transform="rotate(25 313 214)" fill="url(#fur)"/>
+</g>
+<!-- head -->
+<path d="M75 203C58 135 103 95 185 88c92-6 150 53 138 132-6 44-36 74-79 83-31 7-79 13-117-3-36-15-46-47-52-97z" fill="url(#fur)" stroke="#a78a72" stroke-width="7"/>
+<!-- fluffy cheeks and muzzle -->
+<path d="M96 245c-11-12-9-29 2-38 7 12 12 21 26 22l-2 19z" fill="#fff9eb"/>
+<path d="M283 254c12-12 13-27 2-40-12 17-22 20-28 22l-3 16z" fill="#fff9eb"/>
+<ellipse cx="195" cy="251" rx="59" ry="36" fill="#fffaf0" stroke="#dfc6ae" stroke-width="4"/>
+<ellipse cx="196" cy="261" rx="27" ry="15" fill="#f5d5c3"/>
+<!-- big alarmed eyes -->
+<path d="M105 150c13-22 40-26 56-12" fill="none" stroke="#89604f" stroke-width="8" stroke-linecap="round"/>
+<path d="M236 142c20-17 44-15 55 5" fill="none" stroke="#89604f" stroke-width="8" stroke-linecap="round"/>
+<ellipse cx="144" cy="187" rx="29" ry="40" fill="white" stroke="#a1826f" stroke-width="4"/>
+<ellipse cx="254" cy="187" rx="29" ry="40" fill="white" stroke="#a1826f" stroke-width="4"/>
+<ellipse cx="152" cy="200" rx="15" ry="24" fill="#3f665a"/>
+<ellipse cx="247" cy="200" rx="15" ry="24" fill="#3f665a"/>
+<ellipse cx="154" cy="207" rx="7" ry="14" fill="#263a35"/>
+<ellipse cx="246" cy="207" rx="7" ry="14" fill="#263a35"/>
+<circle cx="160" cy="188" r="7" fill="#fff"/>
+<circle cx="252" cy="189" r="7" fill="#fff"/>
+<ellipse cx="116" cy="243" rx="17" ry="9" fill="#ec9ea0" opacity=".65"/>
+<ellipse cx="274" cy="242" rx="17" ry="9" fill="#ec9ea0" opacity=".65"/>
+<path d="M181 232q15-10 30 0-2 12-15 17-15-5-15-17z" fill="#bd8e7d"/>
+<!-- small gasp -->
+<ellipse cx="195" cy="278" rx="16" ry="23" fill="#8b5355"/>
+<ellipse cx="196" cy="289" rx="10" ry="8" fill="#e58c96"/>
+<!-- sweat bead -->
+<path d="M303 171c-13 20-18 34-7 41 11 7 27-2 22-15-3-9-9-20-15-26z" fill="#83d5df" stroke="#f1fcff" stroke-width="4"/>
+<path d="M296 193c0-5 4-9 7-12" stroke="#eefcff" stroke-width="4" fill="none" stroke-linecap="round"/>
+<!-- shirt insignia -->
+<circle cx="235" cy="322" r="16" fill="#f9d78b" stroke="#d7974a" stroke-width="3"/>
+<path d="M232 311l7 8-6 3 4 10-13-11 6-3z" fill="#e89c4e"/>
+</svg>

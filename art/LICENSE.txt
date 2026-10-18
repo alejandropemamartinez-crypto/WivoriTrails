@@ -1,0 +1,12 @@
+Wivori Trails — Recursos artísticos originales, versión 0.13
+
+Los modelos, animaciones, texturas e iconos originales de esta carpeta y sus
+exportaciones se crearon específicamente para Wivori Trails. Su uso, edición y
+distribución comercial quedan reservados al titular del proyecto Wivori Trails.
+No se concede aquí a terceros una licencia pública de redistribución del arte.
+
+Las fuentes tipográficas de terceros conservan su licencia propia. Quicksand
+se distribuye con su aviso SIL Open Font License 1.1 en assets/fonts/.
+
+Este aviso no cambia la licencia ni los derechos del código y los recursos
+preexistentes en el repositorio.

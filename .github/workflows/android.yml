@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --editor --quit 2>&1 | tee godot-import.log
+          godot --headless --path . --import 2>&1 | tee godot-import.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-import.log; then exit 1; fi
           godot --headless --path . --quit-after 120 2>&1 | tee godot-runtime.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-runtime.log; then exit 1; fi
@@ -106,3 +106,33 @@ jobs:
           path: build/WivoriTrails_Android_debug.apk
           if-no-files-found: error
           retention-days: 14
+
+  publish-preview:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: WivoriTrails_Android_debug
+          path: release
+      - name: Package editable original art and licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -qr release/Wivori_Trails_Art_Source_v0.13.0.zip art assets/fonts assets/models assets/ui -x '*.import' '*.blend[0-9]'
+      - name: Publish verified Android preview
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view v0.13.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.13.0 release/*.apk release/Wivori_Trails_Art_Source_v0.13.0.zip \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+              --title "Wivori Trails 0.13.0 — pueblo y personajes renovados" \
+              --notes-file docs/release-v0.13.md
+          fi

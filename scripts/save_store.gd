@@ -17,7 +17,7 @@ static func _read(path: String) -> Dictionary:
 	var version: Variant = data.get("version")
 	if not version is float and not version is int:
 		return {}
-	if int(version) not in [1, 2, 3]:
+	if int(version) not in [1, 2, 3, 4, 5, 6]:
 		return {}
 	return data
 
@@ -57,5 +57,5 @@ static func number(data: Dictionary, key: String, fallback: float, minimum: floa
 static func position(value: Variant, fallback: Vector3) -> Vector3:
 	if not value is Array or value.size() != 2:
 		return fallback
-	return Vector3(number({"x":value[0]}, "x", fallback.x, -23, 23), 0,
-		number({"z":value[1]}, "z", fallback.z, -23, 23))
+	return Vector3(number({"x":value[0]}, "x", fallback.x, -34, 34), 0,
+		number({"z":value[1]}, "z", fallback.z, -34, 34))

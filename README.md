@@ -1,103 +1,89 @@
-# Wivori Trails · 0.6.0
+# Wivori Trails · 0.13.0
 
-Prototipo móvil 3D de recolección, comercio y automatización, en **Godot 4.4.1**.
-Empezás cosechando y abasteciendo el puesto; contratás ayudantes y desbloqueás
-un huerto de manzanas y un muelle que exporta el excedente automáticamente.
+Juego 3D de aventura, comercio y construcción para Android, en Godot 4.4.1.
+Esta versión continúa íntegramente la rama de recaudación 0.12 (PR #9).
+El protagonista es un Scottish Terrier gris atigrado. Se conserva el nombre
+**Wivori Trails**.
 
-## Novedades de 0.6.0
+## Cambios de esta versión
 
-- Movimiento base de 6,8 unidades/s (antes 4,5), ayudantes de 4,2 (antes 2,8),
-  cosecha más ágil y giros independientes de la tasa de cuadros. Correr suma 50 %.
-- Flechas continuas sobre rutas transitables, un indicador en el borde para metas
-  fuera de cámara y un marcador en el destino. Se ven sin tocar primero Guiar.
-- Zonas de mejora en el mapa: equipo, mochila, velocidad, caja, huerto y muelle.
-  Muestran precio y disponibilidad; acercarse abre la explicación y un botón de
-  compra explícito. Pasar por una zona no gasta monedas.
-- Al alcanzar el precio de la inversión recomendada, avisa una vez por escalón y
-  cambia la guía a esa zona. La secuencia enseña cosechar, entregar, contratar,
-  ampliar el equipo, mejorar la caja y abrir expansiones. Retoma partidas previas.
-- Fila real con seis lugares y atención de a un cliente. Avisos de puesto vacío
-  o fila saturada con un botón que guía a la solución. Caja rápida tiene tres
-  mejoras: servicio de 4,6 → 2,6 → 1,55 → 0,95 segundos. Los compradores esperan
-  sin penalización cuando falta mercadería.
-- Caminos más limpios, paleta cálida, puesto con identidad Wivori, cultivos
-  diferenciados, precios legibles, recibos de monedas y celebración al invertir.
-  El HUD muestra nivel, progreso de ventas, fila y mejoras disponibles.
-- Guardado v3: conserva caja, avisos ya vistos y las compras anteriores. Las
-  partidas v1/v2 reciben la nueva velocidad base sin perder bonos comprados.
+- Tres personajes originales modelados en Blender: terrier, conejo y mapache.
+  Mallas orgánicas con piel ponderada, 17 huesos y 14 clips por personaje.
+  Barba, cejas y hocico del terrier integrados en la superficie de la cabeza.
+- Materiales PBR y atlas originales; tejados curvos con tejas individuales,
+  puertas y ventanas arqueadas, molduras, toldos, maceteros y utilería de oficio.
+  Nueve edificios económicos, diez puestos de mejoras y mercado reconstruidos.
+- Interfaz con Quicksand (SIL OFL), iconos propios, catálogo de edificios con
+  miniaturas renderizadas de los modelos y apartados Contratar / Mejorar.
+- Mensajera 3D animada: alerta, dirección del ataque y reacción de alivio.
+  El aviso no bloquea el joystick ni el botón de defensa.
+- Ventas → cajas físicas → monedas en tránsito → cartera. El dinero es
+  gastable únicamente al terminar su recorrido. La primera mejora de caja abre
+  la segunda. El conejo recoge, carga una bolsa visible y deposita en tesorería.
+- Guardado v6: conserva las partidas v1–v5, incluidas ventas pendientes,
+  dinero transportado, mejoras, cultivos, empleados, construcciones e incursiones.
+- Movimiento analógico, aceleración y frenado suaves, giro y cámara con seguimiento.
+  La guía marca el destino; el protagonista siempre se mueve con tus controles.
+- Barrios y construcciones por nivel; traslado de edificios a solares abiertos
+  sin volver a cobrarlos ni duplicar bonificaciones. Colisiones y rutas se
+  actualizan también al moverlos. Se mantienen los nueve efectos económicos.
+- Frutas reconocibles al cosechar, entregar, comprar y recuperar. Los mapaches
+  llevan el producto que realmente robaron. Más espacio entre incursiones.
 
-La investigación de diseño se basó en referencias primarias de Supersonic:
-[guía de idle arcade](https://supersonic.com/learn/blog/how-to-ideate-and-build-a-profitable-idle-arcade-game/),
-[caso Pro Builder](https://supersonic.com/learn/case-studies/pro-builder/) y la
-[ficha oficial de My Mini Mart](https://play.google.com/store/apps/details?id=com.KisekiGames.smart).
-Se aplicó el criterio de progresión visible, inversión que cambia el trabajo y
-escenarios legibles. Las flechas, zonas, economía y personajes son implementación
-propia; la investigación no demuestra retención ni rendimiento en este juego.
+## Jugar
 
-## Jugar y editar
+Abrí `project.godot` con Godot **4.4.1** y ejecutá `Main.tscn`.
 
-Abrí `project.godot` en Godot 4.4.1 y ejecutá `Main.tscn`.
-Los archivos editables del repositorio son la fuente vigente. El ZIP original
-es histórico y no se extrae ni reemplaza los cambios al compilar.
+- Joystick o WASD/flechas para caminar; mantener **Correr** para acelerar.
+- Acercarse a los cultivos cosecha; llevar la mochila a **Entregar** repone stock.
+- Las monedas de las ventas quedan en las **cajas**: acercate a recogerlas.
+- **Mejoras** permite contratar empleados y comprar herramientas o defensas.
+- **Pueblo** eleva la cámara. Arrastrá para explorar y tocá un solar para construir.
+  Seleccioná un edificio y **Mover edificio** para elegir un solar de destino.
+- Desde el nivel 3, protegé los productos: acercate al mapache y tocá **Ahuyentar**.
+- Desde el nivel 4 hay pedidos premium ×2; el muelle exporta excedentes.
+- Las metas requieren entregas tuyas, pedidos y defensa. Los empleados no
+  completan automáticamente el trabajo personal. **Continuar** cobra el premio
+  del nivel una sola vez. Después de seis capítulos siguen contratos rotativos.
 
-- **Moverse:** joystick táctil, WASD/flechas o tocar el terreno. Las rutas rodean
-  el puesto y los troncos; el joystick se desliza junto a los obstáculos.
-- **Cosechar:** acercate a los cultivos con espacio en la mochila.
-- **Vender:** pasá por el círculo dorado. Los compradores pagan al comprar.
-- **Automatizar:** seguí las flechas hasta Equipo y confirmá la compra, o usá Mejoras. Los ayudantes recolectan y abastecen solos. Mejorá Caja si la fila crece.
-- **Exportar:** el muelle de 550 monedas carga lotes de 6 productos iguales
-  cuando hay al menos 9, conserva 3 para el mercado y paga un 50 % extra al
-  llegar, después de 30 segundos de juego. Incluye barco y seguimiento visible.
+## Arte editable y procedencia
 
-## Guardado
+[Inventario, licencias y reproducción del arte](art/ASSETS.md).
+Los `.blend`, atlas y generador están en `art/source/`. Los GLB de ejecución
+están en `assets/models/`. No hace falta instalar Blender para jugar o compilar.
+El ZIP histórico `wivori_bundle.zip` no se extrae ni se incluye en el APK.
 
-Guardado local automático cada 8 segundos, al comprar, al despachar/recibir
-un barco y al pausar. Conserva monedas, mochila, stock, ayudantes con su carga,
-posición y tarea, cultivos, caja, avisos vistos y envío en tránsito. Los archivos v1/v2 se migran.
-Escritura mediante archivo temporal y copia del último guardado válido para
-recuperarse de una escritura interrumpida. Los viajes se reanudan al volver;
-no hay simulación de ingresos con la aplicación cerrada.
+## Comprobación
+
+```sh
+godot --headless --path . --import
+for suite in tests/*_tests.gd; do
+  timeout 120 godot --headless --path . --script "res://$suite"
+done
+```
+
+Las suites comprueban economía, entrada táctil simultánea, rutas, niveles,
+compras, robos/recuperación, guardias, pedidos, exportaciones, migración,
+recaudador, dinero en tránsito, traslado de edificios y animaciones esqueléticas.
+
+```sh
+godot --path . --resolution 720x1280 --audio-driver Dummy \
+  --script res://tools/capture_preview.gd -- /tmp/wivori-capturas
+```
+
+Las capturas se producen con el motor real y una partida de prueba preparada;
+no son ilustraciones ni maquetas. Se revisan también a 720×1600.
+`tools/render_thumbnails.gd` regenera las miniaturas a partir de los modelos.
 
 ## Android
 
-GitHub Actions valida scripts, ejecuta las pruebas y genera un APK **ARM64 de
-prueba** en cada cambio de `main`, pull request o ejecución manual. Descargalo
-del artefacto `WivoriTrails_Android_debug` de una ejecución exitosa en Actions.
-Verifica además el paquete, versión, integridad y certificado del APK generado.
+GitHub Actions importa recursos, inicia el juego, ejecuta las suites, exporta y
+verifica el APK ARM64, el paquete `sv.apenalegaltech.wivoritrails`, su versión y
+el certificado de desarrollo estable. No se cambia la identidad de firma de
+las versiones anteriores. [Detalles de firma](tools/android/README.md).
 
-La firma de desarrollo se mantiene entre compilaciones desde 0.4.0.
-[Detalles de la llave pública de prueba y transición desde 0.3](tools/android/README.md).
-El proyecto todavía no incluye anuncios ni compras integradas. La firma y el
-formato de lanzamiento para Google Play se deben configurar por separado.
-
-## Verificación local
-
-```sh
-godot --headless --path . --editor --quit
-godot --headless --path . --script res://tests/gameplay_tests.gd
-godot --headless --path . --script res://tests/mobile_ui_tests.gd
-godot --headless --path . --script res://tests/progression_tests.gd
-```
-
-Las pruebas usan un guardado temporal propio y no modifican una partida normal.
-Cubren recolección/venta, navegación, automatización, exportación, persistencia,
-recuperación de respaldo, migración, datos malformados, guía espacial, compras
-explícitas, alertas, cola serial y entrada táctil. La secuencia guiada llega al
-primer ayudante en menos de 35 segundos simulados, usando ventas reales.
-Son 27 comprobaciones de juego, 28 de progresión y 25 de interfaz sin renderizado;
-con renderizado, la suite móvil añade dos comprobaciones geométricas del diseño.
-El pipeline también inicia la escena y verifica el APK exportado.
-
-Para capturas reales, ejecutar con un servidor gráfico y pasar una carpeta:
-
-```sh
-godot --path . --resolution 720x1280 --script res://tools/capture_preview.gd -- /tmp/wivori-preview
-```
-
-La revisión visual de 0.6.0 se realizó con OpenGL/Mesa en 720×1280 y 720×1600,
-incluyendo inicio, inversión disponible, compra en el mapa, falta de stock, fila llena, mejoras y mercado ampliado. No sustituye las pruebas
-de rendimiento y tacto en dispositivos Android físicos.
-
-**Estado:** versión de prueba. Falta validar gráficos, tacto, rendimiento y balance
-en teléfonos reales. La movilidad del mercado y los diferentes destinos de la
-idea original son trabajo futuro. Wivori Trails sigue siendo nombre provisional.
+Es una versión de prueba. La revisión de escritorio y las comprobaciones
+programáticas no sustituyen las pruebas de manejo, temperatura, memoria y FPS
+en un teléfono Android. El acabado y el balance necesitan validación con
+jugadores; no se presenta como un juego comercial terminado ni como equivalente
+a una producción de Playrix. Todos los recursos nuevos tienen identidad propia.

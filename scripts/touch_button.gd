@@ -6,6 +6,19 @@ var touch_index := -1
 var touch_inside := false
 var touch_origin := Vector2.ZERO
 var touch_cancelled := false
+var visual_tween: Tween
+
+func _ready() -> void:
+	pivot_offset=size*.5
+	resized.connect(func():pivot_offset=size*.5)
+	button_down.connect(func():_animate_press(true))
+	button_up.connect(func():_animate_press(false))
+
+func _animate_press(down: bool) -> void:
+	if not is_inside_tree():return
+	if visual_tween!=null:visual_tween.kill()
+	visual_tween=create_tween()
+	visual_tween.tween_property(self,"scale",Vector2.ONE*(.96 if down else 1.0),.10 if down else .18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
