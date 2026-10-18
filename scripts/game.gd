@@ -152,7 +152,8 @@ func _engine_world() -> void:
 	sun.rotation_degrees = Vector3(-52,-37,0)
 	sun.light_color = Color("#fff3e5")
 	sun.light_energy = .43
-	sun.directional_shadow_max_distance=48.0
+	sun.directional_shadow_max_distance=36.0
+	sun.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur=3.0
 	sun.shadow_enabled = true
 	add_child(sun)
@@ -297,7 +298,7 @@ func _follow_objective() -> void:
 	if objective.get("upgrade","")=="level":run.advance(); return
 	var action: String=objective.get("action","")
 	if not action.is_empty():
-		if objective.has("target") and player.position.distance_to(objective["target"])>2.4:_set_world_goal(objective["target"])
+		if objective.has("target") and player.position.distance_to(objective["target"])>(2.6 if action=="dispatch" else 2.4):_set_world_goal(objective["target"])
 		else:work.act(action)
 		return
 	if objective.has("target"):

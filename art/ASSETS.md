@@ -1,4 +1,4 @@
-# Arte de Wivori Trails 0.13
+# Arte de Wivori Trails 0.14
 
 Se creó específicamente para este proyecto. No se utilizaron personajes,
 edificios, texturas ni recursos de Township/Playrix ni de otros juegos.
@@ -53,3 +53,11 @@ por teja o accesorio. Los originales conservan esqueleto, UV, materiales y clips
 Las capturas son renderizados reales de Godot de una partida preparada para
 revisión. Los modelos no son reconstrucciones de ilustraciones ni imágenes
 conceptuales presentadas como un juego funcionando.
+
+## Nuevos originales de 0.14
+
+Los .blend de Scottie, compotas, meriendas, cestas, banco y carro de flores son
+las fuentes editables autoritativas de esta revisión. Se reexportan sin reconstruir
+el esculpido mediante `art/source/export_authored.py`. El generador histórico
+`build_assets.py` sigue disponible para los demás modelos. Los nuevos recursos
+se rigen por la misma licencia original del proyecto.
