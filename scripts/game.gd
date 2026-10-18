@@ -215,6 +215,7 @@ func _refresh_ui() -> void:
 	var upgrades := {}
 	for kind in UPGRADE_POS:upgrades[kind]=_upgrade(kind)
 	world.update_upgrade_pads(upgrades,coins,director.recommended())
+	world.focus_upgrade_labels(player.position,town.in_build_mode,director.recommended())
 	hud.refresh()
 	if trail!=null:trail.update_route(hud.objective)
 
