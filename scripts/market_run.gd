@@ -213,7 +213,7 @@ func tick(delta: float) -> void:
 			if warning<=0:_spawn_wave(); next_raid=maxf(16,38-level*2)
 		else:
 			next_raid-=delta
-			if next_raid<=0:warning=6+alarm_level*2; g._notice("¡MAPACHES EN CAMINO!\nPrepará las defensas o salí a interceptar.",2.8)
+			if next_raid<=0:warning=6+alarm_level*2+g.town.warning_seconds(); g._notice("¡MAPACHES EN CAMINO!\nPrepará las defensas o salí a interceptar.",2.8)
 	if complete() and not completion_shown:
 		completion_shown=true; g._notice("¡NIVEL SUPERADO!\nCobrá el premio para abrir la siguiente meta.",3)
 
