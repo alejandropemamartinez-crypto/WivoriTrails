@@ -158,6 +158,7 @@ func run() -> void:
 	await touch_at(intercept_at,6,true); await touch_at(intercept_at,6,false,true)
 	check(game.run.blocked==0,"A cancelled intercept touch has no effect")
 	await touch_at(intercept_at,6,true); await touch_at(intercept_at,6,false)
+	print("INTERCEPT DEBUG: blocked=",game.run.blocked," visible=",game.hud.intercept_button.visible," disabled=",game.hud.intercept_button.disabled," has_goal=",game.has_tap_destination)
 	check(game.run.blocked==1 and not game.has_tap_destination,"A real touch repels the nearby thief without moving the protagonist")
 	if DisplayServer.get_name()!="headless":
 		game.run.level=6; game._refresh_ui(); await process_frame
