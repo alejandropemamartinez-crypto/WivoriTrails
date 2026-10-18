@@ -50,11 +50,11 @@ static func build(species: String) -> ArrayMesh:
 			var a1: float = TAU * float(column + 1) / float(LONGITUDES)
 			# Consistent outward winding, shared smooth normals.
 			_vertex(surface, species, y0, a0)
-			_vertex(surface, species, y1, a0)
-			_vertex(surface, species, y0, a1)
 			_vertex(surface, species, y0, a1)
 			_vertex(surface, species, y1, a0)
+			_vertex(surface, species, y0, a1)
 			_vertex(surface, species, y1, a1)
+			_vertex(surface, species, y1, a0)
 	var mesh: ArrayMesh = surface.commit()
 	_cache[species] = mesh
 	return mesh
