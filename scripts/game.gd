@@ -125,6 +125,7 @@ func _ready() -> void:
 
 func _engine_world() -> void:
 	var environment := WorldEnvironment.new()
+	environment.name = "WivoriEnvironment"
 	var sky := Environment.new()
 	sky.background_mode = Environment.BG_COLOR
 	sky.background_color = Color("#b8dce1")
@@ -363,7 +364,7 @@ func _buy(kind: String) -> void:
 func _spawn_worker(index: int, saved: Dictionary = {}) -> void:
 	var actor: MarketActor=ActorScript.new()
 	actor.ground_sampler=Callable(world,"ground_height")
-	actor.setup("helper",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][index%3])
+	actor.setup("helper",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][index%3],["dog","cat","rabbit"][index%3])
 	add_child(actor)
 	actor.position=world.navigation.nearest_free(SaveStore.position(saved.get("position"), UPGRADE_POS["helper"]+Vector3(float(index%3)*.95,0,1.3+float(index/3)*.8)))
 	var helper := {"actor":actor,"state":"search","crop":{},"cargo":"", "cargo_amount":0,"timer":0.0}
