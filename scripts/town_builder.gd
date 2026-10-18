@@ -21,6 +21,8 @@ const LOCATIONS=[
 ]
 var g: Node3D
 var in_build_mode:=false
+var camera_center:=Vector3(-1,0,1)
+var harvested_count:=0
 var selected:=0
 var constructed: Array[String]=["","","","","","","","",""]
 var plot_nodes: Array[Node3D]=[]
@@ -62,9 +64,31 @@ func customer_interval_factor() -> float:
 	if has_building("park"):multiplier*=.90
 	return multiplier
 
+func bonus_harvest() -> bool:
+	if not has_building("greenhouse"):return false
+	harvested_count+=1
+	return harvested_count%5==0
+
+func player_speed_factor() -> float:
+	return 1.08 if has_building("workshop") else 1.0
+
+func warning_seconds() -> float:
+	return 4.0 if has_building("watchtower") else 0.0
+
+func shipment_speed_factor() -> float:
+	return 1.30 if has_building("mill") else 1.0
+
+func pan_camera(relative: Vector2) -> void:
+	# Drag a map, rather than accidentally moving the player while building.
+	var world_move:=Vector3(-relative.x*.085,0,-relative.y*.092)
+	camera_center+=world_move
+	camera_center.x=clampf(camera_center.x,-26,26)
+	camera_center.z=clampf(camera_center.z,-26,26)
+
 func toggle_mode() -> void:
 	in_build_mode=not in_build_mode
 	if in_build_mode:
+		camera_center=g.player.position
 		g.boost_active=false
 		g.input_stick._clear()
 		g.has_tap_destination=false
@@ -91,6 +115,7 @@ func select_at(point: Vector3) -> bool:
 	if choice<0:
 		return false
 	selected=choice
+	camera_center=camera_center.lerp(LOCATIONS[selected],.12)
 	_refresh_plots()
 	g._refresh_ui()
 	return true
@@ -210,9 +235,10 @@ func _construction_effect(plot: Node3D) -> void:
 		tween.chain().tween_callback(dust.queue_free)
 
 func save_state() -> Dictionary:
-	return {"buildings":constructed.duplicate()}
+	return {"buildings":constructed.duplicate(),"harvested":harvested_count}
 
 func load_state(data: Dictionary) -> void:
+	harvested_count=clampi(int(data.get("harvested",0)),0,2000000000)
 	var entries: Variant=data.get("buildings",[])
 	if not entries is Array:
 		return
