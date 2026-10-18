@@ -32,7 +32,14 @@ func capture() -> void:
 		actor.rotation.y=PI
 	await shot("faces_opposite")
 	for actor in models:actor.queue_free()
-	game.player.visible=true; game.hud.root.visible=true; game.camera.fov=48
+	game.player.visible=true; game.hud.root.visible=false
+	game.player.position=Vector3(0,0,2)
+	game.player.rotation.y=0; game.player.facing=0
+	game.camera.position=Vector3(0,2.9,6.9)
+	game.camera.fov=36
+	game.camera.look_at(Vector3(0,1.58,2),Vector3.UP)
+	await shot("scottish_terrier_closeup")
+	game.hud.root.visible=true; game.camera.fov=48
 	game.player.set_process(false); game.player.position=Vector3(0,0,4); game.player.last_position=game.player.position; camera_reset()
 	game.input_stick.axis=Vector2.RIGHT
 	for frame in range(24):
@@ -48,6 +55,7 @@ func capture() -> void:
 	var raid: Dictionary=game.run.raiders[0]
 	raid["actor"].position=Vector3(4.8,0,4.6); raid["state"]="escape"; raid["cargo"]="tomato"; raid["amount"]=4; raid["actor"].set_carry(4)
 	game._refresh_ui(); game.event_label.visible=false
+	await shot("rabbit_robbery_alert")
 	await shot("intercept")
 	game._intercept(); await shot("recovered")
 	for raid_ in game.run.raiders:raid_["actor"].queue_free()
