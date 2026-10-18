@@ -30,7 +30,7 @@ var alarm_ring: MeshInstance3D
 var security_active := false
 var alarm_radius := 6.0
 
-const GREEN = Color("#90bc92")
+const GREEN = Color("#79a984")
 const DARK_GREEN = Color("#316947")
 const WOOD = Color("#ba8d62")
 const CREAM = Color("#f4dfb0")
@@ -121,8 +121,8 @@ func _ready() -> void:
 	navigation.build()
 
 func build_land() -> void:
-	shape(self,"box",Vector3(0,-.42,0),Vector3(95,.8,95),GREEN,"Base de isla")
-	shape(self,"box",Vector3(0,-.84,0),Vector3(96,.35,96),Color("#c6aa72"),"Corte de isla")
+	shape(self,"box",Vector3(0,-.42,0),Vector3(150,.8,150),GREEN,"Base de isla")
+	shape(self,"box",Vector3(0,-.84,0),Vector3(151,.35,151),Color("#c6aa72"),"Corte de isla")
 	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
 	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#b9a887"),"Paseo principal")
 	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#b9a887"),"Plaza comercial")
