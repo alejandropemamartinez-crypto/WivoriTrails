@@ -81,9 +81,23 @@ func _ready() -> void:
 		# True Scottish Terrier: pointed upright triangular ears, not drooping puppy ears.
 		for x in [-.36,.36]:
 			var ear:=_pivot(Vector3(x,.35,-.065),head_root); ears.append(ear)
-			var tip:=_solid(ear,"cone",skin.darkened(.08),Vector3(0,.28,0),Vector3(.43,.80,.34))
-			tip.rotation.z=.09 if x<0 else -.09
-			_solid(ear,"cone",Color("#b78d91"),Vector3(0,.27,.16),Vector3(.23,.54,.048))
+			var tip:=_solid(ear,"cone",skin.darkened(.08),Vector3(0,.20,0),Vector3(.37,.58,.32))
+			tip.rotation.z=.07 if x<0 else -.07
+			_solid(ear,"cone",Color("#b78d91"),Vector3(0,.20,.145),Vector3(.20,.39,.041))
+		# A Scottie's most important identifying feature is its continuous
+		# shaggy chin and cheek beard, not a wide plain wolf muzzle.
+		for i in range(7):
+			var x: float=(float(i)-3.0)*.115
+			var middle: float=1.0-absf(x)/.55
+			var tuft:=_solid(head_root,"cone",skin.lightened(.23),
+				Vector3(x,-.402,.285),Vector3(.155,.42+.17*middle,.24))
+			tuft.rotation.z=PI
+			tuft.rotation.x=.14
+		for x in [-.34,.34]:
+			var side:=_solid(head_root,"cone",skin.lightened(.16),
+				Vector3(x,-.26,.20),Vector3(.20,.39,.30))
+			side.rotation.z=PI
+			side.rotation.y=-.22 if x<0 else .22
 	elif species=="rabbit":
 		for x in [-.25,.25]:
 			var ear:=_pivot(Vector3(x,.32,0),head_root); ears.append(ear)
