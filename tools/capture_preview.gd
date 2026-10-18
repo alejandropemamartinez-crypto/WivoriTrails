@@ -58,4 +58,15 @@ func capture() -> void:
 	game._refresh_ui(); game.event_label.visible=false; camera_reset()
 	await shot("premium")
 	game._toggle_shop(); await shot("defenses")
+	game._toggle_shop()
+	game.coins=5000
+	game._toggle_build_mode()
+	game.town.select_at(game.town.LOCATIONS[0]); game.town.build("house")
+	game.town.select_at(game.town.LOCATIONS[1]); game.town.build("cafe")
+	game.town.select_at(game.town.LOCATIONS[2]); game.town.build("depot")
+	game.town.select_at(game.town.LOCATIONS[0])
+	for n in range(12):game._update_camera(.2); await process_frame
+	game.event_label.visible=false
+	game._refresh_ui()
+	await shot("town_overview")
 	game.queue_free(); await process_frame; quit(0)
