@@ -22,7 +22,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          unzip -oq wivori_bundle.zip -d .
+          # Editable checkout is authoritative after the initial unpack.
+          if [ ! -f project.godot ]; then unzip -oq wivori_bundle.zip -d .; fi
           test -f project.godot
           test -f Main.tscn
           test -f scripts/game.gd
