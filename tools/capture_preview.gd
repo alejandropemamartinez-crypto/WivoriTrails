@@ -27,7 +27,7 @@ func capture() -> void:
 	var args:=OS.get_cmdline_user_args()
 	if args.is_empty() or DisplayServer.get_name()=="headless":quit(1);return
 	output=args[0];DirAccess.make_dir_recursive_absolute(output)
-	review_save="user://wivori_visual_v013_%d.json" % OS.get_process_id();clear_review_save()
+	review_save="user://wivori_visual_v014_%d.json" % OS.get_process_id();clear_review_save()
 	seed(20261018)
 	game=load("res://Main.tscn").instantiate();game.save_path=review_save;root.add_child(game)
 	game.set_process(false);game.world.set_process(false)
@@ -58,7 +58,7 @@ func capture() -> void:
 	raid["actor"].position=Vector3(6.2,0,5);raid["actor"].facing=-1.0;raid["state"]="escape";raid["cargo"]="tomato";raid["amount"]=4;game.counter["tomato"]-=4
 	raid["actor"].set_cargo_kind("tomato");raid["actor"].set_carry(4)
 	game._refresh_ui();game.event_label.visible=false
-	await frames(20);await shot("rabbit_robbery_alert")
+	game.hud.rabbit_banner.lifetime=20;await frames(5);await shot("rabbit_robbery_alert")
 	game._intercept();await frames(15);await shot("recovered")
 	remove_raiders()
 
@@ -94,4 +94,10 @@ func capture() -> void:
 	await shot("town_district")
 	game._toggle_build_mode();game.player.position=Vector3(-2,0,7);camera_reset();game._refresh_ui();game.event_label.visible=false
 	await shot("upgrade_stalls")
+	game.run.level=7;game.run.activity_start={"orders":0,"rush":0,"patrol":0,"festival":0};game._refresh_ui()
+	game.work.toggle_board();await shot("orders_board");game.work.close_board();game.work.accept("jam")
+	game.counter["berry"]=3;game.counter["apple"]=2;game.player.position=game.work.station("jam");camera_reset()
+	game.work.start_batch("jam");game.work.tick(12.1);game._refresh_ui();game.event_label.visible=false;await shot("production_ready")
+	game.work.pickup("jam");game.player.position=game.work.DISPATCH+Vector3(.8,0,.8);camera_reset();game._refresh_ui();game.event_label.visible=false;await shot("crafted_delivery")
+	game.work.deliver();game._refresh_ui();await shot("order_completed")
 	game.queue_free();await process_frame;clear_review_save();quit(0)

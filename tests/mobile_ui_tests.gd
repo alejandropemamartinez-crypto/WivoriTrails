@@ -173,6 +173,31 @@ func run() -> void:
 	if DisplayServer.get_name()!="headless":
 		game.run.level=6; game._refresh_ui(); await process_frame
 		check(game.hud.mission_progress.get_global_rect().end.y<=game.hud.mission_panel.get_global_rect().end.y,"Later chapter goals also fit above the status row")
+	for raid in game.run.raiders:raid["actor"].queue_free()
+	game.run.raiders.clear();game.run.warning=0;game.run.level=7;game._refresh_ui();await process_frame
+	check(game.hud.activity_button.visible,"Production chapter exposes its order board control")
+	await click(game.hud.activity_button)
+	check(game.work.board_visible(),"A real pointer opens orders without a purchase card intercepting it")
+	check(game.work.board.get_global_rect().position.y>=0 and game.work.board.get_global_rect().end.y<=1280,"The order board fits the portrait viewport")
+	var choose_at: Vector2=game.work.cards["jam"][0].get_global_rect().get_center()
+	await touch_at(choose_at,7,true);await touch_at(choose_at,7,false,true)
+	check(game.work.active.is_empty(),"Cancelled recipe touches cannot accept an order")
+	await touch_at(choose_at,7,true);await touch_at(choose_at,7,false)
+	check(game.work.active.get("recipe","")=="jam" and not game.work.board_visible(),"A real touch accepts one order and returns to play")
+	var player_at: Vector3=game.player.position
+	for i in range(20):game._process_player(.1)
+	check(game.player.position.distance_to(player_at)<.08 and not game.has_tap_destination,"Accepting an order cannot create player autopilot")
+	game._refresh_ui();await click(game.hud.guide_button);await process_frame;await process_frame
+	check(game.town.in_build_mode and game.town.focus_kind=="bakery","The order lesson opens construction for its required workshop")
+	if DisplayServer.get_name()!="headless":
+		check(game.hud.town_scroll.scroll_horizontal>300,"The catalog scrolls to the required workshop")
+		game.world._process(3.1);await process_frame
+		var crop: Dictionary=game.world.crop_spots[0];var part: Dictionary=crop["instances"][0]
+		var before_scale: float=part["batch"].get_instance_transform(part["index"]).basis.get_scale().length()
+		game.world.harvest(crop);await process_frame
+		check(part["batch"].get_instance_transform(part["index"]).basis.get_scale().length()<before_scale*.2,"The native renderer shrinks the actual shared crop instance on harvest")
+		game.world._process(3.1);await process_frame
+		check(is_equal_approx(part["batch"].get_instance_transform(part["index"]).basis.get_scale().length(),before_scale),"The native renderer restores the actual shared crop instance on regrowth")
 	game.queue_free(); await process_frame
 	clean_files()
 	print("RESULT: %d mobile UI checks, %d failures" % [checks,failures])

@@ -189,6 +189,27 @@ func make_bed(title: String, pos: Vector3, tint: Color, resource: String, enable
 			crop_spots.append({"node":unit,"kind":resource,"ready":true,"regrow":0.0,"enabled":enabled_,"root":bed})
 	var label:=make_label(bed,title.to_upper(),Vector3(0,1.20,-2.35),39)
 	label.pixel_size=.009;label.outline_size=7
+	_batch_crop_bed(bed)
+
+func _batch_crop_bed(bed: Node3D) -> void:
+	var groups: Dictionary={}
+	for crop in crop_spots:
+		if crop["root"]!=bed:continue
+		crop["instances"]=[]
+		for part in crop["node"].find_children("*","MeshInstance3D",true,false):
+			var key: int=part.mesh.get_instance_id()
+			if not groups.has(key):groups[key]=[]
+			groups[key].append({"mesh":part,"crop":crop,"local":crop["node"].global_transform.affine_inverse()*part.global_transform})
+	for entries in groups.values():
+		var batch:=MultiMesh.new();batch.transform_format=MultiMesh.TRANSFORM_3D;batch.mesh=entries[0]["mesh"].mesh;batch.instance_count=entries.size()
+		var draw:=MultiMeshInstance3D.new();draw.multimesh=batch;draw.name="Cultivos instanciados";bed.add_child(draw)
+		for i in range(entries.size()):
+			var entry: Dictionary=entries[i]
+			batch.set_instance_transform(i,entry["crop"]["node"].transform*entry["local"])
+			entry["crop"]["instances"].append({"batch":batch,"index":i,"local":entry["local"]});entry["mesh"].queue_free()
+
+func update_crop_visual(crop: Dictionary) -> void:
+	for part in crop.get("instances",[]):part["batch"].set_instance_transform(part["index"],crop["node"].transform*part["local"])
 
 func build_scenery() -> void:
 	for i in range(30):
@@ -354,10 +375,15 @@ func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) 
 		pad["price"].modulate=Color("#a57637") if afford else Color("#697c75")
 
 func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: String) -> void:
+	var nearest:=""
+	var best:=5.0
+	for kind in upgrade_pads:
+		var distance: float=player_pos.distance_to(upgrade_pads[kind]["node"].position)
+		if distance<best:best=distance;nearest=kind
 	for kind in upgrade_pads:
 		var pad: Dictionary=upgrade_pads[kind]
-		var near: bool=player_pos.distance_to(pad["node"].position)<4.8
-		var show_label: bool=not building and (near or kind==recommended)
+		var distance: float=player_pos.distance_to(pad["node"].position)
+		var show_label: bool=not building and distance>2.1 and (kind==nearest or kind==recommended and distance<10)
 		pad["label"].visible=show_label;pad["price"].visible=show_label;pad["board"].visible=show_label
 
 func celebrate_upgrade(kind: String) -> void:
@@ -431,6 +457,7 @@ func harvest(crop: Dictionary) -> String:
 	crop["ready"] = false
 	crop["regrow"] = 3.0
 	crop["node"].scale = Vector3(.1,.1,.1)
+	update_crop_visual(crop)
 	return crop["kind"]
 
 func _process(delta: float) -> void:
@@ -451,6 +478,7 @@ func _process(delta: float) -> void:
 			if crop["regrow"] <= 0:
 				crop["ready"] = true
 				crop["node"].scale=Vector3.ONE
+			update_crop_visual(crop)
 	for data in dynamic_animals:
 		var animal: Node3D = data["node"]
 		var phase: float = data["phase"]

@@ -91,8 +91,10 @@ func objective() -> Dictionary:
 		data.merge({"title":"Recogé lo que ganaste","detail":"Las ventas quedan en la caja. Acercate para cobrarlas.","target":g.cash.REGISTERS[box]},true)
 		return data
 	if g.run.level>=4 and g.run.contract_done<g.run.contract_goal() and g.stash[g.run.contract_kind()]>0:
+		if g.run.level>=7:return g.work.objective()
 		data["title"]="Entregá el pedido premium ×2"; data["target"]=g.run.CART
 		return data
+	if g.run.level>=7:return g.work.objective()
 	if bag>=g.max_capacity or g.worker_count==0 and bag>=6:
 		data["title"]="Llevá tu cosecha al puesto"; data["target"]=Vector3(4,0,2.5)
 		return data

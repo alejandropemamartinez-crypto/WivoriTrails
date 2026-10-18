@@ -28,12 +28,14 @@ var patrol_index:=0
 var saved_guard_position:=Vector3(7,0,4)
 var raiders: Array[Dictionary]=[]
 var completion_shown:=false
+var manual_blocked:=0
+var activity_start: Dictionary={}
 
 func _init(game: Node3D) -> void:g=game
 
 func title() -> String:
-	var names: Array=["Primer puesto","Hora punta","Manos largas","Pedidos de manzana","Comercio en ruta","Mercado protegido"]
-	return names[level-1] if level<=6 else "Contrato de frontera %d" % (level-6)
+	var names: Array=["Primer puesto","Hora punta","Manos largas","Pedidos de manzana","Comercio en ruta","Mercado protegido","La primera compota","Merienda en camino","La ronda del valle","Talleres en marcha","Ruta de comerciantes","La feria de Wivori"]
+	return names[level-1] if level<=12 else ["Ruta de encargos","Ruta exprés","Ronda de comerciantes"][(level-13)%3]+" %d" % (1+int((level-13)/3))
 
 func contract_kind() -> String:
 	return ["apple","berry","carrot","tomato"][(maxi(4,level)-4)%4]
@@ -43,6 +45,7 @@ func contract_goal() -> int:
 
 func goals() -> Array[Dictionary]:
 	var tasks: Array[Dictionary]=[]
+	if level>=7:return _activity_goals()
 	if level<=3:
 		tasks.append({"label":"Vendidos","value":g.sold-start_sold,"goal":6+level*6})
 		tasks.append({"label":"Entregados por vos","value":g.manual_delivered-start_manual,"goal":6 if level==1 else 12})
@@ -67,6 +70,32 @@ func summary() -> String:
 	for goal in goals():parts.append("%s %d/%d" % [goal["label"],mini(goal["value"],goal["goal"]),goal["goal"]])
 	return " · ".join(parts)
 
+func _activity_goals() -> Array[Dictionary]:
+	var tasks: Array[Dictionary]=[]
+	var orders: int=g.work.orders_done-int(activity_start.get("orders",0))
+	var rush: int=g.work.rush_done-int(activity_start.get("rush",0))
+	var patrols: int=g.work.patrol_wins-int(activity_start.get("patrol",0))
+	var building: String=g.work.REQUIRED.get(level,"")
+	if not building.is_empty():tasks.append({"label":g.town.TYPES[building]["name"].capitalize(),"value":int(g.town.has_building(building)),"goal":1})
+	match level:
+		7:tasks.append({"label":"Encargo entregado","value":orders,"goal":1})
+		8:tasks.append({"label":"Entrega exprés","value":rush,"goal":1})
+		9:tasks.append({"label":"Ronda protegida","value":patrols,"goal":1})
+		10:
+			tasks.append({"label":"Recetas distintas","value":g.work.recipes_seen.size(),"goal":2})
+			tasks.append({"label":"Talleres mejorados","value":g.work.production_level,"goal":1})
+		11:
+			tasks.append({"label":"Encargos","value":orders,"goal":2});tasks.append({"label":"Exprés","value":rush,"goal":1})
+		12:
+			tasks.append({"label":"Puestos de la feria","value":g.work.festival_done-int(activity_start.get("festival",0)),"goal":3})
+			tasks.append({"label":"Ronda protegida","value":patrols,"goal":1})
+		_:
+			tasks.append({"label":"Encargos","value":orders,"goal":mini(4,2+int((level-13)/6))})
+			if (level-13)%3==1:tasks.append({"label":"Exprés","value":rush,"goal":2})
+			elif (level-13)%3==2:tasks.append({"label":"Ronda protegida","value":patrols,"goal":1})
+			else:tasks.append({"label":"Recetas distintas","value":g.work.recipes_seen.size(),"goal":3})
+	return tasks
+
 func progress() -> float:
 	var result:=0.0
 	var tasks:=goals()
@@ -85,6 +114,7 @@ func advance() -> bool:
 	g.player.act("celebrate")
 	start_sold=g.sold; start_manual=g.manual_delivered; start_shipments=g.shipments_completed; start_blocked=blocked
 	contract_done=0; completion_shown=false; warning=0; next_raid=12 if level==3 else 26
+	activity_start={"orders":g.work.orders_done,"rush":g.work.rush_done,"patrol":g.work.patrol_wins,"festival":g.work.festival_done}
 	g.guide_override={}; g.director.pinned_kind=""
 	g._notice("NIVEL %d · %s\nPremio: +%d monedas" % [level,title(),prize],3.2)
 	g._save_progress(); g._refresh_ui()
@@ -133,6 +163,7 @@ func _repel(raid: Dictionary, by_player: bool) -> void:
 		g._float_activity(raid["actor"].position,"¡RECUPERADO! +%d" % amount,Color("#338c82"))
 	raid["cargo"]=""; raid["amount"]=0; raid["state"]="retreat"
 	raid["actor"].set_carry(0); blocked+=1
+	if by_player:manual_blocked+=1
 	if g.hud!=null:g.hud.rabbit_banner.recovered(amount)
 	g._notice(("¡RECUPERASTE %d PRODUCTOS!" % amount) if amount>0 else ("¡MAPACHE AHUYENTADO!" if by_player else "¡EL GUARDIA LO FRENÓ!"),1.8)
 	g._save_progress()
@@ -233,7 +264,7 @@ func save_state() -> Dictionary:
 	var actors: Array=[]
 	for raid in raiders:
 		actors.append({"position":[raid["actor"].position.x,raid["actor"].position.z],"entry":[raid["entry"].x,raid["entry"].z],"state":raid["state"],"remaining":raid["remaining"],"cargo":raid["cargo"],"amount":raid["amount"]})
-	return {"level":level,"start_sold":start_sold,"start_manual":start_manual,"start_shipments":start_shipments,"start_blocked":start_blocked,"contract_done":contract_done,"lock":lock_level,"alarm":alarm_level,"guard":guard_level,"blocked":blocked,"escaped":escaped,"lost":lost,"wave":wave_index,"next_raid":next_raid,"warning":warning,"raiders":actors,"guard_position":[guard.position.x,guard.position.z] if guard!=null else [saved_guard_position.x,saved_guard_position.z],"guard_cooldown":guard_cooldown,"patrol_index":patrol_index}
+	return {"level":level,"activity_start":activity_start.duplicate(),"manual_blocked":manual_blocked,"start_sold":start_sold,"start_manual":start_manual,"start_shipments":start_shipments,"start_blocked":start_blocked,"contract_done":contract_done,"lock":lock_level,"alarm":alarm_level,"guard":guard_level,"blocked":blocked,"escaped":escaped,"lost":lost,"wave":wave_index,"next_raid":next_raid,"warning":warning,"raiders":actors,"guard_position":[guard.position.x,guard.position.z] if guard!=null else [saved_guard_position.x,saved_guard_position.z],"guard_cooldown":guard_cooldown,"patrol_index":patrol_index}
 
 func load_state(data: Dictionary) -> void:
 	var migrated:=1
@@ -247,6 +278,9 @@ func load_state(data: Dictionary) -> void:
 	start_shipments=int(Store.number(data,"start_shipments",g.shipments_completed,0,g.shipments_completed))
 	lock_level=int(Store.number(data,"lock",0,0,3)); alarm_level=int(Store.number(data,"alarm",0,0,3)); guard_level=int(Store.number(data,"guard",0,0,3))
 	blocked=int(Store.number(data,"blocked",0,0,1000000)); escaped=int(Store.number(data,"escaped",0,0,1000000)); lost=int(Store.number(data,"lost",0,0,10000000))
+	manual_blocked=int(Store.number(data,"manual_blocked",0,0,blocked))
+	var starts: Dictionary=data["activity_start"] if data.get("activity_start") is Dictionary else {}
+	activity_start={"orders":int(Store.number(starts,"orders",g.work.orders_done,0,g.work.orders_done)),"rush":int(Store.number(starts,"rush",g.work.rush_done,0,g.work.rush_done)),"patrol":int(Store.number(starts,"patrol",g.work.patrol_wins,0,g.work.patrol_wins)),"festival":int(Store.number(starts,"festival",g.work.festival_done,0,g.work.festival_done))}
 	start_blocked=int(Store.number(data,"start_blocked",blocked,0,blocked))
 	contract_done=int(Store.number(data,"contract_done",0,0,contract_goal()))
 	wave_index=int(Store.number(data,"wave",0,0,1000000)); next_raid=Store.number(data,"next_raid",25,0,80); warning=Store.number(data,"warning",0,0,12)

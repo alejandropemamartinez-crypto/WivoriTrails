@@ -14,14 +14,14 @@ void fragment(){
 	float fine=soft_noise(at*22.0);
 	vec3 color=base_color*(.94+.07*broad+.025*fine);
 	if(cobbled){
-		vec2 grid=at*vec2(2.4,2.1);
+		vec2 grid=at*vec2(3.2,2.9);
 		grid.x+=mod(floor(grid.y),2.0)*.5;
 		vec2 cell=fract(grid);
 		vec2 edge=min(cell,1.0-cell);
-		float rim=smoothstep(.015,.065,min(edge.x,edge.y));
+		float rim=smoothstep(.01,.045,min(edge.x,edge.y));
 		float tone=hash(floor(grid));
-		color=base_color*(.89+.17*tone);
-		color=mix(color*.72,color,rim);
+		color=base_color*(.95+.08*tone);
+		color=mix(color*.86,color,rim);
 	}
 	ALBEDO=color;
 	ROUGHNESS=.94;

@@ -27,6 +27,7 @@ var in_build_mode:=false
 var camera_center:=Vector3(-1,0,1)
 var harvested_count:=0
 var selected:=0
+var focus_kind:=""
 var move_source: int=-1
 var building_nodes: Dictionary={}
 var constructed: Array[String]=["","","","","","","","",""]

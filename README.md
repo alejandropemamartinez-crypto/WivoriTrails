@@ -1,4 +1,7 @@
-# Wivori Trails · 0.13.0
+# Wivori Trails · 0.14.0
+
+Talleres con encargos y entregas manuales, doce capítulos, rondas de defensa,
+Scottie refinado e interfaz compacta. [Cambios y validación](docs/release-v0.14.md).
 
 Juego 3D de aventura, comercio y construcción para Android, en Godot 4.4.1.
 Esta versión continúa íntegramente la rama de recaudación 0.12 (PR #9).
