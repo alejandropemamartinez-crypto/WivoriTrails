@@ -263,11 +263,12 @@ func open_pier() -> void:
 func update_pier_shipment(kind: String, amount: int, remaining: float, duration: float) -> void:
 	if pier_boat == null: return
 	if kind.is_empty():
-		pier_boat.position = Vector3(-3.1,0,1.0)
+		pier_boat.position = Vector3(-3.1,0,0)
 		pier_label.text = "EXPORTACIÓN AUTOMÁTICA\nReserva 3; envía lotes de 6"
 	else:
 		var progress := clampf(1.0 - remaining / duration, 0, 1)
-		pier_boat.position = Vector3(-3.1,0,1.0 + sin(progress * PI) * 5.0)
+		var sailing := sin(progress * PI)
+		pier_boat.position = Vector3(-3.1 + sailing,0,-sailing * .65)
 		pier_label.text = "EXPORTANDO %d\nLlega en %ds" % [amount, ceili(remaining)]
 
 func pick_closest(pos: Vector3) -> Dictionary:
