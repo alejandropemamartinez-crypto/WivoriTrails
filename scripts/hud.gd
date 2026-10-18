@@ -20,6 +20,18 @@ var shop_coins: Label
 var run_button: Button
 var shop_details := {}
 var objective := {}
+var level_label: Label
+var level_progress: ProgressBar
+var queue_label: Label
+var alert_panel: PanelContainer
+var alert_title: Label
+var alert_detail: Label
+var alert_button: Button
+var pad_panel: PanelContainer
+var pad_title: Label
+var pad_detail: Label
+var pad_button: Button
+var wayfinder
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
@@ -90,6 +102,9 @@ func build(game: Node3D) -> void:
 	g=game
 	name="Interfaz móvil"
 	root=Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var ui_theme := Theme.new()
+	ui_theme.default_font=ThemeDB.fallback_font.duplicate()
+	root.theme=ui_theme
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(root)
 
 	var header := panel(); root.add_child(header); position_top(header,24,88)
@@ -98,6 +113,10 @@ func build(game: Node3D) -> void:
 	var money := VBoxContainer.new(); money.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(money)
 	money.add_child(label("MONEDAS",13,MUTED))
 	g.total_label=label("50",30); money.add_child(g.total_label)
+	var level := VBoxContainer.new(); level.custom_minimum_size=Vector2(91,0); row.add_child(level)
+	level.add_child(label("NIVEL",12,TEAL))
+	level_label=label("01",23,TEAL); level.add_child(level_label)
+	level_progress=progress(); level_progress.max_value=20; level.add_child(level_progress)
 	row.add_child(icon("bag",TEAL,Vector2(37,48)))
 	var bag := VBoxContainer.new(); bag.custom_minimum_size=Vector2(120,0); row.add_child(bag)
 	g.backpack_label=label("0 / 12",23); bag.add_child(g.backpack_label)
@@ -109,6 +128,8 @@ func build(game: Node3D) -> void:
 	mission_column.add_theme_constant_override("separation",3); mission_row.add_child(mission_column)
 	next_label=label("TU PRIMER MERCADO",12,TEAL); mission_column.add_child(next_label)
 	g.mission_label=label("Tu primera cosecha",23); mission_column.add_child(g.mission_label)
+	g.mission_label.clip_text=true
+	next_label.clip_text=true
 	mission_detail=label("",17,MUTED); mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	mission_detail.custom_minimum_size=Vector2(370,0); mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
@@ -126,6 +147,9 @@ func build(game: Node3D) -> void:
 	var team := panel(Color(.98,.97,.90,.90)); status.add_child(team)
 	team.add_theme_stylebox_override("panel",chip_style)
 	team_label=label("Equipo  0",17); team.add_child(team_label)
+	var queue := panel(Color(.98,.97,.90,.90)); status.add_child(queue)
+	queue.add_theme_stylebox_override("panel",chip_style)
+	queue_label=label("Fila  0/6",17); queue.add_child(queue_label)
 	var shipping := panel(Color(.12,.31,.31,.94)); root.add_child(shipping)
 	position_top(shipping,340,58,24,-130)
 	shipping.add_theme_stylebox_override("panel",style(Color(.12,.31,.31,.94),14))
@@ -134,7 +158,7 @@ func build(game: Node3D) -> void:
 	var view := button("VISTA",PAPER,14); root.add_child(view)
 	view.add_theme_color_override("font_color",INK); view.add_theme_color_override("font_hover_color",INK)
 	view.anchor_left=1; view.anchor_right=1
-	view.offset_left=-108; view.offset_right=-24; view.offset_top=340; view.offset_bottom=398
+	view.offset_left=-108; view.offset_right=-24; view.offset_top=280; view.offset_bottom=324
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
@@ -172,9 +196,39 @@ func build(game: Node3D) -> void:
 	g.event_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	g.event_label.add_theme_stylebox_override("normal",style(Color(.10,.26,.26,.94),18))
 	g.event_label.visible=false
+	build_action_cards()
+	wayfinder=load("res://scripts/wayfinder.gd").new(); wayfinder.g=g
+	root.add_child(wayfinder); wayfinder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	build_shop()
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)
+
+func build_action_cards() -> void:
+	alert_panel=panel(Color("#fff1de")); root.add_child(alert_panel)
+	position_top(alert_panel,336,88)
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation",12); alert_panel.add_child(row)
+	var column := VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(column)
+	alert_title=label("",19,Color("#ab593d")); column.add_child(alert_title)
+	alert_detail=label("",15,MUTED); alert_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	alert_detail.custom_minimum_size=Vector2(350,0); column.add_child(alert_detail)
+	alert_button=button("REPONER",Color("#b96a40"),15); alert_button.custom_minimum_size=Vector2(132,54)
+	alert_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; row.add_child(alert_button)
+	alert_button.pressed.connect(func():g._follow_alert())
+	alert_panel.visible=false
+	pad_panel=panel(Color("#fff5d9")); root.add_child(pad_panel)
+	pad_panel.anchor_top=1; pad_panel.anchor_bottom=1; pad_panel.anchor_right=1
+	pad_panel.offset_left=24; pad_panel.offset_right=-24; pad_panel.offset_top=-458; pad_panel.offset_bottom=-316
+	var pad_row := HBoxContainer.new(); pad_row.add_theme_constant_override("separation",16); pad_panel.add_child(pad_row)
+	var description := VBoxContainer.new(); description.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	description.add_theme_constant_override("separation",5); pad_row.add_child(description)
+	description.add_child(label("ESTÁS EN UNA ZONA DE MEJORA",12,TEAL))
+	pad_title=label("",23); pad_title.clip_text=true; description.add_child(pad_title)
+	pad_detail=label("",17,MUTED); pad_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	pad_detail.custom_minimum_size=Vector2(340,0); description.add_child(pad_detail)
+	pad_button=button("COMPRAR",TEAL,18); pad_button.custom_minimum_size=Vector2(156,76)
+	pad_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; pad_row.add_child(pad_button)
+	pad_button.pressed.connect(func():g._purchase_nearby())
+	pad_panel.visible=false
 
 func _apply_safe_area() -> void:
 	if OS.get_name()!="Android":return
@@ -211,8 +265,8 @@ func build_shop() -> void:
 	scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL; column.add_child(scroll)
 	var upgrades := VBoxContainer.new(); upgrades.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	upgrades.add_theme_constant_override("separation",12); scroll.add_child(upgrades)
-	var names := {"helper":"Ayudante automático","speed":"Pasos más rápidos","bag":"Más espacio en la mochila","expand":"Huerto de manzanas","pier":"Muelle de exportación"}
-	for key in ["helper","bag","speed","expand","pier"]:
+	var names := {"helper":"Ayudante automático","checkout":"Caja rápida","speed":"Zapatillas turbo","bag":"Mochila más grande","expand":"Huerto de manzanas","pier":"Muelle de exportación"}
+	for key in ["helper","checkout","bag","speed","expand","pier"]:
 		var card := panel(Color("#eef2e6")); upgrades.add_child(card)
 		card.add_theme_stylebox_override("panel",style(Color("#eef2e6"),16))
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",14); card.add_child(row)
@@ -234,28 +288,50 @@ func refresh() -> void:
 	bag_progress.max_value=g.max_capacity; bag_progress.value=g._total_bag()
 	g.stock_label.text="Puesto  %s" % _number(g._total_stock())
 	team_label.text="Equipo  %d" % g.worker_count
+	queue_label.text="Fila  %d/6" % g._waiting_count()
+	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
+	level_label.text="%02d" % g.quest_level
+	level_progress.value=g.sold%20
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	g.mission_label.text=objective["title"]
 	mission_detail.text=objective["detail"]
 	mission_progress.max_value=objective["goal"]; mission_progress.value=objective["value"]
 	guide_button.text=objective["button"]
+	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
+	wayfinder.objective=objective
+	var alert: Dictionary=g.director.alert()
+	alert_panel.visible=not alert.is_empty() and not g.shop_panel.visible
+	if not alert.is_empty():
+		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
+		alert_title.add_theme_color_override("font_color",alert["color"])
+	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible
+	if not g.active_pad.is_empty():
+		var upgrade: Dictionary=g._upgrade(g.active_pad)
+		pad_title.text=upgrade["name"]
+		pad_detail.text=upgrade["benefit"]
+		pad_button.text="COMPRAR\n%d monedas" % upgrade["price"]
+		pad_button.disabled=g.coins<upgrade["price"]
+		if pad_button.disabled:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
+	g.event_label.offset_top=-542 if pad_panel.visible else -337
+	g.event_label.offset_bottom=g.event_label.offset_top+72
+	wayfinder.bottom_margin=500 if pad_panel.visible else 290
+	wayfinder.top_margin=438 if alert_panel.visible else 332
 	g.shipping_label.get_parent().visible=g.pier_owned
+	position_top(g.shipping_label.get_parent(),438 if alert_panel.visible else 336,54)
+	if g.pier_owned:wayfinder.top_margin+=64
 	if g.shipment["kind"]=="": g.shipping_label.text="MUELLE AUTO   ·   Esperando excedente   ·   +50%"
 	else:g.shipping_label.text="BARCO EN CAMINO   ·   %ds   ·   +%d monedas" % [ceili(g.shipment["remaining"]),g._shipment_income()]
 	scrim.visible=g.shop_panel.visible
 	shop_coins.text="Tenés %s monedas" % _number(g.coins)
-	var prices := {"helper":g.helper_cost,"bag":g.bag_cost,"speed":g.speed_cost,"expand":g.expand_cost,"pier":550}
-	var benefits := {"helper":"Cosecha y entrega por vos. Equipo: %d/%d." % [g.worker_count,g.MAX_HELPERS],
-		"bag":"Capacidad: %d → %d productos." % [g.max_capacity,mini(300,g.max_capacity+6)],
-		"speed":"Caminás un poco más rápido en cada viaje.","expand":"Desbloquea 9 cultivos. Cada manzana vale 14 monedas.",
-		"pier":"Exporta el excedente automáticamente por 50% más."}
-	for key in prices:
-		var owned: bool=(key=="expand" and g.orchard_owned) or (key=="pier" and g.pier_owned)
-		var capped: bool=(key=="helper" and g.worker_count>=g.MAX_HELPERS) or (key=="bag" and g.max_capacity>=300) or (key=="speed" and g.player_speed>=12)
-		g.store_buttons[key].disabled=owned or capped or g.coins<prices[key]
-		g.store_buttons[key].text="LISTO" if owned else ("AL MÁXIMO" if capped else "%s\nmonedas" % _number(prices[key]))
-		shop_details[key].text=benefits[key]
+	var affordable := 0
+	for key in g.UPGRADE_POS:
+		var upgrade: Dictionary=g._upgrade(key)
+		g.store_buttons[key].disabled=upgrade["done"] or g.coins<upgrade["price"]
+		g.store_buttons[key].text="LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"])
+		shop_details[key].text=upgrade["benefit"]
+		if not upgrade["done"] and g.coins>=upgrade["price"]:affordable+=1
+	g.shop_button.text="MEJORAS  ·  %d" % affordable if affordable>0 else "MEJORAS"
 
 func _number(value: int) -> String:
 	if value>=1000000:return "%.1f M" % (float(value)/1000000)

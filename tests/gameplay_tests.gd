@@ -175,7 +175,7 @@ func run() -> void:
 	clean_files()
 	Store.write_data(test_path,{"version":2,"coins":-50,"worker_count":999999,"player_speed":"fast","stash":[],"counter":"bad","helpers":{},"player_pos":["bad",9999]})
 	await start_game()
-	check(game.coins == 0 and game.worker_count == game.MAX_HELPERS and game.player_speed == 4.5 and game._total_bag() == 0 and absf(game.player.position.z)<=23, "Malformed fields load safely with bounds and defaults")
+	check(game.coins == 0 and game.worker_count == game.MAX_HELPERS and is_equal_approx(game.player_speed,game.BASE_SPEED) and game._total_bag() == 0 and absf(game.player.position.z)<=23, "Malformed fields load safely with bounds and defaults")
 	await stop_game()
 	clean_files()
 	print("RESULT: %d checks, %d failures" % [checks,failures])

@@ -34,17 +34,43 @@ func capture() -> void:
 	game.world.set_process(false)
 	for i in range(8): game._update_camera(1.0)
 	await shot("start")
+	game.coins=80
+	game.director.tick(.2)
+	game._refresh_ui()
+	await shot("affordable")
+	game._follow_objective()
+	for i in range(100):
+		game._process_player(.05); game._update_camera(.05)
+	game._refresh_ui()
+	game.event_label.visible=false
+	await shot("hire_here")
+	game._purchase_nearby()
+	for i in range(60):game._process_helpers(.1)
+	game.coins=200
+	game.player.position=Vector3(7,0,5)
+	for i in range(6):game._spawn_customer()
+	for i in range(100):game._process_customers(.1)
+	game.camera_follow=game.player.position
+	for i in range(8):game._update_camera(1.0)
+	game._refresh_ui(); game.event_label.visible=false
+	await shot("empty_queue")
+	game.counter["tomato"]=60
+	game._refresh_ui()
+	await shot("busy_queue")
 	game._toggle_shop()
 	await shot("upgrades")
 	game._toggle_shop()
 	game.coins=2000
 	game._buy("helper")
-	game._buy("helper")
+	game._buy("checkout")
 	game._buy("expand")
 	game._buy("pier")
 	game.counter["tomato"]=18
 	game.counter["apple"]=9
 	game._process_shipping(1)
+	game.player.position=Vector3(0,0,4)
+	game.camera_follow=game.player.position
+	for i in range(8):game._update_camera(1.0)
 	game._refresh_ui()
 	game.event_label.visible=false
 	await shot("expanded")
