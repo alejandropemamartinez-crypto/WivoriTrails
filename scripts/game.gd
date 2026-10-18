@@ -10,6 +10,7 @@ const TrailScript = preload("res://scripts/trail_guide.gd")
 const RunScript = preload("res://scripts/market_run.gd")
 const TownScript = preload("res://scripts/town_builder.gd")
 const CashScript = preload("res://scripts/cash_economy.gd")
+const WorkScript = preload("res://scripts/work_orders.gd")
 const SAVE_PATH = "user://wivori_trails_save.json"
 const MAX_HELPERS := 12
 const BASE_SPEED := 6.8
@@ -94,6 +95,7 @@ var guide_override := {}
 var save_path := SAVE_PATH
 var save_error_shown := false
 var hud
+var work
 
 func _ready() -> void:
 	_engine_world()
@@ -122,10 +124,12 @@ func _ready() -> void:
 	run=RunScript.new(self)
 	town=TownScript.new(); town.g=self; add_child(town)
 	cash=CashScript.new(); cash.g=self; add_child(cash)
+	work=WorkScript.new();work.g=self;add_child(work)
 	_load_progress()
 	camera_follow=player.position
 	_update_camera(1.0)
 	_setup_hud()
+	work.build_board()
 	trail=TrailScript.new(); trail.g=self; add_child(trail)
 	for i in range(worker_count):
 		_spawn_worker(i, saved_helpers[i] if i < saved_helpers.size() and saved_helpers[i] is Dictionary else {})
@@ -196,6 +200,7 @@ func _setup_hud() -> void:
 	hud.build(self)
 
 func _toggle_shop() -> void:
+	work.close_board()
 	shop_panel.visible = not shop_panel.visible
 	if shop_panel.visible:
 		has_tap_destination = false
@@ -222,7 +227,7 @@ func _refresh_ui() -> void:
 	var upgrades := {}
 	for kind in UPGRADE_POS:upgrades[kind]=_upgrade(kind)
 	world.update_upgrade_pads(upgrades,coins,director.recommended())
-	world.focus_upgrade_labels(player.position,town.in_build_mode,director.recommended())
+	world.focus_upgrade_labels(player.position,town.in_build_mode or not run.threat().is_empty(),director.recommended())
 	hud.refresh()
 	if trail!=null:trail.update_route(hud.objective)
 
@@ -290,6 +295,11 @@ func _current_objective() -> Dictionary:
 func _follow_objective() -> void:
 	var objective := _current_objective()
 	if objective.get("upgrade","")=="level":run.advance(); return
+	var action: String=objective.get("action","")
+	if not action.is_empty():
+		if objective.has("target") and player.position.distance_to(objective["target"])>2.4:_set_world_goal(objective["target"])
+		else:work.act(action)
+		return
 	if objective.has("target"):
 		var kind: String=objective.get("upgrade","")
 		if not kind.is_empty() and player.position.distance_to(objective["target"])<=PAD_RADIUS:_buy(kind)
@@ -310,6 +320,7 @@ func _harvest_kind(kind: String) -> Vector3:
 	return target
 
 func _toggle_build_mode() -> void:
+	work.close_board()
 	if shop_panel.visible:_toggle_shop()
 	town.toggle_mode()
 
@@ -625,7 +636,7 @@ func _process_player(delta: float) -> void:
 	var joy := (pad+keyboard).limit_length(1.0)
 	# Player travel is exclusively manual. Guides and terrain taps only mark.
 	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
-	if shop_panel.visible: world_motion = Vector3.ZERO
+	if shop_panel.visible or work.board_visible():world_motion=Vector3.ZERO
 	var velocity := world_motion * minf(9.6,player_speed * town.player_speed_factor() * (1.16 if boost_active else 1.0))
 	# Turbo upgrades provide controllable acceleration, not runaway speed.
 	# When joystick is released, Scottie stops instead of sliding past a target.
@@ -745,7 +756,8 @@ func _process(delta: float) -> void:
 	_process_helpers(delta)
 	_process_customers(delta)
 	_process_shipping(delta)
-	if not shop_panel.visible and not town.in_build_mode:run.tick(delta)
+	if not shop_panel.visible and not town.in_build_mode and not work.board_visible():
+		run.tick(delta);work.tick(delta)
 	director.tick(delta)
 	_update_camera(delta)
 	customers_timer-=delta
@@ -769,6 +781,9 @@ func _cash_sound() -> void:
 	if cash_sfx.stream: cash_sfx.play()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if work.board_visible():
+		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:work.close_board();_refresh_ui()
+		return
 	if town!=null and town.in_build_mode:
 		if event is InputEventScreenDrag:
 			town.pan_camera(event.relative)
@@ -838,7 +853,7 @@ func _save_data() -> Dictionary:
 	var crops: Array = []
 	for crop in world.crop_spots:
 		crops.append({"regrow":crop["regrow"] if not crop["ready"] else 0.0})
-	return {"version":6,"cash":cash.save_state(),"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
+	return {"version":7,"work":work.save_state(),"cash":cash.save_state(),"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
 		"worker_count":worker_count,"player_speed":player_speed,"max_capacity":max_capacity,
 		"stash":stash,"counter":counter,"quest_level":quest_level,"total_buyers":total_buyers,
 		"helper_cost":helper_cost,"speed_cost":speed_cost,"bag_cost":bag_cost,"orchard_owned":orchard_owned,
@@ -900,6 +915,7 @@ func _load_progress() -> void:
 		world.crop_spots[i]["regrow"]=regrow
 		world.crop_spots[i]["ready"]=regrow<=0
 		world.crop_spots[i]["node"].scale=Vector3.ONE*maxf(.12,1-regrow/3.0)
+		world.update_crop_visual(world.crop_spots[i])
 	var saved_shipment: Dictionary=data["shipment"] if data.get("shipment") is Dictionary else {}
 	var kind: Variant=saved_shipment.get("kind", "")
 	if pier_owned and kind is String and SELL_VALUE.has(kind):
@@ -907,6 +923,7 @@ func _load_progress() -> void:
 			"remaining":SaveStore.number(saved_shipment,"remaining",SHIPMENT_DURATION,0,SHIPMENT_DURATION)}
 	shipments_completed=int(SaveStore.number(data,"shipments_completed",0,0,10000000))
 	manual_delivered=int(SaveStore.number(data,"manual_delivered",0,0,10000000))
+	work.load_state(data["work"] if data.get("work") is Dictionary else {})
 	run.load_state(data["run"] if data.get("run") is Dictionary else {})
 	town.load_state(data["town"] if data.get("town") is Dictionary else {})
 	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})

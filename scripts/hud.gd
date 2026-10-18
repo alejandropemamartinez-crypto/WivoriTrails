@@ -50,6 +50,9 @@ var move_button: Button
 var shop_cards: Dictionary={}
 var shop_category: String="team"
 var previous_wallet: int=-1
+var activity_button: Button
+var town_scroll: ScrollContainer
+var focused_building:=""
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
@@ -148,18 +151,18 @@ func build(game: Node3D) -> void:
 	root.theme=ui_theme
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(root)
 
-	var header:=panel(Color("#28565b"));root.add_child(header);position_top(header,22,105)
+	var header:=panel(Color("#28565b"));root.add_child(header);position_top(header,16,80)
+	var header_style:=style(Color("#28565b"),25);header_style.content_margin_top=8;header_style.content_margin_bottom=8;header.add_theme_stylebox_override("panel",header_style)
 	var row:=HBoxContainer.new();row.add_theme_constant_override("separation",14);header.add_child(row)
-	row.add_child(icon("coin",GOLD,Vector2(54,54)))
+	row.add_child(icon("coin",GOLD,Vector2(43,43)))
 	var wallet:=VBoxContainer.new();wallet.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(wallet)
-	wallet.add_child(label("TU TESORERÍA",12,Color("#e3cd9f")))
-	g.total_label=label("50",34,Color("#fff5d7"));wallet.add_child(g.total_label)
-	uncollected_label=label("EN CAJAS  0",13,Color("#bed9c9"));wallet.add_child(uncollected_label)
-	var badge:=panel(Color("#e8b95e"));badge.custom_minimum_size=Vector2(97,0);row.add_child(badge)
+	g.total_label=label("50",29,Color("#fff5d7"));wallet.add_child(g.total_label)
+	uncollected_label=label("En cajas  0",12,Color("#bed9c9"));uncollected_label.clip_text=true;wallet.add_child(uncollected_label)
+	var badge:=panel(Color("#e8b95e"));badge.custom_minimum_size=Vector2(76,0);row.add_child(badge)
 	var badge_style:=style(Color("#e8b95e"),19);badge_style.content_margin_top=5;badge_style.content_margin_bottom=5;badge_style.content_margin_left=12;badge_style.content_margin_right=12;badge.add_theme_stylebox_override("panel",badge_style)
 	var level:=VBoxContainer.new();badge.add_child(level)
 	var small:=label("NIVEL",11,Color("#76532b"));small.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(small)
-	level_label=label("01",27,Color("#fff5dc"));level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(level_label)
+	level_label=label("01",23,Color("#fff5dc"));level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(level_label)
 	level_progress=progress(Color("#fdf0c5"));level_progress.custom_minimum_size.y=5;level.add_child(level_progress)
 	row.add_child(icon("bag",Color("#e8cb9b"),Vector2(35,45)))
 	var bag:=VBoxContainer.new();bag.custom_minimum_size=Vector2(111,0);row.add_child(bag)
@@ -167,20 +170,20 @@ func build(game: Node3D) -> void:
 	g.backpack_label=label("0 / 12",24,Color("#fff4d9"));bag.add_child(g.backpack_label)
 	bag_progress=progress(GOLD);bag.add_child(bag_progress)
 
-	var mission := panel(); root.add_child(mission); position_top(mission,141,130)
+	var mission := panel(); root.add_child(mission); position_top(mission,106,108)
+	var mission_style:=style(PAPER,22);mission_style.content_margin_top=6;mission_style.content_margin_bottom=6;mission.add_theme_stylebox_override("panel",mission_style)
 	mission_panel=mission
 	var mission_row := HBoxContainer.new(); mission_row.add_theme_constant_override("separation",12); mission.add_child(mission_row)
 	var mission_column := VBoxContainer.new(); mission_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	mission_column.add_theme_constant_override("separation",3); mission_row.add_child(mission_column)
 	next_label=label("TU PRIMER MERCADO",12,TEAL); mission_column.add_child(next_label)
-	g.mission_label=label("Tu primera cosecha",23); mission_column.add_child(g.mission_label)
+	g.mission_label=label("Tu primera cosecha",21); mission_column.add_child(g.mission_label)
 	g.mission_label.clip_text=true
 	next_label.clip_text=true
-	mission_detail=label("",16,MUTED); mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	mission_detail.custom_minimum_size=Vector2(370,0); mission_column.add_child(mission_detail)
-	mission_detail.max_lines_visible=2
+	mission_detail=label("",14,MUTED);mission_detail.clip_text=true
+	mission_detail.custom_minimum_size=Vector2(345,0); mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",TEAL,16); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(138,96)
+	guide_button=button("GUIAR",TEAL,14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(145,96)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
@@ -207,7 +210,7 @@ func build(game: Node3D) -> void:
 	view_button=view
 	view.add_theme_color_override("font_color",INK); view.add_theme_color_override("font_hover_color",INK)
 	view.anchor_left=1; view.anchor_right=1
-	view.offset_left=-108; view.offset_right=-24; view.offset_top=283; view.offset_bottom=329
+	view.offset_left=-108; view.offset_right=-24; view.offset_top=224; view.offset_bottom=270
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
@@ -233,6 +236,10 @@ func build(game: Node3D) -> void:
 	town_button.offset_left=-286; town_button.offset_right=-163
 	town_button.offset_top=-160; town_button.offset_bottom=-64
 	town_button.pressed.connect(func():g._toggle_build_mode())
+	activity_button=button("PEDIDOS",Color("#5d8490"),17);root.add_child(activity_button)
+	activity_button.anchor_top=1;activity_button.anchor_bottom=1
+	activity_button.offset_left=242;activity_button.offset_right=425;activity_button.offset_top=-160;activity_button.offset_bottom=-64
+	activity_button.pressed.connect(func():g.work.toggle_board());activity_button.visible=false
 
 	intercept_button=button("AHUYENTAR",Color("#b55d50"),19);intercept_button.icon=action_icon(4);intercept_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(intercept_button)
 	intercept_button.anchor_left=1; intercept_button.anchor_right=1; intercept_button.anchor_top=1; intercept_button.anchor_bottom=1
@@ -273,13 +280,14 @@ func build(game: Node3D) -> void:
 
 func build_action_cards() -> void:
 	alert_panel=panel(Color("#fff1de")); root.add_child(alert_panel)
-	position_top(alert_panel,336,128)
+	position_top(alert_panel,224,98,24,-120)
+	var compact:=style(Color("#fff1de"),18);compact.content_margin_top=5;compact.content_margin_bottom=5;alert_panel.add_theme_stylebox_override("panel",compact)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation",12); alert_panel.add_child(row)
 	var column := VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(column)
-	alert_title=label("",19,Color("#ab593d")); column.add_child(alert_title)
-	alert_detail=label("",15,MUTED); alert_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	alert_detail.custom_minimum_size=Vector2(350,0); column.add_child(alert_detail)
-	alert_button=button("REPONER",Color("#b96a40"),15); alert_button.custom_minimum_size=Vector2(132,88)
+	alert_title=label("",17,Color("#ab593d"));alert_title.clip_text=true; column.add_child(alert_title)
+	alert_detail=label("",13,MUTED);alert_detail.clip_text=true
+	alert_detail.custom_minimum_size=Vector2(260,0); column.add_child(alert_detail)
+	alert_button=button("REPONER",Color("#b96a40"),13); alert_button.custom_minimum_size=Vector2(116,88)
 	alert_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; row.add_child(alert_button)
 	alert_button.pressed.connect(func():g._follow_alert())
 	alert_panel.visible=false
@@ -292,7 +300,7 @@ func build_action_cards() -> void:
 	description.add_child(label("ESTÁS EN UNA ZONA DE MEJORA",12,TEAL))
 	pad_title=label("",23); pad_title.clip_text=true; description.add_child(pad_title)
 	pad_detail=label("",17,MUTED); pad_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	pad_detail.custom_minimum_size=Vector2(340,0); description.add_child(pad_detail)
+	pad_detail.custom_minimum_size=Vector2(340,0);pad_detail.max_lines_visible=2; description.add_child(pad_detail)
 	pad_button=button("COMPRAR",TEAL,18); pad_button.custom_minimum_size=Vector2(156,96)
 	pad_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER; pad_row.add_child(pad_button)
 	pad_button.pressed.connect(func():g._purchase_nearby())
@@ -322,6 +330,7 @@ func build_town_controls() -> void:
 	town_description.clip_text=true
 	column.add_child(town_description)
 	var scroller:=ScrollContainer.new()
+	town_scroll=scroller
 	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
 	scroller.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	scroller.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -458,10 +467,16 @@ func refresh() -> void:
 	g.input_stick.visible=not city_mode
 	run_button.visible=not city_mode
 	g.shop_button.visible=not city_mode
+	activity_button.visible=g.run.level>=7 and not city_mode
+	activity_button.text="PEDIDO LISTO" if g.work.has_ready() else "PEDIDOS"
+	if g.work.board_visible():g.work.refresh_board()
 	town_panel.visible=city_mode
 	town_button.text="VOLVER" if city_mode else "PUEBLO"
 	if city_mode:
+		if not g.town.focus_kind.is_empty() and focused_building!=g.town.focus_kind:
+			focused_building=g.town.focus_kind;town_scroll.set_deferred("scroll_horizontal",maxi(0,g.town.TYPES.keys().find(focused_building))*196)
 		town_description.text=g.town.selection_description()
+		if not g.town.focus_kind.is_empty() and not g.town.has_building(g.town.focus_kind):town_description.text="Construí "+g.town.TYPES[g.town.focus_kind]["name"].to_lower()+" · elegí un solar vacío."
 		move_button.visible=not g.town.constructed[g.town.selected].is_empty()
 		move_button.text="ELEGÍ UN SOLAR" if g.town.move_source>=0 else "MOVER EDIFICIO"
 		for kind in town_choices:
@@ -475,7 +490,7 @@ func refresh() -> void:
 		g.total_label.scale=Vector2.ONE*1.10
 		create_tween().tween_property(g.total_label,"scale",Vector2.ONE,.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	previous_wallet=g.coins
-	uncollected_label.text="EN CAJAS · %s" % _number(g.cash.total_pending())
+	uncollected_label.text="En cajas · %s" % _number(g.cash.total_pending())
 	uncollected_label.modulate=Color.WHITE
 	if g.cash.in_transit()>0:uncollected_label.text+=" · EN CAMINO %d" % g.cash.in_transit()
 	g.backpack_label.text="%d / %d" % [g._total_bag(),g.max_capacity]
@@ -506,7 +521,7 @@ func refresh() -> void:
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
-	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode
+	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode and not g.work.board_visible()
 	if not g.active_pad.is_empty():
 		var upgrade: Dictionary=g._upgrade(g.active_pad)
 		pad_title.text=upgrade["name"]
@@ -525,9 +540,9 @@ func refresh() -> void:
 	g.event_label.offset_bottom=g.event_label.offset_top+72
 	wayfinder.visible=not city_mode
 	wayfinder.bottom_margin=(590 if raiding else 500) if pad_panel.visible else (380 if raiding else 290)
-	wayfinder.top_margin=480 if alert_panel.visible else 332
+	wayfinder.top_margin=330 if alert_panel.visible or rabbit_banner.visible else 228
 	g.shipping_label.get_parent().visible=g.pier_owned and g.shipment["kind"]!="" and not city_mode
-	position_top(g.shipping_label.get_parent(),480 if alert_panel.visible else 296,50)
+	position_top(g.shipping_label.get_parent(),330 if alert_panel.visible else 224,40)
 	if g.pier_owned:wayfinder.top_margin+=64
 	if g.shipment["kind"]=="": g.shipping_label.text="MUELLE AUTO   ·   Esperando excedente   ·   +50%"
 	else:g.shipping_label.text="BARCO EN CAMINO   ·   %ds   ·   +%d monedas" % [ceili(g.shipment["remaining"]),g._shipment_income()]
