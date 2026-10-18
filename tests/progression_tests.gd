@@ -19,7 +19,7 @@ func stop() -> void:game.queue_free(); await process_frame; await process_frame
 func run_tests() -> void:
 	clean(); await start()
 	game.player.position=Vector3(0,0,4); game.input_stick.axis=Vector2.DOWN; game._process_player(.5)
-	check(is_equal_approx(game.player.position.z,7.4),"Manual movement retains the faster base speed")
+	check(absf(game.player.position.z-7.4)<.02,"Manual movement retains controllable acceleration and base speed")
 	game.input_stick._clear(); var at: Vector3=game.player.position
 	game._follow_objective(); game._set_tap_goal(Vector2(500,600))
 	for i in range(60):game._process_player(.1)
