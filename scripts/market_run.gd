@@ -196,8 +196,8 @@ func tick(delta: float) -> void:
 				var amount:=mini(8,mini(3+int(level/2),g.counter[chosen]))
 				if amount>0:
 					g.counter[chosen]-=amount; raid["cargo"]=chosen; raid["amount"]=amount
-						g._animate_goods(STOCK,actor.position,amount,Color("#d88c55"))
-						g._float_activity(actor.position,"¡ROBO! -%d" % amount,Color("#cf5e51"))
+					g._animate_goods(STOCK,actor.position,amount,Color("#d88c55"))
+					g._float_activity(actor.position,"¡ROBO! -%d" % amount,Color("#cf5e51"))
 					actor.set_carry(amount); raid["state"]="escape"; raid["label"].text="¡LLEVA %d!" % amount
 					g._notice("¡SE LLEVA %d PRODUCTOS!\nInterceptalo para recuperarlos." % amount,2.4)
 				else:raid["state"]="retreat"
