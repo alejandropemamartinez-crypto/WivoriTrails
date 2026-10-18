@@ -69,4 +69,20 @@ func capture() -> void:
 	game.event_label.visible=false
 	game._refresh_ui()
 	await shot("town_overview")
+	# Stage all nine district buildings and render the broader town view.
+	game.coins=25000
+	for index in range(3,game.town.LOCATIONS.size()):
+		game.town.select_at(game.town.LOCATIONS[index])
+		var kind: String=["bakery","greenhouse","workshop","park","watchtower","mill"][index-3]
+		game.town.build(kind)
+	game.town.camera_center=Vector3(0,0,0)
+	game._refresh_ui()
+	for n in range(14):game._update_camera(.20);await process_frame
+	await shot("town_nine_buildings")
+	game._toggle_build_mode()
+	game.player.position=Vector3(-2,0,7)
+	game.camera_follow=game.player.position
+	game._refresh_ui()
+	for n in range(10):game._update_camera(.20);await process_frame
+	await shot("upgrade_stalls")
 	game.queue_free(); await process_frame; quit(0)
