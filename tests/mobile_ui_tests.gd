@@ -62,7 +62,7 @@ func run() -> void:
 	check(game.player.head_mesh.mesh is ArrayMesh, "Every hero head is a dedicated continuous mesh")
 	check(game.player.head_mesh.mesh.get_surface_count()==1, "Face and muzzle share one sculpted surface")
 	check(game.player.head_mesh.material_override is ShaderMaterial, "Facial expressions are surface-painted, not floating geometry")
-	check(game.get_node("WorldEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_FILMIC, "Filmic tone mapping replaces overexposed linear lighting")
+	check(game.get_node("WivoriEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_FILMIC, "Filmic tone mapping replaces overexposed linear lighting")
 	check(game.camera.keep_aspect==Camera3D.KEEP_WIDTH, "Portrait camera preserves the horizontal view of the market")
 	check(game._current_objective()["target"]==Vector3(-8,0,0), "A fresh game points to the first harvest")
 	if DisplayServer.get_name()!="headless":
