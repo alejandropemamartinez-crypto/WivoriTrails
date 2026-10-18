@@ -247,4 +247,6 @@ func load_state(data: Dictionary) -> void:
 		if kind is String and TYPES.has(kind) and not has_building(kind):
 			constructed[i]=kind
 			_make_building(plot_nodes[i],kind,false)
+			g.world.navigation.add_obstacle(Rect2(Vector2(LOCATIONS[i].x-2.2,LOCATIONS[i].z-1.9),Vector2(4.4,3.8)))
+	g.world.navigation.build()
 	_refresh_plots()
