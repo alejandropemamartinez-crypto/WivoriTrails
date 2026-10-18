@@ -196,5 +196,9 @@ func _process(delta: float) -> void:
 		var emphasis:=sin((1-action_left/action_duration)*PI)
 		left_arm.rotation.x-=emphasis*.8; right_arm.rotation.x-=emphasis*.8
 		if action=="harvest":body_root.rotation.x+=emphasis*.22
+		if action=="collect":
+			left_arm.rotation.x-=emphasis*.43;right_arm.rotation.x-=emphasis*.43
+			body_root.position.y+=emphasis*.11
+			head_root.rotation.x-=emphasis*.10
 		if action=="intercept":head_root.rotation.z=emphasis*.12
 	else:head_root.rotation.z=0

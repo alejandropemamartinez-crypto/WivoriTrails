@@ -338,6 +338,9 @@ func _upgrade_emblem(node: Node3D, kind: String, accent: Color) -> void:
 		"alarm":
 			shape(p,"cone",Vector3(0,.10,.0),Vector3(1.0,.84,.9),Color("#d87a59"))
 			shape(p,"sphere",Vector3(0,-.40,.11),Vector3(.35,.28,.30),Color("#f3c474"))
+		"collector":
+			shape(p,"box",Vector3(0,0,0),Vector3(.85,.67,.45),Color("#e5b55e"))
+			shape(p,"sphere",Vector3(0,.32,.07),Vector3(.43,.30,.30),Color("#f6df96"))
 		"guard":
 			shape(p,"box",Vector3(0,0,0),Vector3(.86,.92,.27),Color("#6c8e9d"))
 			shape(p,"sphere",Vector3(0,.12,.18),Vector3(.43,.47,.19),Color("#e3ce93"))
@@ -350,7 +353,7 @@ func build_upgrade_pads() -> void:
 	var locations := {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
 		"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
 	var names := {"helper":"AYUDANTES","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA",
-		"expand":"HUERTO","pier":"MUELLE","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
+		"expand":"HUERTO","pier":"MUELLE","collector":"RECAUDADOR","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
 	var roof_colors := [Color("#ca795d"),Color("#dba764"),Color("#638f83"),Color("#97a7c1")]
 	var index := 0
 	for kind in locations:

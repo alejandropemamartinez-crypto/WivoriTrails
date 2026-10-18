@@ -83,8 +83,12 @@ func run() -> void:
 	for i in range(500):
 		if i%46==0:game._spawn_customer()
 		game._process_customers(.1)
+	check(game.coins==50 and game.cash.total_pending()>0, "Customers produce pending cash but do not give free wallet money")
+	manual_walk(game.cash.REGISTERS[0])
+	game.cash.tick(.1)
 	game._refresh_ui()
-	check(game._current_objective().get("upgrade")=="helper","First sales expose the affordable worker investment")
+	check(game.coins>=80 and game.cash.total_pending()==0, "Scottie must approach the first register to afford the helper")
+	check(game._current_objective().get("upgrade")=="helper","Cash collection exposes the affordable worker investment")
 	var old_coins: int=game.coins
 	game.hud.guide_button.pressed.emit()
 	check(game.worker_count==0 and game.coins==old_coins, "The guide marks the upgrade without spending or walking")
