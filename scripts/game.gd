@@ -713,7 +713,7 @@ func _update_camera(delta: float) -> void:
 	if town!=null and town.in_build_mode:
 		var city_center: Vector3=town.camera_center
 		camera_follow=camera_follow.lerp(city_center,1.0-exp(-4*delta))
-		var overview:=camera_follow+Vector3(0,49,44)
+		var overview:=camera_follow+Vector3(0,30,29)
 		camera.position=camera.position.lerp(overview,1.0-exp(-5*delta))
 		camera.look_at(camera_follow,Vector3.UP)
 		return
