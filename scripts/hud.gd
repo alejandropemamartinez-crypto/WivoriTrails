@@ -366,7 +366,7 @@ func refresh() -> void:
 		town_description.text=g.town.selection_description()
 		for kind in town_choices:
 			var detail: Dictionary=g.town.TYPES[kind]
-			var built:=g.town.has_building(kind)
+			var built: bool=g.town.has_building(kind)
 			town_choices[kind].disabled=built or not g.town.constructed[g.town.selected].is_empty() or g.coins<detail["price"]
 			town_choices[kind].text="LISTO" if built else "%d MON." % detail["price"]
 	g.total_label.text=_number(g.coins)
