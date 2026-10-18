@@ -225,6 +225,9 @@ func build(game: Node3D) -> void:
 	wayfinder=load("res://scripts/wayfinder.gd").new(); wayfinder.g=g
 	root.add_child(wayfinder); wayfinder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	build_shop()
+	# The emergency interception control must win hit-testing over any nearby
+	# contextual purchase panels when several UI elements overlap.
+	root.move_child(intercept_button,root.get_child_count()-1)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)
 
