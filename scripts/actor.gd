@@ -41,7 +41,8 @@ static func model(kind: String) -> Node3D:
 	return scenes[kind].instantiate()
 
 func _ready() -> void:
-	var animal := "terrier" if species in ["scottie","dog","fox","cat","human","pig"] else species
+	var animal: String="terrier" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
+	if animal not in ["terrier","fox","pig","duck","rabbit","raccoon"]:animal="rabbit"
 	body_root=model(animal)
 	body_root.name="Personaje orgánico con esqueleto"
 	body_root.scale=Vector3.ONE*.84

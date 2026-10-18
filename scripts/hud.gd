@@ -466,12 +466,12 @@ func refresh() -> void:
 	footer_panel.visible=false
 	g.input_stick.visible=not city_mode
 	run_button.visible=not city_mode
-	g.shop_button.visible=not city_mode
-	activity_button.visible=g.run.level>=7 and not city_mode
+	g.shop_button.visible=not city_mode and not g.route.away()
+	activity_button.visible=g.run.level>=7 and not city_mode and not g.route.away()
 	activity_button.text="PEDIDO LISTO" if g.work.has_ready() else "PEDIDOS"
 	if g.work.board_visible():g.work.refresh_board()
 	town_panel.visible=city_mode
-	town_button.text="VOLVER" if city_mode else "PUEBLO"
+	town_button.text="VOLVER" if city_mode else "GRANJA" if g.route.away() else "PUEBLO"
 	if city_mode:
 		if not g.town.focus_kind.is_empty() and focused_building!=g.town.focus_kind:
 			focused_building=g.town.focus_kind;town_scroll.set_deferred("scroll_horizontal",maxi(0,g.town.TYPES.keys().find(focused_building))*196)
@@ -490,7 +490,7 @@ func refresh() -> void:
 		g.total_label.scale=Vector2.ONE*1.10
 		create_tween().tween_property(g.total_label,"scale",Vector2.ONE,.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	previous_wallet=g.coins
-	uncollected_label.text="En cajas · %s" % _number(g.cash.total_pending())
+	uncollected_label.text=("Caja local · %d" % g.route.market_money[g.route.region]) if g.route.away() else "En cajas · %s" % _number(g.cash.total_pending())
 	uncollected_label.modulate=Color.WHITE
 	if g.cash.in_transit()>0:uncollected_label.text+=" · EN CAMINO %d" % g.cash.in_transit()
 	g.backpack_label.text="%d / %d" % [g._total_bag(),g.max_capacity]
@@ -501,6 +501,9 @@ func refresh() -> void:
 	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
 	level_label.text="%02d" % g.run.level
 	level_progress.max_value=1.0; level_progress.value=g.run.progress()
+	if g.route.route_button!=null:
+		g.route.route_button.visible=not city_mode
+		g.route.route_button.text="RUTA %d/15" % g.route.stage if g.route.ferry else "RUTA AL FARO"
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	g.mission_label.text=objective["title"]
@@ -521,7 +524,7 @@ func refresh() -> void:
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
-	pad_panel.visible=not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode and not g.work.board_visible()
+	pad_panel.visible=not g.route.away() and not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode and not g.work.board_visible()
 	if not g.active_pad.is_empty():
 		var upgrade: Dictionary=g._upgrade(g.active_pad)
 		pad_title.text=upgrade["name"]
@@ -541,7 +544,7 @@ func refresh() -> void:
 	wayfinder.visible=not city_mode
 	wayfinder.bottom_margin=(590 if raiding else 500) if pad_panel.visible else (380 if raiding else 290)
 	wayfinder.top_margin=330 if alert_panel.visible or rabbit_banner.visible else 228
-	g.shipping_label.get_parent().visible=g.pier_owned and g.shipment["kind"]!="" and not city_mode
+	g.shipping_label.get_parent().visible=not g.route.away() and g.pier_owned and g.shipment["kind"]!="" and not city_mode
 	position_top(g.shipping_label.get_parent(),330 if alert_panel.visible else 224,40)
 	if g.pier_owned:wayfinder.top_margin+=64
 	if g.shipment["kind"]=="": g.shipping_label.text="MUELLE AUTO   ·   Esperando excedente   ·   +50%"

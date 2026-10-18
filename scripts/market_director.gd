@@ -54,6 +54,7 @@ func tick(delta: float) -> void:
 	announcement_count+=1
 	offer_cooldown=7.0
 	g._notice("YA PODÉS: %s\nSeguí las flechas hasta la mejora." % upgrade["name"],3.3)
+	if g.milestone!=null:g.milestone.announce("investment:"+token,"¡Ya podés mejorar!",upgrade["name"]+"\n\n"+upgrade["benefit"]+"\n\n%d monedas. Seguí las flechas con el joystick." % upgrade["price"],"crew" if kind in ["helper","collector"] else "star","guide","UNA NUEVA INVERSIÓN")
 
 func alert() -> Dictionary:
 	var security: Dictionary=g.run.alert()

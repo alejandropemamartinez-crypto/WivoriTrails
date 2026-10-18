@@ -6,7 +6,7 @@ class_name WivoriCashEconomy
 const Art=preload("res://scripts/art_library.gd")
 const Store=preload("res://scripts/save_store.gd")
 const REGISTERS=[Vector3(7.6,0,1.0),Vector3(.55,0,1.1)]
-const BANK=Vector3(-.2,0,9.2)
+const BANK=preload("res://scripts/town_layout.gd").BANK
 const COLLECTION_RADIUS=2.05
 const COLLECTOR_PRICE=620
 const MAX_PENDING=1950000000
@@ -41,7 +41,7 @@ func _make_register(index: int) -> void:
 	# The second box is a real collision obstacle only after it is unlocked.
 	if index==0:_register_obstacle(index)
 	var txt: Label3D=g.world.make_label(node,"",Vector3(0,2.3,0),38)
-	txt.outline_size=7;txt.pixel_size=.0075;txt.no_depth_test=true;labels.append(txt)
+	txt.pixel_size=.010;labels.append(txt)
 	var pieces: Array=[]
 	for j in range(18):
 		var piece:=Art.place(node,"coin",Vector3(.12+float(j%3)*.23,1.10+float(j/9)*.13+float(j%3)*.04,float((j/3)%3-1)*.24),Vector3.ONE*.65)
@@ -57,7 +57,7 @@ func _make_treasury() -> void:
 	collector_bank=Art.place(self,"treasury",BANK)
 	g.world.navigation.add_obstacle(Rect2(BANK.x-.82,BANK.z-.61,1.64,1.22))
 	treasury_label=g.world.make_label(collector_bank,"TESORERÍA",Vector3(0,2.1,0),36)
-	treasury_label.outline_size=7;treasury_label.pixel_size=.008;treasury_label.no_depth_test=true
+	treasury_label.pixel_size=.010
 
 func total_pending() -> int:return pending[0]+pending[1]
 func in_transit() -> int:return player_held+collector_held

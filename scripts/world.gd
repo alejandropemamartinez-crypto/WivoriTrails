@@ -97,7 +97,11 @@ func batch_paving(pieces: Array[Dictionary]) -> void:
 	add_child(n)
 
 func make_label(parent: Node3D, message: String, pos: Vector3, size_: int = 70) -> Label3D:
-	var label := Label3D.new()
+	var is_sign: bool=message in ["ENTREGAR","TESORERÍA","Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS","MUELLE","PEDIDO PREMIUM","ENCARGOS DEL VALLE","WIVORI"] or parent.name.begins_with("Caja ")
+	var label: Label3D=preload("res://scripts/world_sign.gd").new() if is_sign else Label3D.new()
+	if is_sign:
+		label.symbol="money" if message=="TESORERÍA" or parent.name.begins_with("Caja ") else "harvest" if message in ["Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS"] else "deliver"
+		size_=maxi(size_,46)
 	label.text = message
 	label.font=TownFont
 	label.font_size = size_
@@ -163,8 +167,8 @@ func build_market() -> void:
 	shape(self,"box",Vector3(4,.10,2.5),Vector3(3.7,.12,2.7),Color("#aa8967"),"Terraza de entregas")
 	var rug:=shape(self,"box",Vector3(4,.18,2.5),Vector3(3.30,.08,2.34),Color("#d6ba84"),"Alfombra de entregas")
 	var paint:=ShaderMaterial.new();paint.shader=preload("res://scripts/ground.gdshader");paint.set_shader_parameter("cobbled",true);paint.set_shader_parameter("base_color",Color("#e0c89a"));rug.material_override=paint
-	var sign:=make_label(self,"ENTREGAR",Vector3(4,.8,2.5),37)
-	sign.modulate=Color("#fff2c5");sign.outline_size=6;sign.outline_modulate=Color("#685641")
+	var sign:=make_label(self,"ENTREGAR",Vector3(4,1.1,2.5),48)
+	sign.pixel_size=.011
 
 func build_farms() -> void:
 	farm_root = Node3D.new(); farm_root.name = "Huertos"; add_child(farm_root)
@@ -346,7 +350,7 @@ func _upgrade_emblem(node: Node3D, kind: String, accent: Color) -> void:
 			shape(p,"sphere",Vector3.ZERO,Vector3.ONE*.6,accent)
 
 func build_upgrade_pads() -> void:
-	var locations: Dictionary={"helper":Vector3(-2.6,0,6.3),"collector":Vector3(-4.6,0,7.6),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
+	var locations: Dictionary=preload("res://scripts/town_layout.gd").UPGRADES
 	var names: Dictionary={"helper":"AYUDANTES","collector":"RECAUDADOR","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA","expand":"HUERTO","pier":"MUELLE","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
 	var colors: Dictionary={"helper":Color("#d79b5c"),"collector":Color("#479d90"),"bag":Color("#b77d5a"),"speed":Color("#709db9"),"checkout":Color("#539d91"),"expand":Color("#7ca775"),"pier":Color("#709da5"),"lock":Color("#7c8ca5"),"alarm":Color("#cc8067"),"guard":Color("#6f88aa")}
 	for kind in locations:
