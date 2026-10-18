@@ -27,6 +27,8 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and active_finger == -1:
+		_clear()
 	if event is InputEventScreenTouch:
 		var local: Vector2 = get_global_transform_with_canvas().affine_inverse() * event.position
 		if event.pressed and active_finger == -1 and Rect2(Vector2.ZERO, size).has_point(local):
@@ -53,6 +55,10 @@ func _clear() -> void:
 	active_finger = -1
 	axis = Vector2.ZERO
 	queue_redraw()
+
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]:
+		_clear()
 
 func _draw() -> void:
 	var center: Vector2 = size * .5

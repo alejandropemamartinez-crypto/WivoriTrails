@@ -1,0 +1,6 @@
+.godot/
+build/
+*.log
+export_credentials.cfg
+*.keystore
+!tools/android/debug.keystore

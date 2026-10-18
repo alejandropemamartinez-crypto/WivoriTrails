@@ -3,10 +3,15 @@ name: Wivori Trails - Godot Android Debug
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -18,28 +23,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Unpack original Godot project
+      - name: Check editable sources
         shell: bash
         run: |
           set -euo pipefail
-          # Editable checkout is authoritative after the initial unpack.
-          if [ ! -f project.godot ]; then unzip -oq wivori_bundle.zip -d .; fi
           test -f project.godot
           test -f Main.tscn
           test -f scripts/game.gd
-
-      - name: Expose editable source files in GitHub
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add project.godot export_presets.cfg Main.tscn scripts assets icon.png
-          if ! git diff --cached --quiet; then
-            git commit -m "Expose editable Godot source files"
-            git push origin HEAD:main
-          fi
 
       - name: Setup Godot templates and Android debug signing
         shell: bash
@@ -50,11 +40,8 @@ jobs:
             mkdir -p "$HOME/.local/share/godot/export_templates"
             if [ "$HOME" != /root ]; then cp -a /root/.local/share/godot/export_templates/4.4.1.stable "$HOME/.local/share/godot/export_templates/"; fi
           fi
-          if [ ! -e "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-              -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android \
-              -dname 'CN=Android Debug,O=Android,C=US'
-          fi
+          # Public test-only certificate, deliberately versioned for stable updates.
+          cp tools/android/debug.keystore "$HOME/.android/debug.keystore"
           echo "SDK: ${ANDROID_HOME:-/usr/lib/android-sdk}"
           godot --version
           sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
@@ -66,7 +53,6 @@ jobs:
           printf 'export/android/debug_keystore = "%s"\n' "$HOME/.android/debug.keystore" >> "$HOME/.config/godot/editor_settings-4.4.tres"
           printf 'export/android/debug_keystore_user = "androiddebugkey"\n' >> "$HOME/.config/godot/editor_settings-4.4.tres"
           printf 'export/android/debug_keystore_pass = "android"\n' >> "$HOME/.config/godot/editor_settings-4.4.tres"
-          cat "$HOME/.config/godot/editor_settings-4.4.tres"
 
       - name: Import resources and check GDScript
         shell: bash
@@ -76,6 +62,13 @@ jobs:
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-import.log; then exit 1; fi
           godot --headless --path . --quit-after 120 2>&1 | tee godot-runtime.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-runtime.log; then exit 1; fi
+
+      - name: Run gameplay regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120 godot --headless --path . --script res://tests/gameplay_tests.gd 2>&1 | tee godot-tests.log
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-tests.log; then exit 1; fi
 
       - name: Export Android APK (debug)
         shell: bash
@@ -88,7 +81,8 @@ jobs:
           mkdir -p build
           godot --headless --path . --export-debug Android build/WivoriTrails_Android_debug.apk 2>&1 | tee godot-export.log
           test -s build/WivoriTrails_Android_debug.apk
-          unzip -t build/WivoriTrails_Android_debug.apk | tail -1
+          python3 tools/verify_apk.py build/WivoriTrails_Android_debug.apk \
+            --build-tools "${ANDROID_HOME:-/usr/lib/android-sdk}/build-tools/35.0.0" 2>&1 | tee apk-verification.log
 
       - name: Upload build logs for diagnosis
         if: always()
@@ -98,7 +92,9 @@ jobs:
           path: |
             godot-import.log
             godot-runtime.log
+            godot-tests.log
             godot-export.log
+            apk-verification.log
           if-no-files-found: ignore
 
       - name: Upload test APK

@@ -14,6 +14,9 @@ var rng := RandomNumberGenerator.new()
 var shared_meshes := {}
 var shared_materials := {}
 var market_crates: Array[Node3D] = []
+var navigation = preload("res://scripts/navigation.gd").new()
+var pier_boat: Node3D
+var pier_label: Label3D
 
 const GREEN = Color("#74b96b")
 const DARK_GREEN = Color("#316947")
@@ -96,6 +99,7 @@ func _ready() -> void:
 	build_farms()
 	build_scenery()
 	build_expansions()
+	navigation.build()
 
 func build_land() -> void:
 	shape(self,"box",Vector3(0,-.42,0),Vector3(65,.8,65),GREEN,"Base de isla")
@@ -119,6 +123,7 @@ func build_land() -> void:
 	shape(self,"cylinder",Vector3(18,.12,15),Vector3(6,.14,5),Color("#5aaec2"))
 
 func build_market() -> void:
+	navigation.add_obstacle(Rect2(1.30, -3.95, 5.40, 3.85))
 	var root := Node3D.new(); root.position = Vector3(4,0,-2); root.name = "Puesto central"; add_child(root)
 	shape(root,"box",Vector3(0,.66,0),Vector3(4.5,1.35,3.2),WOOD)
 	shape(root,"box",Vector3(0,1.31,1.5),Vector3(4.8,.18,.45),Color("#e9b775"))
@@ -195,11 +200,14 @@ func build_scenery() -> void:
 		shape(n,"cone",Vector3(0,.90,.59),Vector3(.22,.29,.22),Color("#f2b14b"))
 		dynamic_animals.append({"node":n,"base":n.position,"phase":float(i)*1.8})
 	for pos in [Vector3(-3,0,3),Vector3(8,0,-7),Vector3(-4,0,13)]:
+		navigation.add_obstacle(Rect2(Vector2(pos.x, pos.z) - Vector2.ONE * .38, Vector2.ONE * .76))
 		shape(self,"cylinder",pos+Vector3(0,1.3,0),Vector3(.17,2.6,.17),WOOD)
 		shape(self,"box",pos+Vector3(0,2.4,0),Vector3(.76,.72,.76),Color("#f6d891"))
 		shape(self,"cone",pos+Vector3(0,2.83,0),Vector3(1.02,.42,1.02),Color("#593e2d"))
 
 func build_tree(pos: Vector3, scale_: float) -> void:
+	var radius := .28 * scale_ + .25
+	navigation.add_obstacle(Rect2(Vector2(pos.x, pos.z) - Vector2.ONE * radius, Vector2.ONE * radius * 2))
 	var n := Node3D.new(); n.position = pos; n.scale = Vector3.ONE * scale_; add_child(n)
 	shape(n,"cylinder",Vector3(0,1.22,0),Vector3(.52,2.46,.50),WOOD)
 	for p in [Vector3(-.80,2.65,0),Vector3(.82,2.82,.06),Vector3(0,3.25,0),Vector3(0,2.58,.85)]:
@@ -218,6 +226,15 @@ func build_expansions() -> void:
 	pier_root = Node3D.new(); pier_root.position = Vector3(19,0,15); pier_root.name = "Muelle desbloqueable"; add_child(pier_root)
 	for z in range(5):
 		shape(pier_root,"box",Vector3(0,.48,float(z)*1.45),Vector3(4.5,.30,1.28),WOOD)
+	for z in [0.0, 5.8]:
+		for x in [-2.15, 2.15]:
+			shape(pier_root,"cylinder",Vector3(x,.9,z),Vector3(.2,1.8,.2),WOOD)
+	pier_boat = Node3D.new(); pier_boat.name = "Barco de pedidos"; pier_root.add_child(pier_boat)
+	shape(pier_boat,"sphere",Vector3(0,.25,0),Vector3(2.1,.60,3.0),Color("#367e96"))
+	shape(pier_boat,"box",Vector3(0,.65,0),Vector3(1.3,.6,1.4),CREAM)
+	shape(pier_boat,"box",Vector3(0,1.02,0),Vector3(1.5,.16,1.6),RED)
+	pier_label = make_label(pier_root,"EXPORTACIÓN AUTOMÁTICA\nReserva 3; envía lotes de 6",Vector3(0,3,0),30)
+	update_pier_shipment("",0,0,30)
 	pier_root.visible = false
 
 func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
@@ -234,6 +251,7 @@ func update_market_stock(stock: Dictionary) -> void:
 		market_crates[i].visible=int(stock.get(kind,0))>0
 
 func open_orchard() -> void:
+	if orchard_open: return
 	orchard_open=true
 	orchard_root.visible=true
 	make_bed("Manzanas",Vector3(13,0,-13),RED,"apple",true)
@@ -241,6 +259,16 @@ func open_orchard() -> void:
 func open_pier() -> void:
 	pier_open=true
 	pier_root.visible=true
+
+func update_pier_shipment(kind: String, amount: int, remaining: float, duration: float) -> void:
+	if pier_boat == null: return
+	if kind.is_empty():
+		pier_boat.position = Vector3(-3.1,0,1.0)
+		pier_label.text = "EXPORTACIÓN AUTOMÁTICA\nReserva 3; envía lotes de 6"
+	else:
+		var progress := clampf(1.0 - remaining / duration, 0, 1)
+		pier_boat.position = Vector3(-3.1,0,1.0 + sin(progress * PI) * 5.0)
+		pier_label.text = "EXPORTANDO %d\nLlega en %ds" % [amount, ceili(remaining)]
 
 func pick_closest(pos: Vector3) -> Dictionary:
 	var nearest: Dictionary = {}
