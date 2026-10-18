@@ -18,6 +18,7 @@ var guide_button: Button
 var next_label: Label
 var team_label: Label
 var shop_coins: Label
+var uncollected_label: Label
 var run_button: Button
 var shop_details := {}
 var objective := {}
@@ -144,6 +145,7 @@ func build(game: Node3D) -> void:
 	var money := VBoxContainer.new(); money.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(money)
 	money.add_child(label("MONEDAS",13,MUTED))
 	g.total_label=label("50",30); money.add_child(g.total_label)
+	uncollected_label=label("EN CAJAS  $0",13,Color("#bb7b46")); money.add_child(uncollected_label)
 	var level := VBoxContainer.new(); level.custom_minimum_size=Vector2(91,0); row.add_child(level)
 	level.add_child(label("NIVEL",12,TEAL))
 	level_label=label("01",23,TEAL); level.add_child(level_label)
@@ -401,7 +403,7 @@ func build_shop() -> void:
 	upgrades.add_theme_constant_override("separation",12); scroll.add_child(upgrades)
 	var names := {}
 	for kind in g.UPGRADE_POS:names[kind]=g._upgrade(kind)["name"]
-	for key in ["helper","checkout","lock","alarm","guard","bag","speed","expand","pier"]:
+	for key in ["helper","collector","checkout","lock","alarm","guard","bag","speed","expand","pier"]:
 		var card := panel(Color("#eef2e6")); upgrades.add_child(card)
 		card.add_theme_stylebox_override("panel",style(Color("#eef2e6"),16))
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",14); card.add_child(row)
@@ -436,6 +438,8 @@ func refresh() -> void:
 			town_choices[kind].disabled=built or not g.town.constructed[g.town.selected].is_empty() or g.coins<detail["price"]
 			town_choices[kind].text="LISTO" if built else "%d MON." % detail["price"]
 	g.total_label.text=_number(g.coins)
+	uncollected_label.text="EN CAJAS  $%s" % _number(g.cash.total_pending())
+	uncollected_label.modulate=Color("#ae7a45") if g.cash.total_pending()>0 else MUTED
 	g.backpack_label.text="%d / %d" % [g._total_bag(),g.max_capacity]
 	bag_progress.max_value=g.max_capacity; bag_progress.value=g._total_bag()
 	g.stock_label.text="Puesto  %s" % _number(g._total_stock())
