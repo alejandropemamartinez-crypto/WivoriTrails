@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode specular_schlick_ggx;
+render_mode cull_disabled, specular_schlick_ggx;
 
 // Facial features are painted on the same smooth head mesh as the snout.
 // No free-floating eye, nose, tooth or moustache geometry.
