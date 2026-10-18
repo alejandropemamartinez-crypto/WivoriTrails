@@ -3,7 +3,7 @@ class_name WivoriWorkOrders
 
 const Art=preload("res://scripts/art_library.gd")
 const Store=preload("res://scripts/save_store.gd")
-const DISPATCH=Vector3(-11,0,17)
+const DISPATCH=Vector3(-4.8,0,17)
 const RECIPES={
 	"jam":{"name":"Compota del valle","building":"bakery","ingredients":{"berry":3,"apple":2},"seconds":12.0,"pay":210,"level":7,"model":"goods_jam"},
 	"snack":{"name":"Merienda de viaje","building":"cafe","ingredients":{"carrot":3,"apple":2},"seconds":16.0,"pay":230,"level":8,"model":"goods_parcel"},
