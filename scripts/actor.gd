@@ -73,7 +73,7 @@ func _ready() -> void:
 	head_root.add_child(head_mesh)
 	head_mesh.name="Cabeza esculpida con hocico integrado"
 	var face:=ShaderMaterial.new(); face.shader=FacePaint; face.set_shader_parameter("skin",skin)
-	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("masked",character_role=="thief")
+	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("canine",species in ["dog","fox"]); face.set_shader_parameter("masked",character_role=="thief")
 	face.set_shader_parameter("phase",float(get_instance_id()%19))
 	head_mesh.material_override=face
 	if species=="rabbit":
