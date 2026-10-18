@@ -86,18 +86,16 @@ func _ready() -> void:
 			_solid(ear,"cone",Color("#b78d91"),Vector3(0,.20,.145),Vector3(.20,.39,.041))
 		# A Scottie's most important identifying feature is its continuous
 		# shaggy chin and cheek beard, not a wide plain wolf muzzle.
-		for i in range(7):
-			var x: float=(float(i)-3.0)*.115
-			var middle: float=1.0-absf(x)/.55
-			var tuft:=_solid(head_root,"cone",skin.lightened(.23),
-				Vector3(x,-.402,.285),Vector3(.155,.42+.17*middle,.24))
-			tuft.rotation.z=PI
-			tuft.rotation.x=.14
-		for x in [-.34,.34]:
-			var side:=_solid(head_root,"cone",skin.lightened(.16),
-				Vector3(x,-.26,.20),Vector3(.20,.39,.30))
-			side.rotation.z=PI
-			side.rotation.y=-.22 if x<0 else .22
+		# Soft overlapping fur clumps: no long spikes or detached teeth.
+		# Spheres intersect with the sculpted chin rather than floating.
+		for i in range(5):
+			var x: float=(float(i)-2.0)*.157
+			var middle: float=1.0-absf(x)/.45
+			_solid(head_root,"sphere",skin.lightened(.15),
+				Vector3(x,-.39,.255),Vector3(.235,.30+.08*middle,.28))
+		for x in [-.31,.31]:
+			_solid(head_root,"sphere",skin.lightened(.11),
+				Vector3(x,-.23,.19),Vector3(.25,.27,.27))
 	elif species=="rabbit":
 		for x in [-.25,.25]:
 			var ear:=_pivot(Vector3(x,.32,0),head_root); ears.append(ear)
