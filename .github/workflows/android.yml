@@ -81,8 +81,8 @@ jobs:
           mkdir -p build
           godot --headless --path . --export-debug Android build/WivoriTrails_Android_debug.apk 2>&1 | tee godot-export.log
           test -s build/WivoriTrails_Android_debug.apk
-          python3 tools/verify_apk.py build/WivoriTrails_Android_debug.apk \
-            --build-tools "${ANDROID_HOME:-/usr/lib/android-sdk}/build-tools/35.0.0" 2>&1 | tee apk-verification.log
+          bash tools/verify_apk.sh build/WivoriTrails_Android_debug.apk \
+            "${ANDROID_HOME:-/usr/lib/android-sdk}/build-tools/35.0.0" 2>&1 | tee apk-verification.log
 
       - name: Upload build logs for diagnosis
         if: always()
