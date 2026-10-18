@@ -312,6 +312,20 @@ func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) 
 		pad["price"].modulate=Color("#76552c") if afford else Color("#51706b")
 		if locked_sites.has(kind):locked_sites[kind].visible=not done
 
+func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: String) -> void:
+	# Pads remain in the 3D world; labels appear on approach or for the
+	# suggested investment. A forest of prices no longer covers the town.
+	for kind in upgrade_pads:
+		var pad: Dictionary=upgrade_pads[kind]
+		var near: bool=player_pos.distance_to(pad["node"].position)<5.0
+		var show_label: bool=not building and (near or kind==recommended)
+		pad["label"].visible=show_label
+		pad["price"].visible=show_label
+	for kind in locked_sites:
+		var site: Node3D=locked_sites[kind]
+		var center: Vector3=Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)
+		site.visible=upgrade_pads[kind]["node"].visible and not building and player_pos.distance_to(center)<8.0
+
 func celebrate_upgrade(kind: String) -> void:
 	if not upgrade_pads.has(kind):return
 	var at: Vector3=upgrade_pads[kind]["node"].position

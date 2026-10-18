@@ -1,8 +1,18 @@
-# Wivori Trails · 0.8.0 — primera revisión de arte
+# Wivori Trails · 0.9.0 — primer pueblo construible
 
 Juego móvil 3D de comercio, automatización y defensa en **Godot 4.4.1**.
 Vos controlás al protagonista. Los empleados cosechan y reponen mientras vos
 cumplís metas, entregás pedidos premium y protegés el puesto de mapaches ladrones.
+
+## El pueblo comienza a crecer en 0.9.0
+- Modo **PUEBLO**: cambia del joystick a una cámara elevada; tocás uno de tres solares y construís sin teletransportar al personaje.
+- Tres edificios con repercusiones REALES: Casa de vecinos (clientes llegan 25 % más rápido), Café (+20 % por venta), Almacén comunal (+6 unidades de mochila).
+- Los edificios se levantan con animación sobre los solares, tienen colores propios y permanecen al cerrar la aplicación.
+- Animaciones de cosecha con indicadores +1, productos que salen de la mochila al entregar y cifras de monedas que vuelan a la caja.
+- Robos visuales: los mapaches llevan una caja visible al robar, los artículos vuelan desde el almacén y regresan al recuperarlos. Desde el nivel 4 aparecen grupos de ladrones crecientes.
+- HUD simplificado para aventuras y panel dedicado de construcción; el modo PUEBLO oculta los controles de caminar.
+- Las compras requieren acción explícita y las partidas v1–v4 siguen cargando. Godot y Android se validan en GitHub Actions.
+- **No es Township ni pretende copiarlo**. Las referencias son progresión visual y construcción en paralelo al juego de aventura.
 
 ## Cambios de arte en 0.8.0
 - El protagonista es ahora un perrito aventurero con ropa turquesa y sombrero terracota; el vendedor conserva su identidad canina.
