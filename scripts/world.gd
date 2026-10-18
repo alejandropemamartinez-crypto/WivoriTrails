@@ -115,11 +115,14 @@ func _ready() -> void:
 	build_expansions()
 	build_upgrade_pads()
 	build_security()
+	var quarters:=preload("res://scripts/village_scenery.gd").new()
+	quarters.w=self
+	add_child(quarters)
 	navigation.build()
 
 func build_land() -> void:
-	shape(self,"box",Vector3(0,-.42,0),Vector3(65,.8,65),GREEN,"Base de isla")
-	shape(self,"box",Vector3(0,-.84,0),Vector3(66,.35,66),Color("#c6aa72"),"Corte de isla")
+	shape(self,"box",Vector3(0,-.42,0),Vector3(95,.8,95),GREEN,"Base de isla")
+	shape(self,"box",Vector3(0,-.84,0),Vector3(96,.35,96),Color("#c6aa72"),"Corte de isla")
 	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
 	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#b9a887"),"Paseo principal")
 	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#b9a887"),"Plaza comercial")
