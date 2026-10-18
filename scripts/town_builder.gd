@@ -26,9 +26,9 @@ func _ready() -> void:
 		add_child(plot)
 		plot_nodes.append(plot)
 		g.world.shape(plot,"box",Vector3(0,.065,0),Vector3(5.6,.12,5.6),Color("#ddc69b"))
-		var ring:=g.world.shape(plot,"cylinder",Vector3(0,.135,0),Vector3(4.7,.08,4.7),Color("#68b4a5"))
+		var ring: MeshInstance3D=g.world.shape(plot,"cylinder",Vector3(0,.135,0),Vector3(4.7,.08,4.7),Color("#68b4a5"))
 		plot_glows.append(ring)
-		var label:=g.world.make_label(plot,"SOLAR %d" % (i+1),Vector3(0,1.1,0),42)
+		var label: Label3D=g.world.make_label(plot,"SOLAR %d" % (i+1),Vector3(0,1.1,0),42)
 		label.pixel_size=.009
 		label.modulate=Color("#315c58")
 		plot_signs.append(label)
@@ -134,7 +134,7 @@ func _make_building(plot: Node3D, kind: String, animated: bool) -> void:
 		_part(building,"box",Vector3(0,1.02,1.96),Vector3(2.3,1.90,.12),Color("#b99565"))
 		for x in [-1.3,1.3]:
 			_part(building,"box",Vector3(x,1.9,1.98),Vector3(.42,.53,.08),Color("#ead6a9"))
-	var sign:=g.world.make_label(building,TYPES[kind]["name"],Vector3(0,3.65,0),30)
+	var sign: Label3D=g.world.make_label(building,TYPES[kind]["name"],Vector3(0,3.65,0),30)
 	sign.pixel_size=.008
 	sign.modulate=Color("#355952")
 	if animated:
