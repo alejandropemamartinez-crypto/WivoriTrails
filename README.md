@@ -1,4 +1,4 @@
-# Wivori Trails · 0.14.0
+# Wivori Trails · 0.14.1
 
 Talleres con encargos y entregas manuales, doce capítulos, rondas de defensa,
 Scottie refinado e interfaz compacta. [Cambios y validación](docs/release-v0.14.md).
@@ -23,7 +23,7 @@ El protagonista es un Scottish Terrier gris atigrado. Se conserva el nombre
 - Ventas → cajas físicas → monedas en tránsito → cartera. El dinero es
   gastable únicamente al terminar su recorrido. La primera mejora de caja abre
   la segunda. El conejo recoge, carga una bolsa visible y deposita en tesorería.
-- Guardado v6: conserva las partidas v1–v5, incluidas ventas pendientes,
+- Guardado v7: conserva las partidas v1–v6, incluidas ventas pendientes,
   dinero transportado, mejoras, cultivos, empleados, construcciones e incursiones.
 - Movimiento analógico, aceleración y frenado suaves, giro y cámara con seguimiento.
   La guía marca el destino; el protagonista siempre se mueve con tus controles.
@@ -47,7 +47,8 @@ Abrí `project.godot` con Godot **4.4.1** y ejecutá `Main.tscn`.
 - Desde el nivel 4 hay pedidos premium ×2; el muelle exporta excedentes.
 - Las metas requieren entregas tuyas, pedidos y defensa. Los empleados no
   completan automáticamente el trabajo personal. **Continuar** cobra el premio
-  del nivel una sola vez. Después de seis capítulos siguen contratos rotativos.
+  del nivel una sola vez. Desde el nivel 7, **Pedidos** permite fabricar, recoger y entregar encargos.
+  Después de doce capítulos alternan rutas de producción, rapidez y defensa.
 
 ## Arte editable y procedencia
 
