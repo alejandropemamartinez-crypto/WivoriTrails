@@ -76,6 +76,12 @@ func icon(kind: String, tint: Color=INK, dimensions: Vector2=Vector2(42,42)) -> 
 	node.custom_minimum_size=dimensions
 	return node
 
+func action_icon(index: int) -> Texture2D:
+	var tile:=AtlasTexture.new()
+	tile.atlas=load("res://assets/ui/action_icons.svg")
+	tile.region=Rect2(index*24,0,24,24)
+	return tile
+
 func button(text_: String, color_: Color=TEAL, font_size_: int=21) -> Button:
 	var node := TouchButtonScript.new()
 	node.text=text_
@@ -159,7 +165,7 @@ func build(game: Node3D) -> void:
 	mission_detail=label("",17,MUTED); mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	mission_detail.custom_minimum_size=Vector2(370,0); mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",TEAL,16); guide_button.custom_minimum_size=Vector2(122,70)
+	guide_button=button("GUIAR",TEAL,16); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(122,70)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
@@ -196,23 +202,24 @@ func build(game: Node3D) -> void:
 	g.input_stick.offset_top=-252; g.input_stick.offset_bottom=-37
 	var run := button("CORRER",Color("#d79b41"),18); root.add_child(run)
 	run_button=run
+	run.icon=action_icon(2);run.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	run.anchor_left=1; run.anchor_right=1; run.anchor_top=1; run.anchor_bottom=1
 	run.offset_left=-182; run.offset_right=-24; run.offset_top=-240; run.offset_bottom=-168
 	run.button_down.connect(func():g.boost_active=true)
 	run.button_up.connect(func():g.boost_active=false)
-	g.shop_button=button("MEJORAS",TEAL,17); root.add_child(g.shop_button)
+	g.shop_button=button("MEJORAS",TEAL,17); g.shop_button.icon=action_icon(1);g.shop_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT; root.add_child(g.shop_button)
 	g.shop_button.anchor_left=1; g.shop_button.anchor_right=1
 	g.shop_button.anchor_top=1; g.shop_button.anchor_bottom=1
 	g.shop_button.offset_left=-154; g.shop_button.offset_right=-24
 	g.shop_button.offset_top=-152; g.shop_button.offset_bottom=-68
 	g.shop_button.pressed.connect(func():g._toggle_shop())
-	town_button=button("PUEBLO",Color("#537f69"),17); root.add_child(town_button)
+	town_button=button("PUEBLO",Color("#537f69"),17);town_button.icon=action_icon(0);town_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(town_button)
 	town_button.anchor_left=1; town_button.anchor_right=1; town_button.anchor_top=1; town_button.anchor_bottom=1
 	town_button.offset_left=-286; town_button.offset_right=-163
 	town_button.offset_top=-152; town_button.offset_bottom=-68
 	town_button.pressed.connect(func():g._toggle_build_mode())
 
-	intercept_button=button("AHUYENTAR",Color("#b55d50"),19); root.add_child(intercept_button)
+	intercept_button=button("AHUYENTAR",Color("#b55d50"),19);intercept_button.icon=action_icon(4);intercept_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(intercept_button)
 	intercept_button.anchor_left=1; intercept_button.anchor_right=1; intercept_button.anchor_top=1; intercept_button.anchor_bottom=1
 	intercept_button.offset_left=-286; intercept_button.offset_right=-24; intercept_button.offset_top=-330; intercept_button.offset_bottom=-254
 	intercept_button.pressed.connect(func():g._intercept())
