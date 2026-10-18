@@ -227,7 +227,7 @@ func _construction_effect(plot: Node3D) -> void:
 	# Build-site dust scatters and fades on real construction.
 	for i in range(10):
 		var angle:=TAU*float(i)/10.0
-		var dust:=g.world.shape(plot,"sphere",Vector3(0,.6,0),Vector3(.2,.2,.2),Color("#efcf91"))
+		var dust: MeshInstance3D=g.world.shape(plot,"sphere",Vector3(0,.6,0),Vector3(.2,.2,.2),Color("#efcf91"))
 		var outward:=Vector3(cos(angle)*2.6,1.3,sin(angle)*2.6)
 		var tween:=create_tween().set_parallel(true)
 		tween.tween_property(dust,"position",outward,.65).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
