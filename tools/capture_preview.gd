@@ -93,4 +93,17 @@ func capture() -> void:
 	game._refresh_ui()
 	for n in range(10):game._update_camera(.20);await process_frame
 	await shot("upgrade_stalls")
+	game.cash.unlock_second_register()
+	game.cash.pending=[420,235]
+	game.cash._refresh_register(0);game.cash._refresh_register(1)
+	game.player.position=Vector3(4,0,5)
+	camera_reset();game._refresh_ui()
+	await shot("cash_money_stacks")
+	game.coins=2500;game.cash.hire_collector()
+	game.cash.collector.position=Vector3(7.7,0,2.0)
+	game.cash.collector_held=210
+	game.cash.collector_state="to_bank"
+	game.cash.collector.set_carry(6)
+	game._refresh_ui()
+	await shot("cash_rabbit_courier")
 	game.queue_free(); await process_frame; quit(0)
