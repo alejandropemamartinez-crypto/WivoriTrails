@@ -236,6 +236,38 @@ func run() -> void:
 	await stop_game()
 	await start_game()
 	check(game.town.constructed.size()==9 and game.town.has_building("mill") and game.town.has_building("greenhouse"), "All expanded districts and purchased utility buildings persist after reload")
+
+	# A second cashbox and the salaried courier must physically collect
+	# money instead of minting wallet funds from sales.
+	game.coins=1400
+	game._buy("checkout")
+	check(game.cash.active_registers==2 and game.cash.register_nodes[1].visible, "First checkout purchase opens a second visible cash collection register")
+	var purse_before_hire: int=game.coins
+	game._buy("collector")
+	check(game.cash.collector_hired and game.coins==purse_before_hire-620 and game.cash.collector!=null, "Hiring a real rabbit cashier courier costs exactly 620")
+	game._buy("collector")
+	check(game.coins==purse_before_hire-620, "The same courier cannot be charged twice")
+	game.cash.pending=[0,0]
+	for i in range(2):game.cash._refresh_register(i)
+	game.player.position=Vector3(-18,0,27)
+	game._record_sale(1,31); game._record_sale(1,27)
+	check(game.cash.pending[0]>0 and game.cash.pending[1]>0, "Customers pay into two independent physical money piles")
+	var wallet_before_collector: int=game.coins
+	for i in range(850):
+		game.cash.tick(.10)
+		if game.cash.collector_held>0:break
+	check(game.cash.collector_held>0 and game.coins==wallet_before_collector, "Courier visibly picks up money but does not credit wallet before banking")
+	var carrying_during_save: int=game.cash.collector_held
+	game._save_progress()
+	await stop_game()
+	await start_game()
+	check(game.cash.collector_hired and game.cash.collector_held==carrying_during_save, "Saved games preserve physical money carried by courier without duplication")
+	for i in range(850):
+		game.cash.tick(.10)
+		if game.cash.collector_held==0 and game.coins>wallet_before_collector:break
+	check(game.coins==wallet_before_collector+carrying_during_save and game.cash.collector_held==0, "Courier travels to treasury and credits cash exactly once")
+	for i in range(20):game.cash.tick(.10)
+	check(game.coins==wallet_before_collector+carrying_during_save, "Repeated update ticks never pay the same courier load twice")
 	await stop_game()
 	clean_files()
 
