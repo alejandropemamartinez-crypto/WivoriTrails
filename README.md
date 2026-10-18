@@ -1,3 +1,17 @@
+# Wivori Trails · 0.11.0 — Scottish Terrier & Animated Alerts
+
+**Objetivo de esta etapa:** dirección de arte original, no un clon de Township.
+
+- El personaje controlable es ahora un **terrier escocés gris atigrado** con silueta de orejas erguidas, hocico largo con barba esculpida y cejas claras. La cara está pintada sobre una malla continua.
+- Cada mejora dispone de un cartel elevado, **delante y por encima** del techo; placa cálida contrastada con título grande, precio y símbolo tridimensional propio.
+- El conejo mensajero aparece con ojos asustados y animación elástica cuando se aproximan mapaches o se llevan productos. Su ilustración SVG es original y escalable.
+- Botones con profundidad, sombras, bordes inferiores y tipografía más gruesa. Se mantiene el manejo táctil simultáneo con joystick.
+- El juego conserva progresión, construcción de nueve edificios, ventas, cosecha y defensa. Los datos de guardado existentes no se reinician.
+- **Limitación artística:** todavía es un juego de personajes procedurales, no cuenta con modelos orgánicos con rigging ni clips de animación profesionales. El SVG animado es un retrato 2D dentro del HUD.
+- **Validación:** pruebas GitHub Actions para compilación Android y capturas de la escena real, incluidos el terrier en primer plano y la alerta.
+
+## Historial anterior
+
 # Wivori Trails · 0.9.0 — primer pueblo construible
 
 Juego móvil 3D de comercio, automatización y defensa en **Godot 4.4.1**.

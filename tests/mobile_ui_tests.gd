@@ -58,9 +58,12 @@ func manual_walk(target: Vector3) -> void:
 func run() -> void:
 	clean_files()
 	await start_game()
-	check(game.player.species=="dog", "The controllable hero is a dog adventurer, not a temporary human primitive")
+	check(game.player.species=="scottie", "Player is a grey-brindle Scottish Terrier with custom head geometry")
 	check(game.player.head_mesh.mesh is ArrayMesh, "Every hero head is a dedicated continuous mesh")
 	check(game.player.head_mesh.mesh.get_surface_count()==1, "Face and muzzle share one sculpted surface")
+	check(game.player.ears.size()==2 and game.player.head_mesh.material_override.get_shader_parameter("scottie")==true, "Scottie has upright terrier ears and surface-painted beard and brows")
+	check(game.hud.rabbit_banner.portrait.texture!=null, "An actual scalable illustrated rabbit warning portrait is installed")
+	check(game.world.upgrade_pads["helper"]["label"].position.y>3.4 and game.world.upgrade_pads["helper"]["board"] is Sprite3D, "Upgrade labels and prices are raised above their roofs on billboards")
 	check(game.player.head_mesh.material_override is ShaderMaterial, "Facial expressions are surface-painted, not floating geometry")
 	check(game.get_node("WivoriEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_FILMIC, "Filmic tone mapping replaces overexposed linear lighting")
 	check(game.camera.keep_aspect==Camera3D.KEEP_WIDTH, "Portrait camera preserves the horizontal view of the market")
@@ -152,6 +155,7 @@ func run() -> void:
 	game.run.raiders[0]["actor"].position=game.player.position+Vector3(.7,0,0)
 	game._refresh_ui(); await process_frame
 	check(game.hud.intercept_button.visible and not game.hud.intercept_button.disabled,"An approaching thief exposes the nearby intercept action")
+	check(game.hud.rabbit_banner.visible and game.hud.rabbit_banner.headline.text.contains("ROBANDO"),"A shocked rabbit appears as an animated robbery alert when a thief approaches")
 	if DisplayServer.get_name()!="headless":
 		check(game.hud.pad_panel.get_global_rect().end.y<game.hud.intercept_button.get_global_rect().position.y,"Defense purchase and intercept controls do not overlap")
 	var intercept_at: Vector2=game.hud.intercept_button.get_global_rect().get_center()

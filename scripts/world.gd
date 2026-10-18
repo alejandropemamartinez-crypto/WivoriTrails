@@ -279,6 +279,71 @@ func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
 		var theta := float(k)*TAU/5.0
 		shape(p,"sphere",Vector3(cos(theta),2.5,sin(theta)),Vector3(.3,.33,.3),RED)
 
+static var sign_textures: Dictionary={}
+
+func _sign_texture(accent: Color) -> Texture2D:
+	var key:=accent.to_html()
+	if sign_textures.has(key):return sign_textures[key]
+	# A crisp wooden plaque with high-contrast trim, independent of roof angle.
+	var canvas:=Image.create(360,168,false,Image.FORMAT_RGBA8)
+	canvas.fill(Color.TRANSPARENT)
+	for py in range(168):
+		for px in range(360):
+			var radius: float=24.0
+			var bx: float=maxf(absf(float(px)-180.0)-156.0,0)
+			var by: float=maxf(absf(float(py)-84.0)-60.0,0)
+			var dist: float=sqrt(bx*bx+by*by)
+			if dist<radius:
+				var alpha: float=clampf(radius-dist,0,1)
+				var border: bool=dist>radius-9 or px<11 or py<11 or px>348 or py>155
+				var base: Color=accent.darkened(.30) if border else Color("#fff0c9")
+				if py>107 and not border:base=Color("#e9c993")
+				base.a=alpha
+				canvas.set_pixel(px,py,base)
+	var texture:=ImageTexture.create_from_image(canvas)
+	sign_textures[key]=texture
+	return texture
+
+func _upgrade_emblem(node: Node3D, kind: String, accent: Color) -> void:
+	var p:=Node3D.new()
+	p.position=Vector3(0,2.35,-.13)
+	p.name="Ícono grande de "+kind
+	node.add_child(p)
+	match kind:
+		"helper":
+			for x in [-.29,.29]:
+				shape(p,"sphere",Vector3(x,.12,0),Vector3(.36,.40,.29),Color("#ebd7ad"))
+				shape(p,"sphere",Vector3(x,-.22,.10),Vector3(.38,.44,.28),accent)
+		"bag":
+			shape(p,"box",Vector3(0,0,.0),Vector3(.92,.88,.45),Color("#9a6a47"))
+			shape(p,"sphere",Vector3(0,.28,-.07),Vector3(.59,.29,.30),accent)
+			shape(p,"box",Vector3(0,0,.27),Vector3(.50,.30,.09),Color("#f3d183"))
+		"speed":
+			var arrow:=shape(p,"cone",Vector3(0,.07,.0),Vector3(.85,1.06,.5),Color("#edbf55"))
+			arrow.rotation.z=PI
+			shape(p,"box",Vector3(0,-.18,.08),Vector3(.31,.51,.18),accent)
+		"checkout":
+			shape(p,"box",Vector3(0,-.04,0),Vector3(1.05,.55,.47),accent)
+			shape(p,"box",Vector3(0,.33,.01),Vector3(.79,.23,.44),Color("#f5d394"))
+		"expand":
+			shape(p,"cylinder",Vector3(0,-.1,0),Vector3(.32,.92,.32),Color("#956b4e"))
+			for x in [-.38,.38]:
+				shape(p,"sphere",Vector3(x,.34,0),Vector3(.74,.67,.64),Color("#72ae78"))
+		"pier":
+			shape(p,"box",Vector3(0,-.26,0),Vector3(1.20,.28,.62),Color("#639db0"))
+			shape(p,"cone",Vector3(0,.31,0),Vector3(.83,.76,.31),Color("#fff3d7"))
+		"lock":
+			shape(p,"box",Vector3(0,-.12,.10),Vector3(.70,.58,.38),Color("#e5bd6e"))
+			shape(p,"cylinder",Vector3(0,.30,-.02),Vector3(.41,.68,.40),accent)
+		"alarm":
+			shape(p,"cone",Vector3(0,.10,.0),Vector3(1.0,.84,.9),Color("#d87a59"))
+			shape(p,"sphere",Vector3(0,-.40,.11),Vector3(.35,.28,.30),Color("#f3c474"))
+		"guard":
+			shape(p,"box",Vector3(0,0,0),Vector3(.86,.92,.27),Color("#6c8e9d"))
+			shape(p,"sphere",Vector3(0,.12,.18),Vector3(.43,.47,.19),Color("#e3ce93"))
+		_:
+			shape(p,"sphere",Vector3.ZERO,Vector3.ONE*.6,accent)
+
 func build_upgrade_pads() -> void:
 	# Real little upgrade stalls instead of flat neon circles. Kept in the
 	# original locations so progression, navigation and save files still work.
@@ -304,9 +369,27 @@ func build_upgrade_pads() -> void:
 		shape(stall,"sphere",Vector3(-.70,.80,.34),Vector3(.44,.31,.41),Color("#679b6a"))
 		var sign:=make_label(stall,names[kind],Vector3(0,1.32,-.13),36)
 		sign.modulate=Color("#304b45"); sign.outline_size=0; sign.pixel_size=.008
-		var price:=make_label(stall,"",Vector3(0,.82,.29),38)
-		price.modulate=Color("#36574f"); price.outline_size=0; price.pixel_size=.009
-		upgrade_pads[kind]={"node":stall,"face":face,"label":sign,"price":price,"short":names[kind]}
+		var price:=make_label(stall,"",Vector3(0,3.05,.39),49)
+		var badge:=Sprite3D.new()
+		badge.name="Cartel colgante elevado siempre legible"
+		badge.texture=_sign_texture(roof_colors[index%4])
+		badge.pixel_size=.0062
+		badge.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+		badge.position=Vector3(0,3.42,.0)
+		badge.no_depth_test=true
+		stall.add_child(badge)
+		for x in [-.77,.77]:
+			shape(stall,"cylinder",Vector3(x,2.73,-.32),Vector3(.075,1.65,.075),Color("#855f42"))
+		sign.position=Vector3(0,3.60,.46)
+		sign.font_size=56; sign.pixel_size=.0060
+		sign.modulate=Color("#284945")
+		sign.outline_size=8; sign.outline_modulate=Color("#ffedc5")
+		sign.no_depth_test=true
+		price.font_size=42; price.pixel_size=.0062
+		price.modulate=Color("#5a4438"); price.outline_size=7; price.outline_modulate=Color("#ffedc5")
+		price.no_depth_test=true
+		_upgrade_emblem(stall,kind,roof_colors[index%4])
+		upgrade_pads[kind]={"node":stall,"face":face,"label":sign,"price":price,"board":badge,"short":names[kind]}
 		index+=1
 	for kind in ["expand","pier"]:
 		var site:=Node3D.new()
@@ -339,10 +422,11 @@ func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: Stri
 	# suggested investment. A forest of prices no longer covers the town.
 	for kind in upgrade_pads:
 		var pad: Dictionary=upgrade_pads[kind]
-		var near: bool=player_pos.distance_to(pad["node"].position)<5.0
-		var show_label: bool=not building and (near or kind==recommended)
+		var near: bool=player_pos.distance_to(pad["node"].position)<18.0
+		var show_label: bool=not building and pad["node"].visible and (near or kind==recommended)
 		pad["label"].visible=show_label
 		pad["price"].visible=show_label
+		pad["board"].visible=show_label
 	for kind in locked_sites:
 		var site: Node3D=locked_sites[kind]
 		var center: Vector3=Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)

@@ -98,8 +98,8 @@ func _ready() -> void:
 	add_child(world)
 	player = ActorScript.new()
 	player.ground_sampler=Callable(world,"ground_height")
-	player.name = "Personaje controlable"
-	player.setup("player",Color("#338f8b"),"dog")
+	player.name = "Scottie, el terrier escocés"
+	player.setup("player",Color("#3c827b"),"scottie")
 	add_child(player)
 	player.position = Vector3(0,0,4)
 	world.shape(player,"cylinder",Vector3(0,.06,0),Vector3(1.05,.025,1.05),Color("#328c87"),"Tu personaje")

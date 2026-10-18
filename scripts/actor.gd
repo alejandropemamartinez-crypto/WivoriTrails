@@ -62,7 +62,7 @@ func _pivot(at: Vector3, parent: Node3D) -> Node3D:
 
 func _ready() -> void:
 	body_root=_pivot(Vector3.ZERO,self)
-	var skin: Color={"human":Color("#f0b988"),"cat":Color("#dda779"),"rabbit":Color("#ede0c7"),"pig":Color("#eeaea5"),"fox":Color("#e9a15f"),"dog":Color("#c7a37c"),"raccoon":Color("#a9b5ba")}.get(species,Color("#e1c6a0"))
+	var skin: Color={"human":Color("#f0b988"),"cat":Color("#dda779"),"rabbit":Color("#ede0c7"),"pig":Color("#eeaea5"),"fox":Color("#e9a15f"),"dog":Color("#c7a37c"),"scottie":Color("#666b72"),"raccoon":Color("#a9b5ba")}.get(species,Color("#e1c6a0"))
 	_solid(body_root,"sphere",outfit,Vector3(0,.89,0),Vector3(.76,.85,.58))
 	_solid(body_root,"sphere",outfit.lightened(.13),Vector3(0,1.13,.18),Vector3(.54,.30,.32))
 	_solid(body_root,"box",Color("#e9d5a4"),Vector3(0,.68,.27),Vector3(.56,.10,.06))
@@ -74,10 +74,29 @@ func _ready() -> void:
 	head_root.add_child(head_mesh)
 	head_mesh.name="Cabeza esculpida con hocico integrado"
 	var face:=ShaderMaterial.new(); face.shader=FacePaint; face.set_shader_parameter("skin",skin)
-	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("canine",species in ["dog","fox"]); face.set_shader_parameter("masked",character_role=="thief")
+	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("canine",species in ["dog","fox","scottie"]); face.set_shader_parameter("masked",character_role=="thief"); face.set_shader_parameter("scottie",species=="scottie")
 	face.set_shader_parameter("phase",float(get_instance_id()%19))
 	head_mesh.material_override=face
-	if species=="rabbit":
+	if species=="scottie":
+		# True Scottish Terrier: pointed upright triangular ears, not drooping puppy ears.
+		for x in [-.36,.36]:
+			var ear:=_pivot(Vector3(x,.35,-.065),head_root); ears.append(ear)
+			var tip:=_solid(ear,"cone",skin.darkened(.08),Vector3(0,.20,0),Vector3(.37,.58,.32))
+			tip.rotation.z=.07 if x<0 else -.07
+			_solid(ear,"cone",Color("#b78d91"),Vector3(0,.20,.145),Vector3(.20,.39,.041))
+		# A Scottie's most important identifying feature is its continuous
+		# shaggy chin and cheek beard, not a wide plain wolf muzzle.
+		# Soft overlapping fur clumps: no long spikes or detached teeth.
+		# Spheres intersect with the sculpted chin rather than floating.
+		for i in range(5):
+			var x: float=(float(i)-2.0)*.157
+			var middle: float=1.0-absf(x)/.45
+			_solid(head_root,"sphere",skin.lightened(.15),
+				Vector3(x,-.39,.255),Vector3(.235,.30+.08*middle,.28))
+		for x in [-.31,.31]:
+			_solid(head_root,"sphere",skin.lightened(.11),
+				Vector3(x,-.23,.19),Vector3(.25,.27,.27))
+	elif species=="rabbit":
 		for x in [-.25,.25]:
 			var ear:=_pivot(Vector3(x,.32,0),head_root); ears.append(ear)
 			_solid(ear,"sphere",skin,Vector3(0,.26,0),Vector3(.25,.83,.23))
@@ -95,11 +114,18 @@ func _ready() -> void:
 	else:
 		_solid(head_root,"sphere",Color("#49382f"),Vector3(0,.29,-.09),Vector3(1.04,.41,.85))
 		for x in [-.49,.49]:_solid(head_root,"sphere",skin,Vector3(x,0,0),Vector3(.18,.24,.18))
-	if character_role in ["player","helper","guard"]:
+	if character_role in ["player","helper","guard"] and species!="scottie":
 		var cap: Color=Color("#c46b49") if character_role=="player" else (Color("#e6ae50") if character_role=="helper" else Color("#526e9d"))
 		_solid(head_root,"cylinder",cap,Vector3(0,.43,.015),Vector3(1.13,.075,1.02))
 		_solid(head_root,"sphere",cap,Vector3(0,.47,-.05),Vector3(.92,.41,.85))
 		_solid(head_root,"box",Color("#fff1cc"),Vector3(0,.47,.37),Vector3(.20,.11,.035))
+	if species=="scottie":
+		# A gold neckerchief and distinct layered charcoal coat preserve the
+		# terrier silhouette without any decorative cap hiding its eyebrows.
+		_solid(body_root,"sphere",Color("#e0ad67"),Vector3(0,1.34,.29),Vector3(.52,.16,.34))
+		var knot:=_solid(body_root,"cone",Color("#c88854"),Vector3(0,1.22,.39),Vector3(.26,.38,.14))
+		knot.rotation.z=PI
+		_solid(body_root,"sphere",skin.darkened(.10),Vector3(0,.70,-.15),Vector3(.84,.67,.64))
 	left_arm=_pivot(Vector3(-.34,1.12,0),body_root); right_arm=_pivot(Vector3(.34,1.12,0),body_root)
 	for arm in [left_arm,right_arm]:
 		_solid(arm,"sphere",outfit.darkened(.06),Vector3(0,-.15,0),Vector3(.28,.44,.29))
@@ -113,7 +139,9 @@ func _ready() -> void:
 		else:right_foot=foot
 	if species!="human":
 		tail_root=_pivot(Vector3(0,.76,-.29),body_root)
-		_solid(tail_root,"sphere",skin.darkened(.13),Vector3(0,0,-.25),Vector3(.22,.24,.48))
+		_solid(tail_root,"sphere",skin.darkened(.13),Vector3(0,0,-.27),Vector3(.19,.19,.57))
+		if species=="scottie":
+			tail_root.rotation.x=-.30
 	if character_role in ["player","helper","thief"]:
 		_solid(body_root,"sphere",Color("#ba8b58") if character_role!="thief" else Color("#786f88"),Vector3(0,1.03,-.35),Vector3(.58,.65,.39))
 	goods_root=_pivot(Vector3(0,1.37,-.36),body_root)
