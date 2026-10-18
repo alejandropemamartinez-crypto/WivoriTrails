@@ -200,6 +200,7 @@ func run() -> void:
 	await stop_game()
 	await start_game()
 	check(game.town.has_building("house") and game.town.has_building("cafe") and game.town.has_building("depot"), "Reload reconstructs all three visible town structures")
+	check(game.coins==village_money and game.max_capacity==capacity_before+6, "Reload preserves village purchases without charging or granting capacity twice")
 	game.coins=15000
 	game._toggle_build_mode()
 	var bonus_before: int=game._total_bag()
@@ -227,8 +228,5 @@ func run() -> void:
 	await stop_game()
 	clean_files()
 
-	check(game.coins==village_money and game.max_capacity==capacity_before+6, "Reload preserves village purchases without charging or granting capacity twice")
-	await stop_game()
-	clean_files()
 	print("RESULT: %d checks, %d failures" % [checks,failures])
 	quit(1 if failures else 0)
