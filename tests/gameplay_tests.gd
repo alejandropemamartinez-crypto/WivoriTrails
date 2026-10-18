@@ -115,7 +115,7 @@ func run() -> void:
 	game.sold = 0
 	game.quest_level = 1
 	game.coins = 100
-	game.cash.pending=[0,0]
+	game.cash.pending[0]=0;game.cash.pending[1]=0
 	for i in range(2):game.cash._refresh_register(i)
 	for kind in game.counter: game.counter[kind] = 0
 	game.counter["tomato"] = 8
@@ -247,7 +247,7 @@ func run() -> void:
 	check(game.cash.collector_hired and game.coins==purse_before_hire-620 and game.cash.collector!=null, "Hiring a real rabbit cashier courier costs exactly 620")
 	game._buy("collector")
 	check(game.coins==purse_before_hire-620, "The same courier cannot be charged twice")
-	game.cash.pending=[0,0]
+	game.cash.pending[0]=0;game.cash.pending[1]=0
 	for i in range(2):game.cash._refresh_register(i)
 	game.player.position=Vector3(-18,0,27)
 	game._record_sale(1,31); game._record_sale(1,27)
