@@ -1,3 +1,15 @@
+# Wivori Trails · 0.12.0 — Recaudación tangible y movimiento controlado
+
+- Las ventas **no llegan automáticamente a tu bolsillo**. Cada venta alimenta pilas de monedas visibles en una caja física. Scottie debe pasar a un radio de dos metros para recoger toda la pila, con monedas y cifras animadas.
+- La primera mejora de **Caja rápida** abre una segunda caja recaudadora, con saldo propio. Las ventas se distribuyen entre ambas.
+- Podés contratar una sola vez al **conejo recaudador** por 620 monedas. El ayudante camina hasta la caja con más saldo, recoge el dinero, vuelve a tesorería y solo allí acredita las monedas a tu cartera. Se guarda incluso el efectivo que lleva consigo durante el trayecto.
+- El HUD diferencia las **monedas disponibles** del saldo **EN CAJAS**; no permite comprar mejoras con dinero todavía no recogido.
+- Turbo ahora conserva la respuesta proporcional del joystick pero limita la velocidad máxima a 9.2 (10.6 con sprint). Mejora suave y parada inmediata al soltar.
+- Se mantienen construcciones y niveles. Las partidas anteriores inician con caja recaudadora vacía y conservan el dinero de bolsillo.
+- Este es un avance de jugabilidad y animación de recompensas. No sustituye todavía modelos orgánicos profesionales ni el acabado visual de Township.
+
+## Versión previa
+
 # Wivori Trails · 0.11.0 — Scottish Terrier & Animated Alerts
 
 **Objetivo de esta etapa:** dirección de arte original, no un clon de Township.
