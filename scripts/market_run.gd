@@ -126,7 +126,10 @@ func intercept() -> bool:
 func _repel(raid: Dictionary, by_player: bool) -> void:
 	if raid.is_empty() or raid["state"]=="retreat":return
 	var amount: int=raid["amount"]
-	if amount>0:g.counter[raid["cargo"]]+=amount
+	if amount>0:
+		g.counter[raid["cargo"]]+=amount
+		g._animate_goods(raid["actor"].position,STOCK,amount,Color("#ecbc69"))
+		g._float_activity(raid["actor"].position,"¡RECUPERADO! +%d" % amount,Color("#338c82"))
 	raid["cargo"]=""; raid["amount"]=0; raid["state"]="retreat"
 	raid["actor"].set_carry(0); blocked+=1
 	g._notice(("¡RECUPERASTE %d PRODUCTOS!" % amount) if amount>0 else ("¡MAPACHE AHUYENTADO!" if by_player else "¡EL GUARDIA LO FRENÓ!"),1.8)
@@ -146,7 +149,7 @@ func _spawn_raider(entry: Vector3, saved: Dictionary={}) -> void:
 	raiders.append({"actor":actor,"entry":entry,"state":state,"remaining":Store.number(saved,"remaining",4+lock_level*4,0,16),"cargo":cargo,"amount":amount,"label":label})
 
 func _spawn_wave() -> void:
-	var count:=mini(3,1+int((level-3)/2))
+	var count:=1 if level==3 else mini(5,2+int((level-4)/2))
 	for i in range(count):_spawn_raider(ENTRIES[(wave_index+i)%ENTRIES.size()])
 	wave_index+=1
 	g._notice("¡LLEGARON LOS MAPACHES!\nAcercate y tocá AHUYENTAR.",2.5)
@@ -193,6 +196,8 @@ func tick(delta: float) -> void:
 				var amount:=mini(8,mini(3+int(level/2),g.counter[chosen]))
 				if amount>0:
 					g.counter[chosen]-=amount; raid["cargo"]=chosen; raid["amount"]=amount
+						g._animate_goods(STOCK,actor.position,amount,Color("#d88c55"))
+						g._float_activity(actor.position,"¡ROBO! -%d" % amount,Color("#cf5e51"))
 					actor.set_carry(amount); raid["state"]="escape"; raid["label"].text="¡LLEVA %d!" % amount
 					g._notice("¡SE LLEVA %d PRODUCTOS!\nInterceptalo para recuperarlos." % amount,2.4)
 				else:raid["state"]="retreat"
@@ -205,7 +210,7 @@ func tick(delta: float) -> void:
 	if level>=3 and raiders.is_empty() and progress()<.999:
 		if warning>0:
 			warning=maxf(0,warning-delta)
-			if warning<=0:_spawn_wave(); next_raid=maxf(20,43-level*2)
+			if warning<=0:_spawn_wave(); next_raid=maxf(16,38-level*2)
 		else:
 			next_raid-=delta
 			if next_raid<=0:warning=6+alarm_level*2; g._notice("¡MAPACHES EN CAMINO!\nPrepará las defensas o salí a interceptar.",2.8)
@@ -246,5 +251,5 @@ func load_state(data: Dictionary) -> void:
 	patrol_index=int(Store.number(data,"patrol_index",0,0,2))
 	var actors: Variant=data.get("raiders",[])
 	if actors is Array:
-		for saved in actors.slice(0,3):
+		for saved in actors.slice(0,5):
 			if saved is Dictionary:_spawn_raider(Store.position(saved.get("entry"),ENTRIES[0]),saved)
