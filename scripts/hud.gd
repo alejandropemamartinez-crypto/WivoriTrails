@@ -256,28 +256,52 @@ func build_action_cards() -> void:
 	pad_panel.visible=false
 
 func build_town_controls() -> void:
+	# This panel replaces giant numbered discs with proper village building cards.
+	# The 3D village remains uncovered while exploring; only the city view shows it.
 	town_panel=panel(Color("#fff9ec"))
 	root.add_child(town_panel)
 	town_panel.anchor_left=0; town_panel.anchor_right=1
 	town_panel.anchor_top=1; town_panel.anchor_bottom=1
 	town_panel.offset_left=24; town_panel.offset_right=-24
-	town_panel.offset_top=-500; town_panel.offset_bottom=-176
-	var column:=VBoxContainer.new(); column.add_theme_constant_override("separation",9)
+	town_panel.offset_top=-670; town_panel.offset_bottom=-178
+	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8)
 	town_panel.add_child(column)
-	var title:=label("CONSTRUIR EL PUEBLO",24,INK); column.add_child(title)
-	town_description=label("Elegí un solar tocándolo en el mapa",17,MUTED)
+	var top:=HBoxContainer.new();column.add_child(top)
+	var title:=label("TU PUEBLO",23,INK); title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	top.add_child(label("Arrastrá para explorar",14,MUTED))
+	town_description=label("Elegí un solar tocándolo en el mapa",16,MUTED)
 	town_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(town_description)
-	for kind in ["house","cafe","depot"]:
+	var scroller:=ScrollContainer.new()
+	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	scroller.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	column.add_child(scroller)
+	var listing:=VBoxContainer.new()
+	listing.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	listing.add_theme_constant_override("separation",7)
+	scroller.add_child(listing)
+	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
 		var detail: Dictionary=g.town.TYPES[kind]
+		var card:=panel(Color("#f3eddb"))
+		var border:=style(Color("#f3eddb"),14)
+		border.content_margin_top=7; border.content_margin_bottom=7
+		card.add_theme_stylebox_override("panel",border)
+		listing.add_child(card)
 		var row:=HBoxContainer.new()
-		row.add_theme_constant_override("separation",9); column.add_child(row)
-		var about:=VBoxContainer.new(); about.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation",10)
+		card.add_child(row)
+		var about:=VBoxContainer.new()
+		about.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		row.add_child(about)
-		about.add_child(label(detail["name"],17,INK))
-		about.add_child(label(detail["benefit"],13,MUTED))
-		var buy:=button("CONSTRUIR",TEAL,15)
-		buy.custom_minimum_size=Vector2(158,60)
+		var title_line:=label(detail["name"],17,INK)
+		title_line.clip_text=true
+		about.add_child(title_line)
+		var effect_line:=label(detail["benefit"],14,MUTED)
+		effect_line.clip_text=true
+		about.add_child(effect_line)
+		var buy:=button("%d" % detail["price"],TEAL,16)
+		buy.custom_minimum_size=Vector2(120,61)
 		row.add_child(buy)
 		buy.pressed.connect(Callable(g,"_build_town").bind(kind))
 		town_choices[kind]=buy
@@ -290,7 +314,20 @@ func animate_income(amount: int, source: Vector2) -> void:
 	note.add_theme_color_override("font_shadow_color",Color(0.13,0.21,0.18,.36))
 	note.add_theme_constant_override("shadow_offset_y",2)
 	root.add_child(note)
-	note.position=Vector2(clampf(source.x,30,600),clampf(source.y,280,1000))
+	# Animated real coins converge on the treasury, rather than just a number.
+	var origin:=Vector2(clampf(source.x,32,600),clampf(source.y,260,1000))
+	for i in range(5):
+		var coin:=icon("coin",GOLD,Vector2(29,29))
+		coin.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		root.add_child(coin)
+		coin.position=origin+Vector2(float(i-2)*12.0,-absf(float(i-2))*4.0)
+		coin.pivot_offset=Vector2(15,15)
+		var coin_tween:=create_tween().set_parallel(true)
+		var target:=Vector2(79+float(i%2)*13.0,77)
+		coin_tween.tween_property(coin,"position",target,.63+float(i)*.055).set_delay(.04*float(i)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		coin_tween.tween_property(coin,"scale",Vector2.ONE*.30,.63+float(i)*.055).set_delay(.04*float(i))
+		coin_tween.chain().tween_callback(coin.queue_free)
+	note.position=origin
 	note.scale=Vector2.ONE*1.15
 	var tween:=create_tween().set_parallel(true)
 	tween.tween_property(note,"position",Vector2(110,62),.86).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
