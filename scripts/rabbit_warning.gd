@@ -86,7 +86,8 @@ func sync_state(phase: String) -> void:
 		"warning":_announce("¡MAPACHES CERCA!","¡Scottie, prepará las defensas!")
 		"approach":_announce("¡TE ESTÁN ROBANDO!","¡Corré, vienen por la mercancía!")
 		"escape":_announce("¡SE LLEVAN TODO!","¡Interceptá al mapache y recuperalo!")
-		"":if visible:lifetime=minf(lifetime,.65)
+		"":
+			if visible:lifetime=minf(lifetime,.65)
 
 func _announce(title: String, explanation: String) -> void:
 	headline.text=title
