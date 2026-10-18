@@ -256,53 +256,54 @@ func build_action_cards() -> void:
 	pad_panel.visible=false
 
 func build_town_controls() -> void:
-	# This panel replaces giant numbered discs with proper village building cards.
-	# The 3D village remains uncovered while exploring; only the city view shows it.
-	town_panel=panel(Color("#fff9ec"))
+	# Township-inspired compact horizontal catalog: the town stays on screen.
+	town_panel=panel(Color("#fff8e9"))
 	root.add_child(town_panel)
 	town_panel.anchor_left=0; town_panel.anchor_right=1
 	town_panel.anchor_top=1; town_panel.anchor_bottom=1
-	town_panel.offset_left=24; town_panel.offset_right=-24
-	town_panel.offset_top=-670; town_panel.offset_bottom=-178
-	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8)
+	town_panel.offset_left=20; town_panel.offset_right=-20
+	town_panel.offset_top=-345; town_panel.offset_bottom=-169
+	var column:=VBoxContainer.new(); column.add_theme_constant_override("separation",5)
 	town_panel.add_child(column)
-	var top:=HBoxContainer.new();column.add_child(top)
-	var title:=label("TU PUEBLO",23,INK); title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var top:=HBoxContainer.new()
+	top.add_theme_constant_override("separation",10)
+	column.add_child(top)
+	var title:=label("CONSTRUIR",20,INK)
+	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	top.add_child(title)
-	top.add_child(label("Arrastrá para explorar",14,MUTED))
-	town_description=label("Elegí un solar tocándolo en el mapa",16,MUTED)
-	town_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	top.add_child(label("Deslizá para ver más",13,MUTED))
+	town_description=label("Elegí un solar tocándolo en el mapa",15,MUTED)
+	town_description.clip_text=true
 	column.add_child(town_description)
 	var scroller:=ScrollContainer.new()
-	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+	scroller.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	scroller.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	column.add_child(scroller)
-	var listing:=VBoxContainer.new()
-	listing.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	listing.add_theme_constant_override("separation",7)
+	var listing:=HBoxContainer.new()
+	listing.add_theme_constant_override("separation",10)
 	scroller.add_child(listing)
 	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
 		var detail: Dictionary=g.town.TYPES[kind]
-		var card:=panel(Color("#f3eddb"))
-		var border:=style(Color("#f3eddb"),14)
-		border.content_margin_top=7; border.content_margin_bottom=7
+		var card:=panel(Color("#f0e8d5"))
+		card.custom_minimum_size=Vector2(186,0)
+		var border:=style(Color("#f0e8d5"),14)
+		border.content_margin_top=7; border.content_margin_bottom=6
+		border.content_margin_left=12; border.content_margin_right=12
 		card.add_theme_stylebox_override("panel",border)
 		listing.add_child(card)
-		var row:=HBoxContainer.new()
-		row.add_theme_constant_override("separation",10)
-		card.add_child(row)
-		var about:=VBoxContainer.new()
-		about.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		row.add_child(about)
-		var title_line:=label(detail["name"],17,INK)
-		title_line.clip_text=true
-		about.add_child(title_line)
-		var effect_line:=label(detail["benefit"],14,MUTED)
-		effect_line.clip_text=true
-		about.add_child(effect_line)
+		var stack:=VBoxContainer.new()
+		stack.add_theme_constant_override("separation",3)
+		card.add_child(stack)
+		var heading:=label(detail["name"],14,INK)
+		heading.clip_text=true
+		stack.add_child(heading)
+		var info:=label(detail["benefit"],12,MUTED)
+		info.clip_text=true
+		stack.add_child(info)
 		var buy:=button("%d" % detail["price"],TEAL,16)
-		buy.custom_minimum_size=Vector2(120,61)
-		row.add_child(buy)
+		buy.custom_minimum_size=Vector2(0,43)
+		stack.add_child(buy)
 		buy.pressed.connect(Callable(g,"_build_town").bind(kind))
 		town_choices[kind]=buy
 	town_panel.visible=false
@@ -391,9 +392,9 @@ func build_shop() -> void:
 func refresh() -> void:
 	var city_mode: bool=g.town!=null and g.town.in_build_mode
 	mission_panel.visible=not city_mode
-	status_row.visible=not city_mode
+	status_row.visible=false
 	view_button.visible=not city_mode
-	footer_panel.visible=not city_mode
+	footer_panel.visible=false
 	g.input_stick.visible=not city_mode
 	run_button.visible=not city_mode
 	g.shop_button.visible=not city_mode
@@ -441,8 +442,8 @@ func refresh() -> void:
 	intercept_button.disabled=not g.run.can_intercept()
 	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"
 	intercept_button.add_theme_font_size_override("font_size",19 if not intercept_button.disabled else 15)
-	pad_panel.offset_top=-550 if raiding else -458
-	pad_panel.offset_bottom=-408 if raiding else -316
+	pad_panel.offset_top=-475 if raiding else -400
+	pad_panel.offset_bottom=-347 if raiding else -272
 	g.event_label.offset_top=(-634 if raiding else -542) if pad_panel.visible else (-420 if raiding else -337)
 	g.event_label.offset_bottom=g.event_label.offset_top+72
 	wayfinder.visible=not city_mode
