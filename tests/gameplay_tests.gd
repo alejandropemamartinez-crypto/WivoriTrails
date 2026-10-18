@@ -175,5 +175,33 @@ func run() -> void:
 	check(game.coins == 0 and game.worker_count == game.MAX_HELPERS and is_equal_approx(game.player_speed,game.BASE_SPEED) and game._total_bag() == 0 and absf(game.player.position.z)<=23, "Malformed fields load safely with bounds and defaults")
 	await stop_game()
 	clean_files()
+
+	await start_game()
+	game.coins=2000
+	game._toggle_build_mode()
+	check(game.town.in_build_mode and game.hud.town_panel.visible, "Construction toggles the aerial village view and opens the build controls")
+	check(game.town.constructed.size()==3 and game.town.constructed[0]=="", "New market opens with three genuinely empty plots")
+	game.town.select_at(game.town.LOCATIONS[0])
+	var price_before: int=game.coins
+	check(game.town.build("house") and game.coins==price_before-180, "A house is explicitly purchased at the selected site once")
+	check(not game.town.build("house") and game.coins==price_before-180, "Repeated taps cannot purchase the same plot again")
+	game.town.select_at(game.town.LOCATIONS[1])
+	check(game.town.build("cafe"), "Coffee shop can be built on a different plot")
+	var earnings_before: int=game.coins
+	game._record_sale(1,10)
+	check(game.coins==earnings_before+12, "Village coffee shop boosts actual sales by precisely 20 percent")
+	game.town.select_at(game.town.LOCATIONS[2])
+	var capacity_before: int=game.max_capacity
+	check(game.town.build("depot") and game.max_capacity==capacity_before+6, "Building the depot raises playable carrying capacity")
+	game._toggle_build_mode()
+	check(not game.town.in_build_mode and game.hud.run_button.visible, "Leaving city mode restores direct character controls")
+	var village_money: int=game.coins
+	game._save_progress()
+	await stop_game()
+	await start_game()
+	check(game.town.has_building("house") and game.town.has_building("cafe") and game.town.has_building("depot"), "Reload reconstructs all three visible town structures")
+	check(game.coins==village_money and game.max_capacity==capacity_before+6, "Reload preserves village purchases without charging or granting capacity twice")
+	await stop_game()
+	clean_files()
 	print("RESULT: %d checks, %d failures" % [checks,failures])
 	quit(1 if failures else 0)
