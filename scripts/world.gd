@@ -324,7 +324,7 @@ func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: Stri
 	for kind in locked_sites:
 		var site: Node3D=locked_sites[kind]
 		var center: Vector3=Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)
-		site.visible=site.visible and not building and player_pos.distance_to(center)<8.0
+		site.visible=upgrade_pads[kind]["node"].visible and not building and player_pos.distance_to(center)<8.0
 
 func celebrate_upgrade(kind: String) -> void:
 	if not upgrade_pads.has(kind):return
