@@ -544,7 +544,7 @@ func _update_camera(delta: float) -> void:
 	var goal := camera_follow+camera_offset
 	camera.position=camera.position.lerp(goal,1.0-exp(-7.7*delta))
 	camera.look_at(camera_follow+Vector3(0,1.0,0),Vector3.UP)
-	if destination_marker.visible:
+	if destination_marker != null and destination_marker.visible:
 		destination_marker.rotation.y += delta*1.8
 
 func _process(delta: float) -> void:
