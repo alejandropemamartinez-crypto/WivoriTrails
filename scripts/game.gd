@@ -8,14 +8,15 @@ const DirectorScript = preload("res://scripts/market_director.gd")
 const TrailScript = preload("res://scripts/trail_guide.gd")
 const RunScript = preload("res://scripts/market_run.gd")
 const TownScript = preload("res://scripts/town_builder.gd")
+const CashScript = preload("res://scripts/cash_economy.gd")
 const SAVE_PATH = "user://wivori_trails_save.json"
 const MAX_HELPERS := 12
 const BASE_SPEED := 6.8
-const MAX_SPEED := 14.3
+const MAX_SPEED := 9.2
 const PAD_RADIUS := 1.85
 const UPGRADE_POS = {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
 	"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),
-	"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
+	"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11),"collector":Vector3(-4.6,0,7.6)}
 const SHIPMENT_SIZE := 6
 const SHIPMENT_RESERVE := 3
 const SHIPMENT_DURATION := 30.0
@@ -82,6 +83,8 @@ var checkout_level := 0
 var director
 var run
 var town: WivoriTown
+var cash: WivoriCashEconomy
+var move_velocity:=Vector3.ZERO
 var manual_delivered := 0
 var marker_time := 0.0
 var trail
@@ -117,6 +120,7 @@ func _ready() -> void:
 	director=DirectorScript.new(self)
 	run=RunScript.new(self)
 	town=TownScript.new(); town.g=self; add_child(town)
+	cash=CashScript.new(); cash.g=self; add_child(cash)
 	_load_progress()
 	camera_follow=player.position
 	_update_camera(1.0)
@@ -221,8 +225,9 @@ func _refresh_ui() -> void:
 
 func _upgrade(kind: String) -> Dictionary:
 	var definitions := {
+		"collector":{"name":"Conejo recaudador","short":"RECAUDACIÓN","price":CashScript.COLLECTOR_PRICE,"benefit":"Recoge las pilas de dinero de las cajas y las lleva a tesorería.","done":cash.collector_hired},
 		"helper":{"name":"Ayudante automático","short":"AYUDANTE","price":helper_cost,"benefit":"Cosecha y entrega por vos.","done":worker_count>=MAX_HELPERS},
-		"checkout":{"name":"Caja rápida","short":"CAJA RÁPIDA","price":140+checkout_level*180,"benefit":"Atiende casi al doble de velocidad.","done":checkout_level>=3},
+		"checkout":{"name":"Caja rápida","short":"CAJA RÁPIDA","price":140+checkout_level*180,"benefit":"Atiende más rápido; la primera mejora abre una segunda caja de efectivo.","done":checkout_level>=3},
 		"bag":{"name":"Mochila más grande","short":"MOCHILA","price":bag_cost,"benefit":"Llevá %d productos por viaje." % mini(300,max_capacity+6),"done":max_capacity>=300},
 		"speed":{"name":"Zapatillas turbo","short":"VELOCIDAD","price":speed_cost,"benefit":"Más velocidad en todos tus viajes.","done":player_speed>=MAX_SPEED},
 		"expand":{"name":"Huerto de manzanas","short":"HUERTO","price":expand_cost,"benefit":"9 cultivos nuevos. Cada manzana vale 14.","done":orchard_owned},
@@ -319,6 +324,9 @@ func _notice(message: String, time_: float = 1.45) -> void:
 	event_fade=time_
 
 func _buy(kind: String) -> void:
+	if kind=="collector":
+		cash.hire_collector()
+		return
 	var upgrade := _upgrade(kind)
 	if upgrade.is_empty() or upgrade["done"] or upgrade["locked"]:return
 	var price: int=upgrade["price"]
@@ -336,6 +344,7 @@ func _buy(kind: String) -> void:
 		"checkout":
 			var previous_time := _checkout_duration()
 			checkout_level+=1
+			if checkout_level==1:cash.unlock_second_register()
 			for customer in customers:
 				if customer["stage"]=="buying":customer["wait"]*=(_checkout_duration()/previous_time)
 			_notice("¡CAJA MÁS RÁPIDA!\nAhora los clientes esperan menos.",2.5)
@@ -351,7 +360,7 @@ func _buy(kind: String) -> void:
 			run.guard_level+=1
 			_notice("¡GUARDIA CONTRATADO!\nPatrulla; vos atendé pedidos e interceptá al resto.",2.5)
 		"speed":
-			player_speed=minf(MAX_SPEED,player_speed+.65)
+			player_speed=minf(MAX_SPEED,player_speed+.48 if player_speed<8.4 else player_speed+.32)
 			speed_cost+=55
 			_notice("¡ZAPATILLAS TURBO!",1.8)
 		"bag":
@@ -542,7 +551,7 @@ func _process_customers(delta: float) -> void:
 		var income: int=int(SELL_VALUE[kind])*count
 		_record_sale(count,income)
 		total_buyers+=1
-		_cash_sound(); cashier.walk_amount=.55
+		cashier.walk_amount=.55
 		# A quiet floating receipt leaves tutorial/upgrade announcements readable.
 		world.sale_receipt(a.position,income)
 		c["stage"]="leaving"
@@ -556,9 +565,8 @@ func _first_stocked() -> String:
 
 func _record_sale(amount: int, income: int) -> void:
 	income+=town.income_bonus(income) if town!=null else 0
-	coins+=income
+	cash.add_sale(income)
 	earned+=income
-	if hud!=null and hud.root!=null:hud.animate_income(income,camera.unproject_position(Vector3(4,2,-1)))
 	sold+=amount
 	quest_level=maxi(quest_level,int(sold/20)+1)
 
@@ -605,12 +613,18 @@ func _process_player(delta: float) -> void:
 	# Player travel is exclusively manual. Guides and terrain taps only mark.
 	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
 	if shop_panel.visible: world_motion = Vector3.ZERO
-	var velocity := world_motion * player_speed * town.player_speed_factor() * (1.50 if boost_active else 1.0)
+	var velocity := world_motion * minf(10.6,player_speed * town.player_speed_factor() * (1.22 if boost_active else 1.0))
+	# Turbo upgrades provide controllable acceleration, not runaway speed.
+	# When joystick is released, Scottie stops instead of sliding past a target.
 	if velocity.length()>.05:
-		player.position=world.navigation.slide(player.position,velocity*delta)
+		move_velocity=move_velocity.lerp(velocity,1.0-exp(-16.0*delta))
+	else:
+		move_velocity=Vector3.ZERO
+	if move_velocity.length()>.05:
+		player.position=world.navigation.slide(player.position,move_velocity*delta)
 		if player.has_meta("route_goal"): player.remove_meta("route_goal")
-		last_player_heading = velocity.normalized()
-		player.walk_to(velocity.normalized(),velocity.length())
+		last_player_heading = move_velocity.normalized()
+		player.walk_to(move_velocity.normalized(),move_velocity.length())
 	harvest_wait-=delta
 	drop_wait-=delta
 	if harvest_wait<=0 and _total_bag()<max_capacity:
@@ -734,6 +748,7 @@ func _process(delta: float) -> void:
 	marker_time-=delta
 	if marker_time<=0:destination_marker.visible=false
 	_process_player(delta)
+	cash.tick(delta)
 	_process_helpers(delta)
 	_process_customers(delta)
 	_process_shipping(delta)
@@ -830,7 +845,7 @@ func _save_data() -> Dictionary:
 	var crops: Array = []
 	for crop in world.crop_spots:
 		crops.append({"regrow":crop["regrow"] if not crop["ready"] else 0.0})
-	return {"version":4,"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
+	return {"version":5,"cash":cash.save_state(),"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
 		"worker_count":worker_count,"player_speed":player_speed,"max_capacity":max_capacity,
 		"stash":stash,"counter":counter,"quest_level":quest_level,"total_buyers":total_buyers,
 		"helper_cost":helper_cost,"speed_cost":speed_cost,"bag_cost":bag_cost,"orchard_owned":orchard_owned,
@@ -856,7 +871,7 @@ func _load_progress() -> void:
 	worker_count=int(SaveStore.number(data,"worker_count",0,0,MAX_HELPERS))
 	if int(data.get("version",1))<3:
 		# Preserve every previously purchased speed bonus on the new faster base.
-		player_speed=SaveStore.number(data,"player_speed",4.5,4.5,12)+(BASE_SPEED-4.5)
+		player_speed=minf(MAX_SPEED,SaveStore.number(data,"player_speed",4.5,4.5,12)+(BASE_SPEED-4.5))
 	else:
 		player_speed=SaveStore.number(data,"player_speed",BASE_SPEED,BASE_SPEED,MAX_SPEED)
 	checkout_level=int(SaveStore.number(data,"checkout_level",0,0,3))
@@ -901,6 +916,7 @@ func _load_progress() -> void:
 	manual_delivered=int(SaveStore.number(data,"manual_delivered",0,0,10000000))
 	run.load_state(data["run"] if data.get("run") is Dictionary else {})
 	town.load_state(data["town"] if data.get("town") is Dictionary else {})
+	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
 	player.set_carry(_total_bag())
 
