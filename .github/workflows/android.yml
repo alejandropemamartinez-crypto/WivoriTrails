@@ -67,7 +67,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 120 godot --headless --path . --script res://tests/gameplay_tests.gd 2>&1 | tee godot-tests.log
+          for suite in tests/*_tests.gd; do
+            timeout 120 godot --headless --path . --script "res://$suite"
+          done 2>&1 | tee godot-tests.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-tests.log; then exit 1; fi
 
       - name: Export Android APK (debug)

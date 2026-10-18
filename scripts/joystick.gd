@@ -62,10 +62,10 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
 	var center: Vector2 = size * .5
-	draw_circle(center,97,Color(.055,.145,.14,.27))
-	draw_circle(center,82,Color(.10,.20,.18,.56))
-	draw_arc(center,83,0,TAU,64,Color(.91,.98,.80,.60),3.0,true)
+	draw_circle(center,97,Color(.07,.24,.23,.13))
+	draw_circle(center,82,Color(.99,.98,.92,.89))
+	draw_arc(center,83,0,TAU,64,Color(.20,.44,.40,.24),3.0,true)
 	var stick := center + axis * MAX_RADIUS
-	draw_circle(stick,39,Color("#f4e5bf"))
+	draw_circle(stick,39,Color("#2b8a7b"))
 	draw_arc(stick,40,0,TAU,48,Color("#fffdf3"),4.0,true)
-	draw_circle(stick,27,Color("#f6c979"))
+	draw_circle(stick,9,Color("#f3ce7b"))

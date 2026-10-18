@@ -2,7 +2,7 @@ extends Node3D
 
 const ActorScript = preload("res://scripts/actor.gd")
 const WorldScript = preload("res://scripts/world.gd")
-const JoystickScript = preload("res://scripts/joystick.gd")
+const HudScript = preload("res://scripts/hud.gd")
 const SaveStore = preload("res://scripts/save_store.gd")
 const SAVE_PATH = "user://wivori_trails_save.json"
 const MAX_HELPERS := 12
@@ -70,6 +70,7 @@ var shipments_completed := 0
 var saved_helpers: Array = []
 var save_path := SAVE_PATH
 var save_error_shown := false
+var hud
 
 func _ready() -> void:
 	_engine_world()
@@ -91,6 +92,8 @@ func _ready() -> void:
 	_setup_destination_marker()
 	_setup_sounds()
 	_load_progress()
+	camera_follow=player.position
+	_update_camera(1.0)
 	_setup_hud()
 	for i in range(worker_count):
 		_spawn_worker(i, saved_helpers[i] if i < saved_helpers.size() and saved_helpers[i] is Dictionary else {})
@@ -102,15 +105,15 @@ func _engine_world() -> void:
 	sky.background_mode = Environment.BG_COLOR
 	sky.background_color = Color("#b4dcf0")
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	sky.ambient_light_color = Color("#f5e5bf")
-	sky.ambient_light_energy = .86
-	sky.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	sky.ambient_light_color = Color("#edf4fa")
+	sky.ambient_light_energy = .28
+	sky.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	environment.environment = sky
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52,-37,0)
-	sun.light_color = Color("#fff2cf")
-	sun.light_energy = 1.22
+	sun.light_color = Color("#fff8ed")
+	sun.light_energy = .48
 	sun.shadow_enabled = true
 	add_child(sun)
 
@@ -118,7 +121,8 @@ func _setup_camera() -> void:
 	camera = Camera3D.new()
 	camera.name = "Cámara suave que sigue al jugador"
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
-	camera.fov = 49.0
+	camera.keep_aspect = Camera3D.KEEP_WIDTH
+	camera.fov = 48.0
 	camera.near = .1
 	camera.far = 110.0
 	camera.current = true
@@ -150,136 +154,10 @@ func _setup_sounds() -> void:
 	cash_sfx.volume_db = -9
 	harvest_sfx.volume_db = -15
 
-func _soft_button(name_: String, color_: Color, font_size_: int=25) -> Button:
-	var b := Button.new()
-	b.text=name_
-	b.add_theme_font_size_override("font_size",font_size_)
-	b.add_theme_color_override("font_color",Color.WHITE)
-	b.add_theme_color_override("font_hover_color",Color.WHITE)
-	b.add_theme_color_override("font_pressed_color",Color.WHITE)
-	var style := StyleBoxFlat.new()
-	style.bg_color = color_
-	style.corner_radius_top_left=22; style.corner_radius_top_right=22
-	style.corner_radius_bottom_left=22; style.corner_radius_bottom_right=22
-	style.content_margin_left=16; style.content_margin_right=16
-	style.content_margin_top=15; style.content_margin_bottom=15
-	style.border_color=color_.lightened(.22)
-	style.set_border_width_all(2)
-	b.add_theme_stylebox_override("normal",style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color=color_.lightened(.13)
-	b.add_theme_stylebox_override("hover",hover)
-	var pressed_style := style.duplicate() as StyleBoxFlat
-	pressed_style.bg_color=color_.darkened(.18)
-	b.add_theme_stylebox_override("pressed",pressed_style)
-	return b
-
-func _panel(color_: Color, radius_: int=22) -> PanelContainer:
-	var p := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color=color_
-	style.corner_radius_top_left=radius_; style.corner_radius_top_right=radius_
-	style.corner_radius_bottom_left=radius_; style.corner_radius_bottom_right=radius_
-	style.content_margin_left=16; style.content_margin_right=16
-	style.content_margin_top=12; style.content_margin_bottom=12
-	p.add_theme_stylebox_override("panel",style)
-	return p
-
-func _plain(text_: String, size_: int=25, color_: Color=Color.WHITE) -> Label:
-	var l := Label.new()
-	l.text=text_
-	l.add_theme_font_size_override("font_size",size_)
-	l.add_theme_color_override("font_color",color_)
-	l.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	return l
-
 func _setup_hud() -> void:
-	var layer := CanvasLayer.new(); layer.name="Interfaz y controles tactiles"; add_child(layer)
-	var root := Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(root)
-	var top := _panel(Color(.10,.18,.20,.91),26)
-	top.position=Vector2(14,14); top.size=Vector2(692,98); root.add_child(top)
-	var top_row := HBoxContainer.new()
-	top_row.add_theme_constant_override("separation",14)
-	top.add_child(top_row)
-	total_label=_plain("MONEDAS 50",27,Color("#ffdf8a"));total_label.custom_minimum_size=Vector2(190,49)
-	top_row.add_child(total_label)
-	backpack_label=_plain("BOLSA 0/12",23,Color("#e8f5e6"));backpack_label.custom_minimum_size=Vector2(190,49)
-	top_row.add_child(backpack_label)
-	shop_button=_soft_button("MEJORAS",Color("#288b75"),22)
-	shop_button.custom_minimum_size=Vector2(200,60)
-	shop_button.pressed.connect(_toggle_shop)
-	top_row.add_child(shop_button)
-	var mission := _panel(Color(.12,.29,.27,.82),18)
-	mission.position=Vector2(18,132); mission.size=Vector2(390,88); mission.mouse_filter=Control.MOUSE_FILTER_IGNORE; root.add_child(mission)
-	mission_label=_plain("MISIÓN: Vende 20 productos",20,Color("#fff6d3"))
-	mission_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
-	mission_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mission.add_child(mission_label)
-	var stock_p := _panel(Color(.09,.22,.25,.78),20)
-	stock_p.position=Vector2(18,227);stock_p.size=Vector2(330,66);stock_p.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(stock_p)
-	stock_label=_plain("PUESTO: 0 productos",20)
-	stock_p.add_child(stock_label)
-	stock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shipping_panel := _panel(Color(.09,.22,.25,.88),18)
-	shipping_panel.position=Vector2(18,305); shipping_panel.size=Vector2(390,76)
-	shipping_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE; root.add_child(shipping_panel)
-	shipping_label=_plain("",18,Color("#ffe59b")); shipping_panel.add_child(shipping_label)
-	shipping_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	shipping_panel.visible=false
-	# Overworld notice near centre, only visible on meaningful actions.
-	event_label=_plain("",32,Color("#ffed9d"))
-	event_label.position=Vector2(65,340);event_label.size=Vector2(590,110)
-	event_label.visible=false
-	event_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	event_label.add_theme_color_override("font_shadow_color",Color(.03,.10,.10,.80))
-	event_label.add_theme_constant_override("shadow_offset_x",2)
-	event_label.add_theme_constant_override("shadow_offset_y",3)
-	root.add_child(event_label)
-	input_stick=JoystickScript.new()
-	input_stick.anchor_top=1.0; input_stick.anchor_bottom=1.0
-	input_stick.offset_left=17; input_stick.offset_right=222
-	input_stick.offset_top=-250; input_stick.offset_bottom=-35
-	root.add_child(input_stick)
-	var side := VBoxContainer.new()
-	side.anchor_left=1.0; side.anchor_right=1.0
-	side.anchor_top=1.0; side.anchor_bottom=1.0
-	side.offset_left=-230;side.offset_right=-14;side.offset_top=-250;side.offset_bottom=-58
-	side.add_theme_constant_override("separation",13);root.add_child(side)
-	var dash := _soft_button("CORRER",Color("#dd9b41"),25)
-	dash.custom_minimum_size=Vector2(204,73)
-	dash.button_down.connect(func(): boost_active=true)
-	dash.button_up.connect(func(): boost_active=false)
-	side.add_child(dash)
-	var improve := _soft_button("TIENDA",Color("#278e77"),25)
-	improve.custom_minimum_size=Vector2(204,72)
-	improve.pressed.connect(_toggle_shop)
-	side.add_child(improve)
-	hint_label=_plain("Mueve el joystick o toca el camino.",19,Color("#ffefc4"))
-	hint_label.anchor_left=.18; hint_label.anchor_right=.92
-	hint_label.anchor_top=1.0; hint_label.anchor_bottom=1.0
-	hint_label.offset_left=0;hint_label.offset_right=0
-	hint_label.offset_top=-44;hint_label.offset_bottom=-7
-	root.add_child(hint_label)
-	# Purchases remain out of sight unless requested. No giant overlay during play.
-	shop_panel = _panel(Color(.06,.17,.18,.97),26)
-	shop_panel.anchor_left=.5;shop_panel.anchor_right=.5
-	shop_panel.anchor_top=.5;shop_panel.anchor_bottom=.5
-	shop_panel.offset_left=-287;shop_panel.offset_right=287
-	shop_panel.offset_top=-300;shop_panel.offset_bottom=300
-	shop_panel.visible=false;root.add_child(shop_panel)
-	var column := VBoxContainer.new();column.add_theme_constant_override("separation",14)
-	shop_panel.add_child(column)
-	column.add_child(_plain("MEJORA TU MERCADO",30,Color("#ffe59b")))
-	column.add_child(_plain("Contrata, automatiza y crece",19,Color("#d5e6dc")))
-	for key in ["helper","speed","bag","expand","pier"]:
-		var b := _soft_button("",Color("#318b68"),24)
-		b.custom_minimum_size=Vector2(520,74)
-		b.pressed.connect(_buy.bind(key))
-		column.add_child(b)
-		store_buttons[key] = b
-	var close := _soft_button("VOLVER AL JUEGO",Color("#995e46"),21)
-	close.pressed.connect(_toggle_shop)
-	column.add_child(close)
+	hud=HudScript.new()
+	add_child(hud)
+	hud.build(self)
 
 func _toggle_shop() -> void:
 	shop_panel.visible = not shop_panel.visible
@@ -301,37 +179,44 @@ func _total_stock() -> int:
 	return sum
 
 func _refresh_ui() -> void:
-	if total_label == null: return
-	total_label.text="MONEDAS  %d" % coins
-	backpack_label.text="BOLSA  %d/%d" % [_total_bag(),max_capacity]
-	stock_label.text="PUESTO: %d productos" % _total_stock()
-	if world != null: world.update_market_stock(counter)
-	shipping_label.get_parent().visible=pier_owned
-	if pier_owned:
-		if shipment["kind"] == "":
-			shipping_label.text="MUELLE AUTO · venta +50%\nJuntá 9 iguales: salen 6 y quedan 3"
+	if hud == null: return
+	world.update_market_stock(counter)
+	hud.refresh()
+
+func _current_objective() -> Dictionary:
+	var bag := _total_bag()
+	if bag>=max_capacity or (worker_count==0 and bag>=6):
+		return {"tag":"DE LA COSECHA A LA VENTA","title":"Abastecé tu puesto","detail":"Llevá la mochila al círculo dorado.","goal":1,"value":1,"button":"ENTREGAR","target":Vector3(4,0,2.5)}
+	if worker_count==0:
+		if coins>=helper_cost:
+			return {"tag":"LLEGÓ LA AUTOMATIZACIÓN","title":"Tu primer ayudante","detail":"Por %d monedas, cosecha y entrega por vos." % helper_cost,"goal":helper_cost,"value":coins,"button":"CONTRATAR","upgrade":"helper"}
+		if _total_stock()>0:
+			return {"tag":"TU PRIMER AYUDANTE","title":"Los clientes ya están comprando","detail":"Te faltan %d monedas. Podés seguir cosechando." % (helper_cost-coins),"goal":helper_cost,"value":coins,"button":"COSECHAR","target":Vector3(-8,0,0)}
+		if bag>0 and delivered>0:
+			return {"tag":"TU PRIMER AYUDANTE","title":"Vendé para contratar","detail":"El puesto vende por vos. Reponé su mercadería.","goal":helper_cost,"value":coins,"button":"ENTREGAR","target":Vector3(4,0,2.5)}
+		return {"tag":"TU PRIMER MERCADO","title":"Recolectá tu primera cosecha","detail":"Acercate a los tomates. Se recogen solos: %d/6." % mini(bag,6),"goal":6,"value":bag,"button":"GUIAR","target":Vector3(-8,0,0)}
+	if not orchard_owned:
+		return {"tag":"TU MERCADO YA TRABAJA SOLO","title":"Desbloqueá las manzanas","detail":"Huerto: %d monedas. Cada manzana se vende por 14." % expand_cost,"goal":expand_cost,"value":coins,"button":"ABRIR" if coins>=expand_cost else "VER","upgrade":"expand"}
+	if not pier_owned:
+		return {"tag":"LA PRÓXIMA EXPANSIÓN","title":"Llevá tu mercado más lejos","detail":"Muelle: 550 monedas. Exporta solo y paga 50% más.","goal":550,"value":coins,"button":"ABRIR" if coins>=550 else "VER","upgrade":"pier"}
+	return {"tag":"MERCADO EN MARCHA","title":"Vendé %d productos" % (quest_level*20),"detail":"Objetivo de ventas: ganás 70 monedas extra.","goal":20,"value":sold-(quest_level-1)*20,"button":"MEJORAS","upgrade":"shop"}
+
+func _follow_objective() -> void:
+	input_stick._clear()
+	boost_active=false
+	var objective := _current_objective()
+	if objective.has("target"):
+		_set_world_goal(objective["target"])
+	else:
+		var upgrade: String=objective.get("upgrade","shop")
+		var price: int={"helper":helper_cost,"expand":expand_cost,"pier":550}.get(upgrade,0)
+		if upgrade!="shop" and coins>=price:
+			_buy(upgrade)
 		else:
-			shipping_label.text="BARCO: %d %s · %ds\nGanancia al llegar: %d monedas" % [shipment["amount"], CROP_NAMES[shipment["kind"]], ceili(shipment["remaining"]), _shipment_income()]
-	var goal := quest_level*20
-	mission_label.text="MISIÓN   Vende %d productos\nProgreso: %d/%d" % [goal,mini(sold,goal),goal]
-	var texts := {
-		"helper":"AYUDANTE AUTO    %d monedas"%helper_cost,
-		"speed":"CAMINAR MÁS RÁPIDO    %d monedas"%speed_cost,
-		"bag":"MOCHILA MÁS GRANDE    %d monedas"%bag_cost,
-		"expand":"ABRIR HUERTO    %d monedas"%expand_cost,
-		"pier":"MUELLE AUTO (+50%)    550 monedas"
-	}
-	if orchard_owned: texts["expand"]="HUERTO DESBLOQUEADO"
-	if pier_owned: texts["pier"]="MUELLE DESBLOQUEADO"
-	if worker_count >= MAX_HELPERS: texts["helper"]="EQUIPO COMPLETO · 12 AYUDANTES"
-	for key in texts.keys():
-		if store_buttons.has(key):
-			store_buttons[key].text=texts[key]
-	store_buttons["expand"].disabled=orchard_owned
-	store_buttons["pier"].disabled=pier_owned
-	store_buttons["helper"].disabled=worker_count>=MAX_HELPERS or coins<helper_cost
-	store_buttons["speed"].disabled=player_speed>=12.0 or coins<speed_cost
-	store_buttons["bag"].disabled=max_capacity>=300 or coins<bag_cost
+			_toggle_shop()
+
+func _toggle_camera_view() -> void:
+	camera_distance=1.0 if camera_distance>1.15 else 1.38
 
 func _notice(message: String, time_: float = 1.45) -> void:
 	if event_label == null: return
@@ -596,7 +481,7 @@ func _process_player(delta: float) -> void:
 				harvest_wait=.39
 				if harvest_sfx.stream:harvest_sfx.play()
 				_spawn_pickup_fx(crop["node"].global_position,resource)
-				_notice("+1 %s" % CROP_NAMES[resource],.45)
+
 	if drop_wait<=0 and _total_bag()>0 and player.position.distance_to(Vector3(4,0,2.5))<2.5:
 		for resource in stash.keys():
 			delivered+=stash[resource]
@@ -606,13 +491,13 @@ func _process_player(delta: float) -> void:
 		_notice("¡PUESTO ABASTECIDO!",1.1)
 		drop_wait=.6
 	if _total_bag()>=max_capacity:
-		hint_label.text="Bolsa llena: acercate al puesto dorado."
+		hint_label.text="Bolsa llena · llevá tu cosecha al puesto"
 	elif player.position.distance_to(Vector3(4,0,2.5))<4:
-		hint_label.text="ENTREGA: pasa sobre el círculo amarillo."
+		hint_label.text="Círculo dorado · entrega automática"
 	elif _total_stock()<3:
-		hint_label.text="Acercate a los cultivos y recogerás automáticamente."
+		hint_label.text="Acercate a un cultivo para cosechar"
 	else:
-		hint_label.text="¡Seguí cosechando! Los clientes están comprando."
+		hint_label.text="Tu puesto vende automáticamente"
 
 func _spawn_pickup_fx(at: Vector3, kind: String) -> void:
 	# Rising pickup is world-space, rather than a change in an inventory counter only.
@@ -682,9 +567,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			camera_distance=minf(camera_distance+.09,1.33)
+			camera_distance=minf(camera_distance+.09,1.5)
 		elif event.button_index==MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			camera_distance=maxf(camera_distance-.09,.78)
+			camera_distance=maxf(camera_distance-.09,.86)
 		elif event.button_index==MOUSE_BUTTON_LEFT and event.pressed:
 			_set_tap_goal(event.position)
 	if event is InputEventScreenTouch and event.pressed:
@@ -729,7 +614,7 @@ func _save_data() -> Dictionary:
 		"stash":stash,"counter":counter,"quest_level":quest_level,"total_buyers":total_buyers,
 		"helper_cost":helper_cost,"speed_cost":speed_cost,"bag_cost":bag_cost,"orchard_owned":orchard_owned,
 		"pier_owned":pier_owned,"player_pos":[player.position.x,player.position.z],"helpers":workers,
-		"crops":crops,"shipment":shipment,"shipments_completed":shipments_completed}
+		"crops":crops,"shipment":shipment,"shipments_completed":shipments_completed,"camera_distance":camera_distance}
 
 func _save_progress() -> bool:
 	var success := SaveStore.write_data(save_path,_save_data())
@@ -747,6 +632,7 @@ func _load_progress() -> void:
 	delivered=int(SaveStore.number(data,"delivered",0,0,10000000))
 	worker_count=int(SaveStore.number(data,"worker_count",0,0,MAX_HELPERS))
 	player_speed=SaveStore.number(data,"player_speed",4.5,4.5,12)
+	camera_distance=SaveStore.number(data,"camera_distance",1.0,.86,1.5)
 	max_capacity=int(SaveStore.number(data,"max_capacity",12,12,300))
 	quest_level=int(SaveStore.number(data,"quest_level",1,1,500001))
 	quest_level=maxi(quest_level,int(sold/20)+1)

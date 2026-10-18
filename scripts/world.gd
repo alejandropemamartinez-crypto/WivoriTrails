@@ -17,6 +17,7 @@ var market_crates: Array[Node3D] = []
 var navigation = preload("res://scripts/navigation.gd").new()
 var pier_boat: Node3D
 var pier_label: Label3D
+var orchard_label: Label3D
 
 const GREEN = Color("#74b96b")
 const DARK_GREEN = Color("#316947")
@@ -87,7 +88,8 @@ func make_label(parent: Node3D, message: String, pos: Vector3, size_: int = 70) 
 	label.pixel_size = .008
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.modulate = Color("#fff6d8")
-	label.outline_size = 10
+	label.outline_size = 4
+	label.outline_modulate = Color("#244b40")
 	label.position = pos
 	parent.add_child(label)
 	return label
@@ -134,7 +136,7 @@ func build_market() -> void:
 	for x in [-2.35,2.35]:
 		for z in [-1.35,1.35]:
 			shape(root,"cylinder",Vector3(x,1.5,z),Vector3(.17,3.0,.17),Color("#83502f"))
-	make_label(root,"WIVORI TRAILS",Vector3(0,3.45,1.67),45)
+	make_label(root,"MERCADO",Vector3(0,3.45,1.67),40)
 	# Product crates and chunky produce form physical sale stock.
 	for i in range(4):
 		var rack := Node3D.new(); rack.name="Cajón surtido %d" % i; rack.position=Vector3.ZERO; root.add_child(rack)
@@ -169,7 +171,7 @@ func make_bed(title: String, pos: Vector3, tint: Color, resource: String, enable
 			shape(unit,"sphere",Vector3(-.18,.31,.17),Vector3(.33,.32,.32),tint)
 			shape(unit,"sphere",Vector3(.20,.32,-.10),Vector3(.31,.29,.31),tint)
 			crop_spots.append({"node":unit,"kind":resource,"ready":true,"regrow":0.0,"enabled":enabled_,"root":bed})
-	make_label(bed,title.to_upper(),Vector3(0,2.18,-2.35),44)
+	make_label(bed,title.to_upper(),Vector3(0,2.18,-2.35),34)
 	# Corners and fences are built from meshes, not backdrop pixels.
 	for z in [-2.35,2.35]:
 		for x in [-2.85,2.85]:
@@ -221,7 +223,7 @@ func build_expansions() -> void:
 	shape(orchard_root,"box",Vector3(0,.05,0),Vector3(10,.22,9),Color("#88c575"))
 	for x in [-3.5,0.0,3.5]:
 		build_orchard_tree(orchard_root,Vector3(x,0,0))
-	make_label(orchard_root,"HUERTO 300 MONEDAS",Vector3(0,5,0),32)
+	orchard_label=make_label(orchard_root,"HUERTO",Vector3(0,5,0),30)
 	orchard_root.visible = false
 	pier_root = Node3D.new(); pier_root.position = Vector3(19,0,15); pier_root.name = "Muelle desbloqueable"; add_child(pier_root)
 	for z in range(5):
@@ -254,6 +256,7 @@ func open_orchard() -> void:
 	if orchard_open: return
 	orchard_open=true
 	orchard_root.visible=true
+	orchard_label.text="HUERTO DE MANZANAS"
 	make_bed("Manzanas",Vector3(13,0,-13),RED,"apple",true)
 
 func open_pier() -> void:
