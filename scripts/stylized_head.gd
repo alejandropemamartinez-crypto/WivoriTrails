@@ -12,6 +12,7 @@ static func _point(species: String, y: float, angle: float) -> Vector3:
 	var z: float = sin(angle) * (0.45 * section)
 	var muzzle_strength: float = 0.0
 	match species:
+		"scottie": muzzle_strength = 0.38
 		"dog": muzzle_strength = 0.23
 		"fox": muzzle_strength = 0.19
 		"pig": muzzle_strength = 0.14
@@ -22,6 +23,18 @@ static func _point(species: String, y: float, angle: float) -> Vector3:
 		var height_weight: float = exp(-pow((y + 0.18) / 0.17, 2.0))
 		var face_weight: float = pow(maxf(sin(angle), 0.0), 6.0)
 		z += muzzle_strength * height_weight * face_weight
+	# Scottish Terrier signature: broad eyebrows, square beard and long muzzle,
+	# formed in the continuous head surface (not attached floating parts).
+	if species=="scottie":
+		var face_dir: float=pow(maxf(sin(angle),0.0),5.0)
+		var chin: float=exp(-pow((y+.31)/.17,2.0))
+		var cheeks: float=exp(-pow((y+.17)/.21,2.0))
+		var eyebrows: float=exp(-pow((y-.16)/.078,2.0))
+		var brow_x: float=exp(-pow((absf(x)-.23)/.16,2.0))
+		z+=face_dir*(.12*chin+.085*cheeks+.11*eyebrows*brow_x)
+		x*=1.0+.20*chin*face_dir+.08*cheeks*face_dir
+		# Uneven whiskered lower lip rather than a clean spherical chin.
+		y-=.075*chin*face_dir
 	# Slightly wider cheeks and a softer crown; a recognisable silhouette.
 	x *= 1.0 + 0.06 * exp(-pow((y + 0.12) / 0.22, 2.0))
 	return Vector3(x, y, z)
