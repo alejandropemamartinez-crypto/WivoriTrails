@@ -94,7 +94,7 @@ func capture() -> void:
 	for n in range(10):game._update_camera(.20);await process_frame
 	await shot("upgrade_stalls")
 	game.cash.unlock_second_register()
-	game.cash.pending=[420,235]
+	game.cash.pending[0]=420;game.cash.pending[1]=235
 	game.cash._refresh_register(0);game.cash._refresh_register(1)
 	game.player.position=Vector3(4,0,5)
 	camera_reset();game._refresh_ui()
