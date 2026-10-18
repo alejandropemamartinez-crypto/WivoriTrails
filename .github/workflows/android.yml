@@ -1,0 +1,99 @@
+name: Wivori Trails - Godot Android Debug
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Unpack original Godot project
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -oq wivori_bundle.zip -d .
+          test -f project.godot
+          test -f Main.tscn
+          test -f scripts/game.gd
+
+      - name: Expose editable source files in GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add project.godot export_presets.cfg Main.tscn scripts assets icon.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Expose editable Godot source files"
+            git push origin HEAD:main
+          fi
+
+      - name: Setup Godot templates and Android debug signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config/godot" "$HOME/.android"
+          if [ -d /root/.local/share/godot/export_templates/4.4.1.stable ]; then
+            mkdir -p "$HOME/.local/share/godot/export_templates"
+            if [ "$HOME" != /root ]; then cp -a /root/.local/share/godot/export_templates/4.4.1.stable "$HOME/.local/share/godot/export_templates/"; fi
+          fi
+          if [ ! -e "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android \
+              -dname 'CN=Android Debug,O=Android,C=US'
+          fi
+          echo "SDK: $ANDROID_HOME"
+          godot --version
+
+      - name: Import resources and check GDScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --editor --quit 2>&1 | tee godot-import.log
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-import.log; then exit 1; fi
+          godot --headless --path . --quit-after 120 2>&1 | tee godot-runtime.log
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-runtime.log; then exit 1; fi
+
+      - name: Export Android APK (debug)
+        shell: bash
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          set -euo pipefail
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$HOME/.android/debug.keystore"
+          mkdir -p build
+          godot --headless --path . --export-debug Android build/WivoriTrails_Android_debug.apk 2>&1 | tee godot-export.log
+          test -s build/WivoriTrails_Android_debug.apk
+          unzip -t build/WivoriTrails_Android_debug.apk | tail -1
+
+      - name: Upload build logs for diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WivoriTrails_build_logs
+          path: |
+            godot-import.log
+            godot-runtime.log
+            godot-export.log
+          if-no-files-found: ignore
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WivoriTrails_Android_debug
+          path: build/WivoriTrails_Android_debug.apk
+          if-no-files-found: error
+          retention-days: 14
