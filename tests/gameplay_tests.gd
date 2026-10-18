@@ -115,6 +115,8 @@ func run() -> void:
 	game.sold = 0
 	game.quest_level = 1
 	game.coins = 100
+	game.cash.pending=[0,0]
+	for i in range(2):game.cash._refresh_register(i)
 	for kind in game.counter: game.counter[kind] = 0
 	game.counter["tomato"] = 8
 	game._process_shipping(.1)
