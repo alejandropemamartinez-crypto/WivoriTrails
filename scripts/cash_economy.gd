@@ -45,7 +45,7 @@ func _make_register(index: int) -> void:
 	g.world.shape(node,"box",Vector3(0,.57,0),Vector3(1.68,.67,1.15),Color("#7eae9d"),"Caja de efectivo")
 	g.world.shape(node,"box",Vector3(0,.95,.05),Vector3(1.70,.17,1.19),Color("#e1b568"),"Borde dorado")
 	g.world.shape(node,"box",Vector3(0,.71,.61),Vector3(.70,.24,.06),Color("#f3d78b"),"Cerradura")
-	var txt:=g.world.make_label(node,"CAJA %d" % (index+1),Vector3(0,2.75,.35),46)
+	var txt: Label3D=g.world.make_label(node,"CAJA %d" % (index+1),Vector3(0,2.75,.35),46)
 	txt.font_size=56
 	txt.pixel_size=.008
 	txt.modulate=Color("#ffefd1")
@@ -56,7 +56,7 @@ func _make_register(index: int) -> void:
 	# Max 18 meshes, regardless of amount: large sums scale visually.
 	var pieces: Array=[]
 	for j in range(18):
-		var coin:=g.world.shape(node,"cylinder",
+		var coin: MeshInstance3D=g.world.shape(node,"cylinder",
 			Vector3(float(j%3-1)*.39,1.10+float(j/9)*.16+float(j%3)*.065,float((j/3)%3-1)*.33),
 			Vector3(.31,.09,.31),Color("#f3c85c") if j%3 else Color("#ffe6a3"),"Moneda recaudada")
 		pieces.append(coin)
@@ -130,7 +130,7 @@ func add_sale(amount: int) -> void:
 
 func _fly_money(from: Vector3, target: Vector3, count: int, to_hero: bool) -> void:
 	for j in range(mini(12,count)):
-		var piece:=g.world.shape(self,"cylinder",from+Vector3(float(j%3-1)*.16,.09*float(j),0),
+		var piece: MeshInstance3D=g.world.shape(self,"cylinder",from+Vector3(float(j%3-1)*.16,.09*float(j),0),
 			Vector3(.24,.075,.24),Color("#f4c65b"),"Moneda animada")
 		var tween:=create_tween().set_parallel(true)
 		var delay:=float(j)*.047
@@ -148,7 +148,7 @@ func take_register(index: int, by_player: bool) -> int:
 	if by_player:
 		g.coins=mini(MAX_PENDING,g.coins+value)
 		g.player.act("collect")
-		_fly_money(REGISTERS[index]+Vector3(0,1.20,0),g.player.position+Vector3(0,1.55,.25),min(12,3+int(log(float(value)+1.0))),true)
+		_fly_money(REGISTERS[index]+Vector3(0,1.20,0),g.player.position+Vector3(0,1.55,.25),mini(12,3+int(log(float(value)+1.0))),true)
 		g.hud.animate_income(value,g.camera.unproject_position(REGISTERS[index]+Vector3(0,1.3,0)))
 		g._cash_sound()
 		g._float_activity(REGISTERS[index],"+$%d RECOGIDOS" % value,Color("#f2cf73"))
