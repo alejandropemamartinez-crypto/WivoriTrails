@@ -55,6 +55,8 @@ func run() -> void:
 	var money_in_register: int=game.cash.total_pending()
 	game.player.position=game.cash.REGISTERS[0]
 	game.cash.tick(.1)
+	check(game.coins==50 and game.cash.player_held==money_in_register,"A started pickup cannot spend money before its visible arrival")
+	for i in range(12):game.cash.tick(.1)
 	check(game.coins==50+money_in_register and game.cash.total_pending()==0, "Scottie automatically picks up exactly one full cash stack on approach")
 	game.cash.tick(.1)
 	check(game.coins==50+money_in_register, "Standing near the empty register never duplicates cash")
@@ -187,6 +189,7 @@ func run() -> void:
 
 	await start_game()
 	game.coins=2000
+	game.run.level=2
 	game._toggle_build_mode()
 	check(game.town.in_build_mode and game.hud.town_panel.visible, "Construction toggles the aerial village view and opens the build controls")
 	check(game.town.constructed.size()==9 and game.town.constructed[0]=="", "New market offers nine expandable, genuinely empty plots")
@@ -215,6 +218,7 @@ func run() -> void:
 	game.coins=15000
 	game._toggle_build_mode()
 	var bonus_before: int=game._total_bag()
+	game.run.level=5
 	game.town.select_at(game.town.LOCATIONS[3])
 	check(game.town.build("bakery") and game.town.income_bonus(100)==30, "Bakery cumulatively raises cafe revenue from 20 to 30 percent")
 	game.town.select_at(game.town.LOCATIONS[4])

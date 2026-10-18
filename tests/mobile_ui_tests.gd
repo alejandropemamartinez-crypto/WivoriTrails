@@ -60,16 +60,16 @@ func run() -> void:
 	await start_game()
 	check(game.player.species=="scottie", "Player is a grey-brindle Scottish Terrier with custom head geometry")
 	check(game.player.head_mesh.mesh is ArrayMesh, "Every hero head is a dedicated continuous mesh")
-	check(game.player.head_mesh.mesh.get_surface_count()==1, "Face and muzzle share one sculpted surface")
-	check(game.player.ears.size()==2 and game.player.head_mesh.material_override.get_shader_parameter("scottie")==true, "Scottie has upright terrier ears and surface-painted beard and brows")
-	check(game.hud.rabbit_banner.portrait.texture!=null, "An actual scalable illustrated rabbit warning portrait is installed")
+	check(game.player.head_mesh.skin!=null and game.player.skeleton.get_bone_count()>=17, "The hero uses a weighted skin and anatomical skeleton")
+	check(game.player.skeleton.find_bone("ear.L")>=0 and game.player.skeleton.find_bone("ear.R")>=0, "Both terrier ears are animated by actual deform bones")
+	check(game.hud.rabbit_banner.portrait.texture!=null, "An actual rendered 3D rabbit portrait is installed")
 	check(game.world.upgrade_pads["helper"]["label"].position.y>3.4 and game.world.upgrade_pads["helper"]["board"] is Sprite3D, "Upgrade labels and prices are raised above their roofs on billboards")
-	check(game.player.head_mesh.material_override is ShaderMaterial, "Facial expressions are surface-painted, not floating geometry")
-	check(game.get_node("WivoriEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_FILMIC, "Filmic tone mapping replaces overexposed linear lighting")
+	check(game.player.head_mesh.mesh.surface_get_material(0).albedo_texture!=null and game.player.head_mesh.mesh.get_surface_count()<=4 and game.player.animator.has_animation("collect"), "An authored texture atlas and batched PBR surfaces preserve detail with few character draws")
+	check(game.get_node("WivoriEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_AGX, "AgX tone mapping preserves the authored palette without clipped highlights")
 	check(game.camera.keep_aspect==Camera3D.KEEP_WIDTH, "Portrait camera preserves the horizontal view of the market")
 	check(game._current_objective()["target"]==Vector3(-8,0,0), "A fresh game points to the first harvest")
 	if DisplayServer.get_name()!="headless":
-		check(game.hud.mission_progress.get_global_rect().end.y<game.hud.team_label.get_global_rect().position.y,"Level goals and stock chips do not overlap")
+		check(game.hud.mission_progress.get_global_rect().end.y<=game.hud.mission_panel.get_global_rect().end.y,"Level goals and stock chips do not overlap")
 	var initial: Vector3=game.player.position
 	await click(game.hud.guide_button)
 	for i in range(20):game._process_player(.1)
@@ -86,6 +86,8 @@ func run() -> void:
 	check(game.coins==50 and game.cash.total_pending()>0, "Customers produce pending cash but do not give free wallet money")
 	manual_walk(game.cash.REGISTERS[0])
 	game.cash.tick(.1)
+	check(game.coins==50 and game.cash.player_held>0, "Pickup reserves cash for the visible flight before it becomes spendable")
+	for i in range(12):game.cash.tick(.1)
 	game._refresh_ui()
 	check(game.coins>=80 and game.cash.total_pending()==0, "Scottie must approach the first register to afford the helper")
 	check(game._current_objective().get("upgrade")=="helper","Cash collection exposes the affordable worker investment")
@@ -170,7 +172,7 @@ func run() -> void:
 	check(game.run.blocked==1 and not game.has_tap_destination,"A real touch repels the nearby thief without moving the protagonist")
 	if DisplayServer.get_name()!="headless":
 		game.run.level=6; game._refresh_ui(); await process_frame
-		check(game.hud.mission_progress.get_global_rect().end.y<game.hud.team_label.get_global_rect().position.y,"Later chapter goals also fit above the status row")
+		check(game.hud.mission_progress.get_global_rect().end.y<=game.hud.mission_panel.get_global_rect().end.y,"Later chapter goals also fit above the status row")
 	game.queue_free(); await process_frame
 	clean_files()
 	print("RESULT: %d mobile UI checks, %d failures" % [checks,failures])

@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --path . --editor --quit
+          godot --headless --path . --import
       - name: Render actual game captures, not mockups
         shell: bash
         env:
@@ -35,11 +35,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p previews
-          timeout 120 xvfb-run -a -s "-screen 0 720x1280x24" \
+          timeout 180 xvfb-run -a -s "-screen 0 720x1280x24" \
             godot --path . --rendering-driver opengl3 --resolution 720x1280 \
             --script res://tools/capture_preview.gd -- "$PWD/previews"
           test -s previews/start.png
           test -s previews/faces.png
+          test -s previews/scottish_terrier_closeup.png
+          test -s previews/rabbit_robbery_alert.png
+          test -s previews/cash_collection_flight.png
+          test -s previews/town_overview.png
           ls -lh previews
       - name: Publish visual screenshots
         if: always()

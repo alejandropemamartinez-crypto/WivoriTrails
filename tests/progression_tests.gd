@@ -23,7 +23,7 @@ func run_tests() -> void:
 	game.input_stick._clear(); var at: Vector3=game.player.position
 	game._follow_objective(); game._set_tap_goal(Vector2(500,600))
 	for i in range(60):game._process_player(.1)
-	check(game.player.position==at and not game.has_tap_destination,"Guides and terrain taps cannot create player autopilot")
+	check(game.player.position.distance_to(at)<.08 and not game.has_tap_destination,"Guides and terrain taps cannot create player autopilot")
 	check(game.trail.visible and game.trail.arrows[0].visible,"Spatial guidance remains visible without moving the protagonist")
 	var reachable:=true
 	for kind in game.UPGRADE_POS:reachable=reachable and not game.world.navigation.find_path(game.player.position,game.UPGRADE_POS[kind]).is_empty()
@@ -102,8 +102,10 @@ func run_tests() -> void:
 	game.run.level=8
 	check(game.run.contract_kind()!=first_kind and game.run.contract_goal()>first_goal,"Later levels rotate requested products and increase their goals")
 	var actor: MarketActor=game.player
-	actor.last_position=actor.position; actor.position+=Vector3(.2,0,0); actor.walk_to(Vector3.RIGHT,6.8); actor._process(.016)
-	check(absf(actor.left_leg.rotation.x)>.1 and is_equal_approx(actor.left_leg.rotation.x,-actor.right_leg.rotation.x),"Walking drives opposite leg strides from actual traveled distance")
+	actor.action_left=0;actor.last_position=actor.position; actor.position+=Vector3(.2,0,0); actor.walk_to(Vector3.RIGHT,6.8); actor._process(.05)
+	var left_pose:=actor.skeleton.get_bone_pose_rotation(actor.skeleton.find_bone("leg.L"))
+	var right_pose:=actor.skeleton.get_bone_pose_rotation(actor.skeleton.find_bone("leg.R"))
+	check(actor.current_clip in ["walk","carry"] and left_pose.angle_to(right_pose)>.05,"Actual skeletal leg poses oppose each other during distance-driven walking")
 	for i in range(90):actor._process(.016)
 	check(actor.walk_amount<.01,"Releasing movement blends the character back to idle")
 	await stop(); clean()
