@@ -22,6 +22,7 @@ var right_leg: Node3D
 var left_foot: Node3D
 var right_foot: Node3D
 var goods_root: Node3D
+var stolen_bundle: Node3D
 var facing := 0.0
 var last_position := Vector3.ZERO
 var action := ""
@@ -118,11 +119,17 @@ func _ready() -> void:
 	goods_root=_pivot(Vector3(0,1.37,-.36),body_root)
 	for i in range(6):
 		_solid(goods_root,"sphere",[Color("#e78965"),Color("#e8bb5a"),Color("#9b83b6")][i%3],Vector3((i%2-.5)*.20,float(i/2)*.13,0),Vector3(.24,.24,.24))
+	if character_role=="thief":
+		stolen_bundle=_pivot(Vector3(0,1.0,.49),body_root)
+		_solid(stolen_bundle,"box",Color("#a77645"),Vector3(0,-.13,0),Vector3(.64,.42,.52))
+		for i in range(4):
+			_solid(stolen_bundle,"sphere",Color("#efaa57") if i%2==0 else Color("#e5755b"),Vector3((float(i%2)-.5)*.27,.17,float(i/2)*.16),Vector3(.24,.26,.24))
 	set_carry(0)
 	last_position=position
 
 func set_carry(amount: int) -> void:
 	carrying=amount
+	if stolen_bundle!=null:stolen_bundle.visible=amount>0
 	if goods_root!=null:
 		goods_root.visible=amount>0
 		goods_root.scale=Vector3.ONE*(.75+minf(amount,12)*.025)
