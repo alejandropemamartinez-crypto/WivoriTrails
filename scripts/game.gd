@@ -645,6 +645,21 @@ func _process_player(delta: float) -> void:
 	else:
 		hint_label.text="Tu puesto vende automáticamente"
 
+func _animate_goods(from: Vector3, to: Vector3, amount: int, tint: Color) -> void:
+	for i in range(mini(8,amount)):
+		var item:=MeshInstance3D.new()
+		var sphere:=SphereMesh.new(); sphere.radial_segments=10; sphere.rings=6
+		item.mesh=sphere; item.scale=Vector3.ONE*.27
+		var paint:=StandardMaterial3D.new(); paint.albedo_color=tint; paint.roughness=.97
+		item.material_override=paint
+		item.position=from+Vector3(0,1.15,0); add_child(item)
+		var arrival:=to+Vector3((float(i%3)-1.0)*.24,1.15+float(i/3)*.18,0)
+		var duration:=.38+float(i%4)*.07
+		var tween:=create_tween().set_parallel(true)
+		tween.tween_property(item,"position",arrival,duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(item,"scale",Vector3.ONE*.06,duration)
+		tween.chain().tween_callback(item.queue_free)
+
 func _spawn_delivery_fx(amount: int) -> void:
 	var colors: Array=[Color("#e46d50"),Color("#f2b958"),Color("#947dc2")]
 	for i in range(mini(9,amount)):
