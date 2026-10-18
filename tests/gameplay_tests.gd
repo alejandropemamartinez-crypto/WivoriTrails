@@ -51,7 +51,14 @@ func run() -> void:
 	for i in range(500):
 		if i % 46 == 0: game._spawn_customer()
 		game._process_customers(.1)
-	check(game.sold == bag and game.coins > 50, "Shoppers reach the stall, buy the harvest and pay")
+	check(game.sold == bag and game.coins==50 and game.cash.total_pending()>0, "Shoppers pay into physical register stacks, not directly into wallet")
+	var money_in_register: int=game.cash.total_pending()
+	game.player.position=game.cash.REGISTERS[0]
+	game.cash.tick(.1)
+	check(game.coins==50+money_in_register and game.cash.total_pending()==0, "Scottie automatically picks up exactly one full cash stack on approach")
+	game.cash.tick(.1)
+	check(game.coins==50+money_in_register, "Standing near the empty register never duplicates cash")
+	game.player.position=Vector3(4,0,4)
 
 	game.player.position = Vector3(4, 0, 4)
 	game._set_world_goal(Vector3(4, 0, -6))
@@ -117,7 +124,7 @@ func run() -> void:
 	check(game.shipment["kind"] == "tomato" and game.counter["tomato"] == 3, "The dock loads six products and leaves three for local shoppers")
 	game._process_shipping(30)
 	game._process_shipping(30)
-	check(game.coins == 154 and game.shipments_completed == 1 and game.sold == 6, "Shipment pays the 50 percent premium exactly once")
+	check(game.coins == 100 and game.cash.total_pending() == 54 and game.shipments_completed == 1 and game.sold == 6, "Shipment delivers its premium into collectible registers exactly once")
 
 	# Persist both a loaded helper and a separate boat cargo. Neither may vanish
 	# or be counted twice after the actual scene is destroyed and re-created.
@@ -148,7 +155,7 @@ func run() -> void:
 	check(game.counter["berry"] == 3 and game.helpers[0]["cargo"] == "", "Restored helper delivers its cargo once and clears the carried goods")
 	game._process_shipping(25)
 	game._process_shipping(25)
-	check(game.coins == saved_coins+54 and game.shipments_completed == 2, "Restored shipment pays once without duplicating stock")
+	check(game.coins == saved_coins and game.cash.total_pending() == 108 and game.shipments_completed == 2, "Restored shipment deposits money once without duplicating stock")
 
 	game.input_stick.axis = Vector2.ONE
 	game.boost_active = true
@@ -188,8 +195,9 @@ func run() -> void:
 	game.town.select_at(game.town.LOCATIONS[1])
 	check(game.town.build("cafe"), "Coffee shop can be built on a different plot")
 	var earnings_before: int=game.coins
+	var cash_before: int=game.cash.total_pending()
 	game._record_sale(1,10)
-	check(game.coins==earnings_before+12, "Village coffee shop boosts actual sales by precisely 20 percent")
+	check(game.coins==earnings_before and game.cash.total_pending()==cash_before+12, "Village coffee shop boosts sales by 20 percent without putting cash in wallet")
 	game.town.select_at(game.town.LOCATIONS[2])
 	var capacity_before: int=game.max_capacity
 	check(game.town.build("depot") and game.max_capacity==capacity_before+6, "Building the depot raises playable carrying capacity")
@@ -201,6 +209,7 @@ func run() -> void:
 	await start_game()
 	check(game.town.has_building("house") and game.town.has_building("cafe") and game.town.has_building("depot"), "Reload reconstructs all three visible town structures")
 	check(game.coins==village_money and game.max_capacity==capacity_before+6, "Reload preserves village purchases without charging or granting capacity twice")
+	check(game.cash.total_pending()==cash_before+12, "Reopening the game preserves money in cashboxes")
 	game.coins=15000
 	game._toggle_build_mode()
 	var bonus_before: int=game._total_bag()
