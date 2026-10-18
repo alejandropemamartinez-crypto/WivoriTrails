@@ -3,7 +3,7 @@ extends RefCounted
 # One flat navigation map serves tap movement, helpers and shoppers.
 # Geometry is registered by the world, so the visuals and routes stay in sync.
 const CELL_SIZE := 0.5
-const LIMIT := 23.0
+const LIMIT := 34.0
 var grid := AStarGrid2D.new()
 var obstacles: Array[Rect2] = []
 var revision := 0
@@ -13,14 +13,14 @@ func add_obstacle(bounds: Rect2) -> void:
 
 func build() -> void:
 	revision += 1
-	grid.region = Rect2i(-46, -46, 93, 93)
+	grid.region = Rect2i(-68, -68, 137, 137)
 	grid.cell_size = Vector2.ONE * CELL_SIZE
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	grid.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	grid.update()
-	for x in range(-46, 47):
-		for z in range(-46, 47):
+	for x in range(-68, 69):
+		for z in range(-68, 69):
 			var at := Vector3(x * CELL_SIZE, 0, z * CELL_SIZE)
 			grid.set_point_solid(Vector2i(x, z), not is_walkable(at, 0.26))
 
@@ -38,8 +38,8 @@ func nearest_free(at: Vector3) -> Vector3:
 		return clamped
 	var best := Vector3.ZERO
 	var distance := INF
-	for x in range(-46, 47):
-		for z in range(-46, 47):
+	for x in range(-68, 69):
+		for z in range(-68, 69):
 			var cell := Vector2i(x, z)
 			if grid.is_point_solid(cell):
 				continue
