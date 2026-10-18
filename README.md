@@ -1,8 +1,22 @@
-# Wivori Trails · 0.4.0
+# Wivori Trails · 0.5.0
 
 Prototipo móvil 3D de recolección, comercio y automatización, en **Godot 4.4.1**.
 Empezás cosechando y abasteciendo el puesto; contratás ayudantes y desbloqueás
 un huerto de manzanas y un muelle que exporta el excedente automáticamente.
+
+## Novedades de 0.5.0
+
+- Iluminación corregida para conservar los colores y cámara adaptada a pantallas
+  verticales. El botón Vista alterna entre cerca y lejos y recuerda la elección.
+- Interfaz compacta, barras de mochila y objetivo, una sola entrada a Mejoras y
+  tienda con el beneficio, costo y disponibilidad de cada compra.
+- Guía contextual para cosechar, entregar, vender y contratar al primer ayudante;
+  después señala el próximo desbloqueo. Respeta el avance de partidas anteriores.
+- Botones con soporte táctil propio: dos dedos pueden manejar el joystick y
+  correr al mismo tiempo. Los toques cancelados no compran y pausar libera los
+  controles. Mouse y teclado conservan sus controles habituales.
+- Menos avisos sobre el escenario, márgenes de seguridad en Android y adaptación
+  a pantallas de distintas proporciones. Mantiene el guardado y la firma de 0.4.0.
 
 ## Jugar y editar
 
@@ -45,12 +59,25 @@ formato de lanzamiento para Google Play se deben configurar por separado.
 ```sh
 godot --headless --path . --editor --quit
 godot --headless --path . --script res://tests/gameplay_tests.gd
+godot --headless --path . --script res://tests/mobile_ui_tests.gd
 ```
 
 Las pruebas usan un guardado temporal propio y no modifican una partida normal.
 Cubren recolección/venta, navegación, automatización, exportación, persistencia,
 recuperación de respaldo, migración y datos malformados. El pipeline también
-inicia la escena y comprueba el APK exportado.
+inicia la escena y comprueba el APK exportado. Son 27 comprobaciones de juego y
+18 de guía/interfaz/entrada táctil sin renderizado; al ejecutarse con renderizado,
+la suite móvil añade una comprobación geométrica del diseño.
+
+Para capturas reales, ejecutar con un servidor gráfico y pasar una carpeta:
+
+```sh
+godot --path . --resolution 720x1280 --script res://tools/capture_preview.gd -- /tmp/wivori-preview
+```
+
+La revisión visual de 0.5.0 se realizó con OpenGL/Mesa en 720×1280 y 720×1600,
+incluyendo juego inicial, mejoras y mercado ampliado. No sustituye las pruebas
+de rendimiento y tacto en dispositivos Android físicos.
 
 **Estado:** versión de prueba. Falta validar gráficos, tacto, rendimiento y balance
 en teléfonos reales. La movilidad del mercado y los diferentes destinos de la
