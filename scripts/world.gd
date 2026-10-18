@@ -129,7 +129,7 @@ func build_market() -> void:
 	for x in [-2.35,2.35]:
 		for z in [-1.35,1.35]:
 			shape(root,"cylinder",Vector3(x,1.5,z),Vector3(.17,3.0,.17),Color("#83502f"))
-	make_label(root,"MERCADO CON PATAS",Vector3(0,3.45,1.67),45)
+	make_label(root,"WIVORI TRAILS",Vector3(0,3.45,1.67),45)
 	# Product crates and chunky produce form physical sale stock.
 	for i in range(4):
 		var rack := Node3D.new(); rack.name="Cajón surtido %d" % i; rack.position=Vector3.ZERO; root.add_child(rack)
