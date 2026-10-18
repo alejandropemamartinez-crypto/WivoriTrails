@@ -15,8 +15,8 @@ func _ready() -> void:
 	_build_market_details()
 	_build_park()
 
-func _p(kind: String, at: Vector3, scale_: Vector3, tint: Color, parent: Node3D=self) -> MeshInstance3D:
-	return w.shape(parent,kind,at,scale_,tint)
+func _p(kind: String, at: Vector3, scale_: Vector3, tint: Color, parent: Node3D=null) -> MeshInstance3D:
+	return w.shape(self if parent==null else parent,kind,at,scale_,tint)
 
 func _build_roads() -> void:
 	var stone:=Color("#ceb38c")
