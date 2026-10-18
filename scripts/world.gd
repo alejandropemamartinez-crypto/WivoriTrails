@@ -30,7 +30,7 @@ var alarm_ring: MeshInstance3D
 var security_active := false
 var alarm_radius := 6.0
 
-const GREEN = Color("#90bc92")
+const GREEN = Color("#79a984")
 const DARK_GREEN = Color("#316947")
 const WOOD = Color("#ba8d62")
 const CREAM = Color("#f4dfb0")
@@ -115,11 +115,14 @@ func _ready() -> void:
 	build_expansions()
 	build_upgrade_pads()
 	build_security()
+	var quarters:=preload("res://scripts/village_scenery.gd").new()
+	quarters.w=self
+	add_child(quarters)
 	navigation.build()
 
 func build_land() -> void:
-	shape(self,"box",Vector3(0,-.42,0),Vector3(65,.8,65),GREEN,"Base de isla")
-	shape(self,"box",Vector3(0,-.84,0),Vector3(66,.35,66),Color("#c6aa72"),"Corte de isla")
+	shape(self,"box",Vector3(0,-.42,0),Vector3(150,.8,150),GREEN,"Base de isla")
+	shape(self,"box",Vector3(0,-.84,0),Vector3(151,.35,151),Color("#c6aa72"),"Corte de isla")
 	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
 	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#b9a887"),"Paseo principal")
 	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#b9a887"),"Plaza comercial")
@@ -162,8 +165,8 @@ func build_market() -> void:
 		for f in range(6):
 			shape(rack,"sphere",c+Vector3((float(f%3)-1.0)*.22,.25+float(f/3)*.18,0),Vector3(.24,.23,.25),[RED,Color("#f3b843"),Color("#8bc963"),Color("#ac71b5")][i])
 	# Delivery pad is an explicit, visible interaction area.
-	shape(self,"cylinder",Vector3(4,.12,2.5),Vector3(3.3,.13,3.3),Color("#b18d47"))
-	shape(self,"cylinder",Vector3(4,.20,2.5),Vector3(2.95,.08,2.95),Color("#f5d57f"))
+	shape(self,"box",Vector3(4,.10,2.5),Vector3(3.7,.12,2.7),Color("#b28b5d"),"Terraza de entregas")
+	shape(self,"box",Vector3(4,.18,2.5),Vector3(3.30,.08,2.34),Color("#e5cfa0"),"Alfombra de entregas")
 	var stock_sign := make_label(self,"ENTREGAR",Vector3(4,.75,2.5),48)
 	stock_sign.modulate=Color("#72552d"); stock_sign.outline_size=0; stock_sign.pixel_size=.010
 	# Coin chest and market decorations.
@@ -277,26 +280,45 @@ func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
 		shape(p,"sphere",Vector3(cos(theta),2.5,sin(theta)),Vector3(.3,.33,.3),RED)
 
 func build_upgrade_pads() -> void:
+	# Real little upgrade stalls instead of flat neon circles. Kept in the
+	# original locations so progression, navigation and save files still work.
 	var locations := {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
 		"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
-	var names := {"helper":"EQUIPO","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA","expand":"HUERTO","pier":"MUELLE","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
+	var names := {"helper":"AYUDANTES","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA",
+		"expand":"HUERTO","pier":"MUELLE","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
+	var roof_colors := [Color("#ca795d"),Color("#dba764"),Color("#638f83"),Color("#97a7c1")]
+	var index := 0
 	for kind in locations:
-		var pad := Node3D.new(); pad.position=locations[kind]; pad.name="Mejora " + kind; add_child(pad)
-		shape(pad,"cylinder",Vector3(0,.10,0),Vector3(2.5,.18,2.5),Color("#356a62"))
-		var face := shape(pad,"cylinder",Vector3(0,.22,0),Vector3(2.22,.08,2.22),Color("#e9eddf"))
-		var sign := make_label(pad,names[kind],Vector3(0,.95,0),52)
-		sign.modulate=Color("#285d59"); sign.outline_size=0; sign.pixel_size=.012
-		var price := make_label(pad,"",Vector3(0,.47,.35),68)
-		price.outline_size=0; price.pixel_size=.012
-		upgrade_pads[kind]={"node":pad,"face":face,"label":sign,"price":price,"short":names[kind]}
+		var stall := Node3D.new()
+		stall.position=locations[kind]
+		stall.name="Puesto de mejora " + kind
+		add_child(stall)
+		# Wooden plinth, roof, side timber and little flower pot: no circular floor pads.
+		shape(stall,"box",Vector3(0,.16,0),Vector3(1.75,.24,1.15),Color("#ac865d"),"Tarima")
+		for x in [-.69,.69]:
+			shape(stall,"box",Vector3(x,1.06,-.35),Vector3(.15,1.80,.16),Color("#835d42"))
+		shape(stall,"box",Vector3(0,1.89,-.35),Vector3(2.13,.25,1.29),roof_colors[index%4],"Tejadillo")
+		shape(stall,"box",Vector3(0,1.32,-.23),Vector3(1.86,.76,.16),Color("#fcdfb0"),"Cartel")
+		var face: MeshInstance3D=shape(stall,"box",Vector3(0,.79,.18),Vector3(1.18,.48,.14),Color("#92b0a2"),"Panel de precio")
+		shape(stall,"box",Vector3(-.70,.46,.34),Vector3(.28,.52,.32),Color("#b77955"))
+		shape(stall,"sphere",Vector3(-.70,.80,.34),Vector3(.44,.31,.41),Color("#679b6a"))
+		var sign:=make_label(stall,names[kind],Vector3(0,1.32,-.13),36)
+		sign.modulate=Color("#304b45"); sign.outline_size=0; sign.pixel_size=.008
+		var price:=make_label(stall,"",Vector3(0,.82,.29),38)
+		price.modulate=Color("#36574f"); price.outline_size=0; price.pixel_size=.009
+		upgrade_pads[kind]={"node":stall,"face":face,"label":sign,"price":price,"short":names[kind]}
+		index+=1
 	for kind in ["expand","pier"]:
-		var site := Node3D.new(); add_child(site)
-		var center := Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)
-		shape(site,"box",center+Vector3(0,.03,0),Vector3(9,.12,7),Color("#a3c4a0") if kind=="expand" else Color("#a4c9c2"))
-		for x in [-4.5,4.5]:
-			for z in [-3.5,3.5]:
-				shape(site,"cylinder",center+Vector3(x,.5,z),Vector3(.15,1,.15),CREAM)
-		make_label(site,"PRÓXIMO: HUERTO" if kind=="expand" else "PRÓXIMO: EXPORTACIÓN",center+Vector3(0,1.5,-2),30)
+		var site:=Node3D.new()
+		site.name="Valla de futura expansión "+kind
+		add_child(site)
+		var center:=Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)
+		for x in [-3.8,3.8]:
+			for z in [-2.9,2.9]:
+				shape(site,"box",center+Vector3(x,.55,z),Vector3(.13,1.1,.13),WOOD)
+		for z in [-2.9,2.9]:
+			shape(site,"box",center+Vector3(0,.69,z),Vector3(7.8,.12,.12),CREAM)
+		make_label(site,"PRÓXIMO: HUERTO" if kind=="expand" else "PRÓXIMO: MUELLE",center+Vector3(0,1.65,-2.4),27)
 		locked_sites[kind]=site
 
 func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) -> void:
@@ -472,9 +494,9 @@ func ground_height(at: Vector3) -> float:
 	if absf(at.x)<2.5 and absf(at.z)<21.5:height=.08
 	if Rect2(-1.45,-5.4,12.5,10).has_point(point):height=.105
 	if Rect2(7.75,.3,3.5,8.6).has_point(point):height=.115
-	if point.distance_to(Vector2(4,2.5))<1.48:height=.28
+	if point.distance_to(Vector2(4,2.5))<1.48:height=.19
 	for pad in upgrade_pads.values():
-		if pad["node"].visible and point.distance_to(Vector2(pad["node"].position.x,pad["node"].position.z))<1.11:height=maxf(height,.30)
+		if pad["node"].visible and point.distance_to(Vector2(pad["node"].position.x,pad["node"].position.z))<.78:height=maxf(height,.16)
 	for bed in farm_root.get_children():
 		if absf(at.x-bed.position.x)<2.75 and absf(at.z-bed.position.z)<2.2:height=maxf(height,.335)
 	return height

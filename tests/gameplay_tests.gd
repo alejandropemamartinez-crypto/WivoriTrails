@@ -180,7 +180,7 @@ func run() -> void:
 	game.coins=2000
 	game._toggle_build_mode()
 	check(game.town.in_build_mode and game.hud.town_panel.visible, "Construction toggles the aerial village view and opens the build controls")
-	check(game.town.constructed.size()==3 and game.town.constructed[0]=="", "New market opens with three genuinely empty plots")
+	check(game.town.constructed.size()==9 and game.town.constructed[0]=="", "New market offers nine expandable, genuinely empty plots")
 	game.town.select_at(game.town.LOCATIONS[0])
 	var price_before: int=game.coins
 	check(game.town.build("house") and game.coins==price_before-180, "A house is explicitly purchased at the selected site once")
@@ -201,7 +201,32 @@ func run() -> void:
 	await start_game()
 	check(game.town.has_building("house") and game.town.has_building("cafe") and game.town.has_building("depot"), "Reload reconstructs all three visible town structures")
 	check(game.coins==village_money and game.max_capacity==capacity_before+6, "Reload preserves village purchases without charging or granting capacity twice")
+	game.coins=15000
+	game._toggle_build_mode()
+	var bonus_before: int=game._total_bag()
+	game.town.select_at(game.town.LOCATIONS[3])
+	check(game.town.build("bakery") and game.town.income_bonus(100)==30, "Bakery cumulatively raises cafe revenue from 20 to 30 percent")
+	game.town.select_at(game.town.LOCATIONS[4])
+	check(game.town.build("greenhouse"), "Greenhouse can be placed in a separate northern village plot")
+	var extra_crops:=0
+	for n in range(5):
+		if game.town.bonus_harvest():extra_crops+=1
+	check(extra_crops==1, "Greenhouse awards one extra harvest per five successful actions")
+	game.town.select_at(game.town.LOCATIONS[5])
+	check(game.town.build("workshop") and is_equal_approx(game.town.player_speed_factor(),1.08), "Road workshop actually increases the controllable hero speed")
+	game.town.select_at(game.town.LOCATIONS[6])
+	check(game.town.build("park") and game.town.customer_interval_factor()<.75, "Public park and houses combine to attract more visitors")
+	game.town.select_at(game.town.LOCATIONS[7])
+	check(game.town.build("watchtower") and game.town.warning_seconds()==4.0, "Built lookout adds four seconds of raid warning")
+	game.town.select_at(game.town.LOCATIONS[8])
+	check(game.town.build("mill") and game.town.shipment_speed_factor()==1.30, "Mill reduces export travel time")
+	game._toggle_build_mode()
+	game._save_progress()
+	await stop_game()
+	await start_game()
+	check(game.town.constructed.size()==9 and game.town.has_building("mill") and game.town.has_building("greenhouse"), "All expanded districts and purchased utility buildings persist after reload")
 	await stop_game()
 	clean_files()
+
 	print("RESULT: %d checks, %d failures" % [checks,failures])
 	quit(1 if failures else 0)

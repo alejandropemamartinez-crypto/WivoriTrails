@@ -225,6 +225,9 @@ func build(game: Node3D) -> void:
 	wayfinder=load("res://scripts/wayfinder.gd").new(); wayfinder.g=g
 	root.add_child(wayfinder); wayfinder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	build_shop()
+	# The emergency interception control must win hit-testing over any nearby
+	# contextual purchase panels when several UI elements overlap.
+	root.move_child(intercept_button,root.get_child_count()-1)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)
 
@@ -256,29 +259,54 @@ func build_action_cards() -> void:
 	pad_panel.visible=false
 
 func build_town_controls() -> void:
-	town_panel=panel(Color("#fff9ec"))
+	# Township-inspired compact horizontal catalog: the town stays on screen.
+	town_panel=panel(Color("#fff8e9"))
 	root.add_child(town_panel)
 	town_panel.anchor_left=0; town_panel.anchor_right=1
 	town_panel.anchor_top=1; town_panel.anchor_bottom=1
-	town_panel.offset_left=24; town_panel.offset_right=-24
-	town_panel.offset_top=-500; town_panel.offset_bottom=-176
-	var column:=VBoxContainer.new(); column.add_theme_constant_override("separation",9)
+	town_panel.offset_left=20; town_panel.offset_right=-20
+	town_panel.offset_top=-345; town_panel.offset_bottom=-169
+	var column:=VBoxContainer.new(); column.add_theme_constant_override("separation",5)
 	town_panel.add_child(column)
-	var title:=label("CONSTRUIR EL PUEBLO",24,INK); column.add_child(title)
-	town_description=label("Elegí un solar tocándolo en el mapa",17,MUTED)
-	town_description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	var top:=HBoxContainer.new()
+	top.add_theme_constant_override("separation",10)
+	column.add_child(top)
+	var title:=label("CONSTRUIR",20,INK)
+	title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	top.add_child(title)
+	top.add_child(label("Deslizá para ver más",13,MUTED))
+	town_description=label("Elegí un solar tocándolo en el mapa",15,MUTED)
+	town_description.clip_text=true
 	column.add_child(town_description)
-	for kind in ["house","cafe","depot"]:
+	var scroller:=ScrollContainer.new()
+	scroller.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+	scroller.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	scroller.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	column.add_child(scroller)
+	var listing:=HBoxContainer.new()
+	listing.add_theme_constant_override("separation",10)
+	scroller.add_child(listing)
+	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
 		var detail: Dictionary=g.town.TYPES[kind]
-		var row:=HBoxContainer.new()
-		row.add_theme_constant_override("separation",9); column.add_child(row)
-		var about:=VBoxContainer.new(); about.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		row.add_child(about)
-		about.add_child(label(detail["name"],17,INK))
-		about.add_child(label(detail["benefit"],13,MUTED))
-		var buy:=button("CONSTRUIR",TEAL,15)
-		buy.custom_minimum_size=Vector2(158,60)
-		row.add_child(buy)
+		var card:=panel(Color("#f0e8d5"))
+		card.custom_minimum_size=Vector2(186,0)
+		var border:=style(Color("#f0e8d5"),14)
+		border.content_margin_top=7; border.content_margin_bottom=6
+		border.content_margin_left=12; border.content_margin_right=12
+		card.add_theme_stylebox_override("panel",border)
+		listing.add_child(card)
+		var stack:=VBoxContainer.new()
+		stack.add_theme_constant_override("separation",3)
+		card.add_child(stack)
+		var heading:=label(detail["name"],14,INK)
+		heading.clip_text=true
+		stack.add_child(heading)
+		var info:=label(detail["benefit"],12,MUTED)
+		info.clip_text=true
+		stack.add_child(info)
+		var buy:=button("%d" % detail["price"],TEAL,16)
+		buy.custom_minimum_size=Vector2(0,43)
+		stack.add_child(buy)
 		buy.pressed.connect(Callable(g,"_build_town").bind(kind))
 		town_choices[kind]=buy
 	town_panel.visible=false
@@ -290,7 +318,20 @@ func animate_income(amount: int, source: Vector2) -> void:
 	note.add_theme_color_override("font_shadow_color",Color(0.13,0.21,0.18,.36))
 	note.add_theme_constant_override("shadow_offset_y",2)
 	root.add_child(note)
-	note.position=Vector2(clampf(source.x,30,600),clampf(source.y,280,1000))
+	# Animated real coins converge on the treasury, rather than just a number.
+	var origin:=Vector2(clampf(source.x,32,600),clampf(source.y,260,1000))
+	for i in range(5):
+		var coin:=icon("coin",GOLD,Vector2(29,29))
+		coin.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		root.add_child(coin)
+		coin.position=origin+Vector2(float(i-2)*12.0,-absf(float(i-2))*4.0)
+		coin.pivot_offset=Vector2(15,15)
+		var coin_tween:=create_tween().set_parallel(true)
+		var target:=Vector2(79+float(i%2)*13.0,77)
+		coin_tween.tween_property(coin,"position",target,.63+float(i)*.055).set_delay(.04*float(i)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		coin_tween.tween_property(coin,"scale",Vector2.ONE*.30,.63+float(i)*.055).set_delay(.04*float(i))
+		coin_tween.chain().tween_callback(coin.queue_free)
+	note.position=origin
 	note.scale=Vector2.ONE*1.15
 	var tween:=create_tween().set_parallel(true)
 	tween.tween_property(note,"position",Vector2(110,62),.86).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
@@ -354,9 +395,9 @@ func build_shop() -> void:
 func refresh() -> void:
 	var city_mode: bool=g.town!=null and g.town.in_build_mode
 	mission_panel.visible=not city_mode
-	status_row.visible=not city_mode
+	status_row.visible=false
 	view_button.visible=not city_mode
-	footer_panel.visible=not city_mode
+	footer_panel.visible=false
 	g.input_stick.visible=not city_mode
 	run_button.visible=not city_mode
 	g.shop_button.visible=not city_mode
@@ -404,8 +445,8 @@ func refresh() -> void:
 	intercept_button.disabled=not g.run.can_intercept()
 	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"
 	intercept_button.add_theme_font_size_override("font_size",19 if not intercept_button.disabled else 15)
-	pad_panel.offset_top=-550 if raiding else -458
-	pad_panel.offset_bottom=-408 if raiding else -316
+	pad_panel.offset_top=-475 if raiding else -400
+	pad_panel.offset_bottom=-347 if raiding else -272
 	g.event_label.offset_top=(-634 if raiding else -542) if pad_panel.visible else (-420 if raiding else -337)
 	g.event_label.offset_bottom=g.event_label.offset_top+72
 	wayfinder.visible=not city_mode

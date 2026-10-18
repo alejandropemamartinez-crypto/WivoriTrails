@@ -568,7 +568,7 @@ func _shipment_income() -> int:
 func _process_shipping(delta: float) -> void:
 	if not pier_owned: return
 	if shipment["kind"] != "":
-		shipment["remaining"]=maxf(0,float(shipment["remaining"])-delta)
+		shipment["remaining"]=maxf(0,float(shipment["remaining"])-delta*town.shipment_speed_factor())
 		if shipment["remaining"]<=0:
 			var income := _shipment_income()
 			_record_sale(int(shipment["amount"]),income)
@@ -605,7 +605,7 @@ func _process_player(delta: float) -> void:
 	# Player travel is exclusively manual. Guides and terrain taps only mark.
 	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
 	if shop_panel.visible: world_motion = Vector3.ZERO
-	var velocity := world_motion * player_speed * (1.50 if boost_active else 1.0)
+	var velocity := world_motion * player_speed * town.player_speed_factor() * (1.50 if boost_active else 1.0)
 	if velocity.length()>.05:
 		player.position=world.navigation.slide(player.position,velocity*delta)
 		if player.has_meta("route_goal"): player.remove_meta("route_goal")
@@ -619,6 +619,9 @@ func _process_player(delta: float) -> void:
 			var resource := world.harvest(crop)
 			if resource!="":
 				stash[resource]+=1
+				if town.bonus_harvest() and _total_bag()<max_capacity:
+					stash[resource]+=1
+					_float_activity(crop["node"].global_position,"¡DOBLE COSECHA!",Color("#58a67e"))
 				player.set_carry(_total_bag())
 				player.act("harvest")
 				harvest_wait=.23
@@ -708,9 +711,9 @@ func _spawn_pickup_fx(at: Vector3, kind: String) -> void:
 
 func _update_camera(delta: float) -> void:
 	if town!=null and town.in_build_mode:
-		var city_center:=Vector3(-2,0,1)
+		var city_center: Vector3=town.camera_center
 		camera_follow=camera_follow.lerp(city_center,1.0-exp(-4*delta))
-		var overview:=camera_follow+Vector3(0,38,34)
+		var overview:=camera_follow+Vector3(0,30,29)
 		camera.position=camera.position.lerp(overview,1.0-exp(-5*delta))
 		camera.look_at(camera_follow,Vector3.UP)
 		return
@@ -759,6 +762,12 @@ func _cash_sound() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if town!=null and town.in_build_mode:
+		if event is InputEventScreenDrag:
+			town.pan_camera(event.relative)
+			return
+		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			town.pan_camera(event.relative)
+			return
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:_toggle_build_mode()
 		elif event is InputEventScreenTouch and event.pressed:_choose_plot(event.position)
 		elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:_choose_plot(event.position)
@@ -796,8 +805,8 @@ func _set_tap_goal(screen_position: Vector2) -> void:
 	var t := -origin.y / ray.y
 	if t < 0 or t > 150:return
 	var destination := origin + ray*t
-	destination.x = clampf(destination.x,-23,23)
-	destination.z = clampf(destination.z,-23,23)
+	destination.x = clampf(destination.x,-34,34)
+	destination.z = clampf(destination.z,-34,34)
 	_set_world_goal(destination)
 
 func _set_world_goal(destination: Vector3) -> void:

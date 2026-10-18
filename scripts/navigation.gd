@@ -3,26 +3,42 @@ extends RefCounted
 # One flat navigation map serves tap movement, helpers and shoppers.
 # Geometry is registered by the world, so the visuals and routes stay in sync.
 const CELL_SIZE := 0.5
-const LIMIT := 23.0
+const LIMIT := 34.0
 var grid := AStarGrid2D.new()
 var obstacles: Array[Rect2] = []
 var revision := 0
+var grid_ready := false
 
 func add_obstacle(bounds: Rect2) -> void:
 	obstacles.append(bounds)
+	if not grid_ready:return
+	revision+=1
+	# Dynamic construction updates only occupied and adjacent cells.
+	# Rebuilding the entire 137x137 map for a small new building made
+	# late-game construction visibly stall on mobile hardware.
+	var from_x:=floori((bounds.position.x-.28)/CELL_SIZE)
+	var to_x:=ceili((bounds.end.x+.28)/CELL_SIZE)
+	var from_z:=floori((bounds.position.y-.28)/CELL_SIZE)
+	var to_z:=ceili((bounds.end.y+.28)/CELL_SIZE)
+	for cx in range(from_x,to_x+1):
+		for cz in range(from_z,to_z+1):
+			var id:=Vector2i(cx,cz)
+			if grid.is_in_boundsv(id):
+				grid.set_point_solid(id,not is_walkable(Vector3(cx*CELL_SIZE,0,cz*CELL_SIZE),.26))
 
 func build() -> void:
 	revision += 1
-	grid.region = Rect2i(-46, -46, 93, 93)
+	grid.region = Rect2i(-68, -68, 137, 137)
 	grid.cell_size = Vector2.ONE * CELL_SIZE
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	grid.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	grid.update()
-	for x in range(-46, 47):
-		for z in range(-46, 47):
+	for x in range(-68, 69):
+		for z in range(-68, 69):
 			var at := Vector3(x * CELL_SIZE, 0, z * CELL_SIZE)
 			grid.set_point_solid(Vector2i(x, z), not is_walkable(at, 0.26))
+	grid_ready=true
 
 func is_walkable(at: Vector3, margin: float = 0.0) -> bool:
 	if absf(at.x) > LIMIT or absf(at.z) > LIMIT:
@@ -38,8 +54,8 @@ func nearest_free(at: Vector3) -> Vector3:
 		return clamped
 	var best := Vector3.ZERO
 	var distance := INF
-	for x in range(-46, 47):
-		for z in range(-46, 47):
+	for x in range(-68, 69):
+		for z in range(-68, 69):
 			var cell := Vector2i(x, z)
 			if grid.is_point_solid(cell):
 				continue
