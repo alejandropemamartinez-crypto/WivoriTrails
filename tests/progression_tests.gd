@@ -85,9 +85,10 @@ func run_tests() -> void:
 	game.run.guard_cooldown=9.0; game._save_progress(); await stop(); await start()
 	check(is_equal_approx(game.run.guard_cooldown,9) and game.run.guard_level==1,"Guard recovery and defense purchases survive reload")
 	game.player.position=game.run.CART; game.stash["apple"]=10; wallet=game.coins
-	check(game.run.deliver_contract()==8 and game.coins==wallet+224 and game.stash["apple"]==2,"Premium contracts consume only the requested quota and pay exactly twice the sale value")
+	var pending_before: int=game.cash.total_pending()
+	check(game.run.deliver_contract()==8 and game.coins==wallet and game.cash.total_pending()==pending_before+224 and game.stash["apple"]==2,"Premium contracts pay collectible money into cashier rather than wallet")
 	wallet=game.coins
-	check(game.run.deliver_contract()==0 and game.coins==wallet,"A fulfilled premium contract cannot pay again")
+	check(game.run.deliver_contract()==0 and game.coins==wallet and game.cash.total_pending()==pending_before+224,"A fulfilled premium contract cannot pay again")
 	game._save_progress(); await stop(); await start()
 	check(game.run.level==4 and game.run.contract_done==8 and game.stash["apple"]==2,"The level and premium order progress persist alongside inventory")
 	for old in game.run.raiders:old["actor"].queue_free()
