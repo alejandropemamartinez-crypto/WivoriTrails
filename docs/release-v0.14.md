@@ -1,4 +1,4 @@
-Wivori Trails 0.14.0 — versión de prueba para Android ARM64.
+Wivori Trails 0.14.1 — versión de prueba para Android ARM64.
 
 - Scottie conserva su nombre. Hocico más proporcionado, barba integrada y pelaje
   gris con variación irregular suave en lugar de franjas que parecían madera.
@@ -31,3 +31,6 @@ esculpido y los accesorios se utiliza art/source/export_authored.py. El generado
 anterior build_assets.py se conserva para el resto del arte y la historia del proyecto.
 Esta entrega continúa siendo una versión de prueba, sin afirmar equivalencia de
 acabado comercial con Township.
+
+Corrección final de visibilidad: el despacho queda junto al camino principal,
+con el jugador y la mercancía a la vista durante la entrega.
