@@ -25,17 +25,18 @@ func recommended() -> String:
 	return kind
 
 func _next_investment() -> String:
-	if g.worker_count==0:return "helper"
-	if g.checkout_level==0 and g._waiting_count()>=4 and g._total_stock()>0:return "checkout"
-	if g.worker_count<2:return "helper"
-	if g.checkout_level==0:return "checkout"
-	if not g.orchard_owned:return "expand"
-	if not g.pier_owned:return "pier"
+	if g.worker_count<mini(2,g.run.level):return "helper"
+	if g.run.level>=3 and g.run.lock_level==0:return "lock"
+	if g.run.level>=4 and not g.orchard_owned:return "expand"
+	if g.run.level>=5 and not g.pier_owned:return "pier"
+	if g.run.level>=4 and g.run.guard_level==0:return "guard"
+	if g.run.level>=3 and g.run.alarm_level==0:return "alarm"
+	if g.run.level<=2:return "checkout" if g.run.level==2 and g.checkout_level==0 else ""
 	var choice := ""
 	var cheapest := 2000000001
-	for kind in ["helper","checkout","bag","speed"]:
+	for kind in ["helper","checkout","bag","speed","lock","alarm","guard"]:
 		var upgrade: Dictionary=g._upgrade(kind)
-		if not upgrade["done"] and upgrade["price"]<cheapest:
+		if not upgrade["done"] and not upgrade["locked"] and upgrade["price"]<cheapest:
 			choice=kind; cheapest=upgrade["price"]
 	return choice
 
@@ -54,44 +55,51 @@ func tick(delta: float) -> void:
 	g._notice("YA PODÉS: %s\nSeguí las flechas hasta la mejora." % upgrade["name"],3.3)
 
 func alert() -> Dictionary:
+	var security: Dictionary=g.run.alert()
+	if not security.is_empty():return security
 	var waiting: int=g._waiting_count()
 	if waiting==0:return {}
 	if g._total_stock()==0:
 		var loaded: bool=g._total_bag()>0
 		return {"id":"empty","title":"Puesto vacío · %d esperando" % waiting,
 			"detail":"Entregá tu mochila para que vuelvan las ventas." if loaded else "Recolectá productos y abastecé el círculo dorado.",
-			"button":"REPONER","target":Vector3(4,0,2.5) if loaded else g._harvest_target(),"color":Color("#c46c39")}
+			"button":"SEÑALAR","target":Vector3(4,0,2.5) if loaded else g._harvest_target(),"color":Color("#c46c39")}
 	if waiting>=4:
 		var upgrade: Dictionary=g._upgrade("checkout")
 		return {"id":"queue","title":"%s · %d/6 clientes" % ["Fila llena" if waiting>=6 else "Se está formando fila",waiting],
 			"detail":"Caja rápida atiende más seguido. Cuesta %d monedas." % upgrade["price"] if not upgrade["done"] else "La caja está al máximo. Mantené el puesto abastecido.",
-			"button":"VER CAJA" if not upgrade["done"] else "VER FILA",
+			"button":"SEÑALAR",
 			"target":upgrade["target"] if not upgrade["done"] else Vector3(8.3,0,.6),"color":Color("#b95a52")}
 	return {}
 
 func objective() -> Dictionary:
+	var level_tag: String="NIVEL %02d · %s" % [g.run.level,g.run.title()]
+	var data: Dictionary={"tag":level_tag,"title":"Seguí las flechas con el joystick","detail":g.run.summary(),"goal":1.0,"value":g.run.progress(),"button":"SEÑALAR"}
+	if g.run.complete():
+		data.merge({"title":"¡Nivel superado!","detail":"Premio: +%d monedas. Se abre una nueva meta." % g.run.reward(),"button":"CONTINUAR","upgrade":"level","ready":true},true)
+		return data
+	var security: Dictionary=g.run.alert()
+	if security.get("id","")=="raid":
+		data["title"]=security["title"]; data["target"]=security["target"]
+		return data
 	var bag: int=g._total_bag()
-	if bag>=g.max_capacity or (g.worker_count==0 and bag>=6):
-		return {"tag":"PASO 2 · ABASTECÉ","title":"Llevá la cosecha al puesto","detail":"Entrá al círculo dorado. Se entrega sola.","goal":g.max_capacity,"value":bag,"button":"ENTREGAR","target":Vector3(4,0,2.5),"icon":"bag"}
-	var kind := recommended()
-	var upgrade: Dictionary=g._upgrade(kind) if not kind.is_empty() else {}
-	if not upgrade.is_empty() and g.coins>=upgrade["price"]:
-		var nearby: bool=g.player.position.distance_to(upgrade["target"])<=g.PAD_RADIUS
-		return {"tag":"YA TE ALCANZA · %d MONEDAS" % upgrade["price"],"title":upgrade["name"],"detail":upgrade["benefit"],
-			"goal":upgrade["price"],"value":g.coins,"button":"COMPRAR" if nearby else "IR AHÍ","target":upgrade["target"],"upgrade":kind,"ready":true,"icon":kind}
-	if g.worker_count==0:
-		if bag>0 and g.delivered>0:
-			return {"tag":"PASO 2 · VENDÉ PARA AUTOMATIZAR","title":"Reponé y ganá tus monedas","detail":"Primer ayudante: %d / %d monedas." % [g.coins,g.helper_cost],"goal":g.helper_cost,"value":g.coins,"button":"ENTREGAR","target":Vector3(4,0,2.5),"icon":"bag"}
-		return {"tag":"PASO 1 · RECOLECTÁ" if g.delivered==0 else "PRÓXIMO: AYUDANTE AUTOMÁTICO",
-			"title":"Acercate a los tomates" if g.delivered==0 else "Cosechá mientras el puesto vende",
-			"detail":"Seguí las flechas. Se recogen solos: %d/6." % mini(bag,6) if g.delivered==0 else "Te faltan %d monedas para contratar ayuda." % maxi(0,g.helper_cost-g.coins),
-			"goal":6 if g.delivered==0 else g.helper_cost,"value":bag if g.delivered==0 else g.coins,
-			"button":"GUIAR","target":g._harvest_target(),"icon":"arrow"}
-	if upgrade.is_empty():
-		return {"tag":"NIVEL %02d · MERCADO COMPLETO" % g.quest_level,"title":"Seguí vendiendo","detail":"Cada 20 ventas recibís 70 monedas extra.","goal":20,"value":g.sold%20,"button":"MEJORAS","upgrade":"shop","icon":"coin"}
-	var work_target: Vector3=Vector3(4,0,2.5) if bag>0 else g._harvest_target()
-	return {"tag":"PRÓXIMO: %s · %d" % [upgrade["short"],upgrade["price"]],
-		"title":"Reponé el puesto" if bag>0 else "Tu equipo ya está trabajando",
-		"detail":"%d / %d monedas · %s" % [g.coins,upgrade["price"],upgrade["benefit"]],
-		"goal":upgrade["price"],"value":g.coins,"button":"ENTREGAR" if bag>0 else "COSECHAR",
-		"target":work_target,"icon":"bag" if bag>0 else "arrow"}
+	if g.run.level>=4 and g.run.contract_done<g.run.contract_goal() and g.stash[g.run.contract_kind()]>0:
+		data["title"]="Entregá el pedido premium ×2"; data["target"]=g.run.CART
+		return data
+	if bag>=g.max_capacity or g.worker_count==0 and bag>=6:
+		data["title"]="Llevá tu cosecha al puesto"; data["target"]=Vector3(4,0,2.5)
+		return data
+	var kind:=recommended()
+	if not kind.is_empty():
+		var upgrade: Dictionary=g._upgrade(kind)
+		if g.coins>=upgrade["price"]:
+			var nearby: bool=g.player.position.distance_to(upgrade["target"])<=g.PAD_RADIUS
+			data.merge({"title":"%s · %d" % [upgrade["name"],upgrade["price"]],"detail":g.run.summary(),"target":upgrade["target"],"upgrade":kind,"ready":true,"button":"COMPRAR" if nearby else "SEÑALAR"},true)
+			return data
+	if g.run.level>=4 and g.run.contract_done<g.run.contract_goal():
+		if not g.orchard_owned and g.run.contract_kind()=="apple":data["title"]="Abrí el huerto para tu pedido"; data["target"]=g.UPGRADE_POS["expand"]
+		else:data["title"]="Pedido: recolectá "+g.CROP_NAMES[g.run.contract_kind()]; data["target"]=g._harvest_kind(g.run.contract_kind())
+		return data
+	data["title"]="Llevá tu cosecha al puesto" if bag>0 and g.delivered>0 else "Cosechá con el joystick"
+	data["target"]=Vector3(4,0,2.5) if bag>0 and g.delivered>0 else g._harvest_target()
+	return data

@@ -55,11 +55,8 @@ func run() -> void:
 
 	game.player.position = Vector3(4, 0, 4)
 	game._set_world_goal(Vector3(4, 0, -6))
-	var stayed_free := true
-	for i in range(200):
-		game._process_player(.1)
-		stayed_free = stayed_free and game.world.navigation.is_walkable(game.player.position)
-	check(stayed_free and not game.has_tap_destination and game.player.position.distance_to(Vector3(4,0,-6)) < .1, "Tap navigation reaches the far side of the stall without entering it")
+	for i in range(100):game._process_player(.1)
+	check(game.player.position.distance_to(Vector3(4,0,4))<.01 and not game.has_tap_destination, "A terrain marker cannot start automatic player travel")
 	game.player.position = Vector3(4, 0, 4)
 	game.input_stick.axis = Vector2.UP
 	game._process_player(4.0)

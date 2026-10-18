@@ -1,8 +1,9 @@
 extends Node3D
 class_name MarketActor
 
-# 3D actor: separate moving limbs, eyes, hairstyle, backpack and props.
-# No pasted picture / flat sprite: every visible part is a 3D mesh.
+# All face detail is painted by the head material: no detached eyes, nose,
+# whiskers or teeth. Unit-sized meshes make attachment dimensions explicit.
+const FacePaint=preload("res://scripts/face_paint.gdshader")
 var character_role := "player"
 var species := "human"
 var outfit := Color("#348eb0")
@@ -10,150 +11,145 @@ var walk_amount := 0.0
 var carrying := 0
 var anim_t := 0.0
 var body_root: Node3D
+var head_root: Node3D
+var head_mesh: MeshInstance3D
 var left_arm: Node3D
 var right_arm: Node3D
 var left_leg: Node3D
 var right_leg: Node3D
+var left_foot: Node3D
+var right_foot: Node3D
 var goods_root: Node3D
-var body_y := 0.0
 var facing := 0.0
+var last_position := Vector3.ZERO
+var action := ""
+var action_left := 0.0
+var action_duration := .55
+var ears: Array[Node3D]=[]
+var ground_sampler: Callable
+var ground_offset:=0.0
 static var meshes := {}
 static var materials := {}
 
-func setup(role: String, color: Color, species_: String = "human") -> void:
-	character_role = role
-	outfit = color
-	species = species_
+func setup(role: String, color: Color, species_: String="human") -> void:
+	character_role=role; outfit=color; species=species_
 
-func _solid(parent: Node3D, shape: String, tint: Color, pos: Vector3, size: Vector3) -> MeshInstance3D:
-	var m := MeshInstance3D.new()
+func _solid(parent: Node3D, shape: String, tint: Color, pos: Vector3, dimensions: Vector3) -> MeshInstance3D:
 	if not meshes.has(shape):
-		var mesh: PrimitiveMesh
+		var model: PrimitiveMesh
 		match shape:
 			"sphere":
-				var sphere := SphereMesh.new(); sphere.radial_segments=12; sphere.rings=7; mesh=sphere
-			"capsule":
-				var capsule := CapsuleMesh.new(); capsule.radial_segments=12; capsule.rings=6; mesh=capsule
+				var sphere:=SphereMesh.new(); sphere.radius=.5; sphere.height=1; sphere.radial_segments=24; sphere.rings=14; model=sphere
 			"cylinder":
-				var cylinder := CylinderMesh.new(); cylinder.radial_segments=12; mesh=cylinder
+				var cylinder:=CylinderMesh.new(); cylinder.height=1; cylinder.radial_segments=20; model=cylinder
 			"cone":
-				var cone := CylinderMesh.new(); cone.top_radius=0; cone.bottom_radius=.5; cone.radial_segments=12; mesh=cone
+				var cone:=CylinderMesh.new(); cone.height=1; cone.top_radius=0; cone.radial_segments=12; model=cone
 			_:
-				mesh=BoxMesh.new()
-		meshes[shape]=mesh
-	m.mesh=meshes[shape]
-	var key := tint.to_html(true)
+				model=BoxMesh.new()
+		meshes[shape]=model
+	var key:=tint.to_html(true)
 	if not materials.has(key):
-		var mat := StandardMaterial3D.new(); mat.albedo_color=tint; mat.roughness=.83
-		materials[key]=mat
-	m.material_override=materials[key]
-	m.position = pos
-	m.scale = size
-	parent.add_child(m)
-	return m
+		var mat:=StandardMaterial3D.new(); mat.albedo_color=tint; mat.roughness=.87; materials[key]=mat
+	var item:=MeshInstance3D.new(); item.mesh=meshes[shape]; item.material_override=materials[key]
+	item.position=pos; item.scale=dimensions; parent.add_child(item)
+	return item
+
+func _pivot(at: Vector3, parent: Node3D) -> Node3D:
+	var node:=Node3D.new(); node.position=at; parent.add_child(node); return node
 
 func _ready() -> void:
-	body_root = Node3D.new()
-	body_root.name = "AnimatedBody"
-	add_child(body_root)
-	var skin := Color("#f0b881")
-	var hair := Color("#472b23")
-	if species == "cat":skin=Color("#d8a979")
-	elif species == "pig":skin=Color("#efb6a9")
-	elif species == "rabbit":skin=Color("#f2dec2")
-	elif species == "fox":skin=Color("#e9a25a")
-	elif species == "dog":skin=Color("#d9ad78")
-	if character_role == "helper":
-		hair = Color("#5b3324")
-	# Tunic, trousers, sleeves and neck. Face is actual 3D geometry.
-	_solid(body_root, "capsule", outfit, Vector3(0, 1.06, 0), Vector3(.65, .77, .43))
-	_solid(body_root, "sphere", skin, Vector3(0, 1.82, .06), Vector3(.69, .68, .65))
-	if species == "human":
-		_solid(body_root, "sphere", hair, Vector3(0, 2.11, -.02), Vector3(.72, .32, .68))
+	body_root=_pivot(Vector3.ZERO,self)
+	var skin: Color={"human":Color("#f0b988"),"cat":Color("#dda779"),"rabbit":Color("#ede0c7"),"pig":Color("#eeaea5"),"fox":Color("#e9a15f"),"dog":Color("#c7a37c"),"raccoon":Color("#a9b5ba")}.get(species,Color("#e1c6a0"))
+	_solid(body_root,"sphere",outfit,Vector3(0,.89,0),Vector3(.76,.85,.58))
+	_solid(body_root,"sphere",outfit.lightened(.13),Vector3(0,1.13,.18),Vector3(.54,.30,.32))
+	_solid(body_root,"box",Color("#e9d5a4"),Vector3(0,.68,.27),Vector3(.56,.10,.06))
+	head_root=_pivot(Vector3(0,1.66,.01),body_root)
+	head_mesh=_solid(head_root,"sphere",skin,Vector3.ZERO,Vector3(1.06,.96,.91))
+	head_mesh.name="Cabeza con cara pintada"
+	var face:=ShaderMaterial.new(); face.shader=FacePaint; face.set_shader_parameter("skin",skin)
+	face.set_shader_parameter("animal",species!="human"); face.set_shader_parameter("masked",character_role=="thief")
+	face.set_shader_parameter("phase",float(get_instance_id()%19))
+	head_mesh.material_override=face
+	if species=="rabbit":
+		for x in [-.25,.25]:
+			var ear:=_pivot(Vector3(x,.32,0),head_root); ears.append(ear)
+			_solid(ear,"sphere",skin,Vector3(0,.26,0),Vector3(.25,.83,.23))
+			_solid(ear,"sphere",Color("#dca6a0"),Vector3(0,.28,.094),Vector3(.12,.55,.037))
+	elif species in ["fox","cat","raccoon"]:
+		for x in [-.37,.37]:
+			var ear:=_pivot(Vector3(x,.30,-.025),head_root); ears.append(ear)
+			_solid(ear,"cone",skin,Vector3(0,.10,0),Vector3(.37,.48,.32))
+	elif species=="dog":
+		for x in [-.47,.47]:
+			var ear:=_pivot(Vector3(x,.12,-.03),head_root); ears.append(ear)
+			_solid(ear,"sphere",skin.darkened(.25),Vector3(0,-.12,0),Vector3(.24,.57,.28))
+	elif species=="pig":
+		for x in [-.43,.43]:_solid(head_root,"sphere",skin,Vector3(x,.28,0),Vector3(.25,.34,.24))
 	else:
-		# Distinct species, modelled in world-space; not flat sprite faces.
-		match species:
-			"rabbit":
-				for x in [-.40,.40]:
-					_solid(body_root,"capsule",skin,Vector3(x,2.52,-.04),Vector3(.26,.67,.20))
-					_solid(body_root,"capsule",Color("#de9a9a"),Vector3(x,2.56,.15),Vector3(.15,.43,.07))
-			"cat","fox":
-				for x in [-.44,.44]:
-					_solid(body_root,"cone",skin,Vector3(x,2.34,-.02),Vector3(.62,.69,.31))
-					_solid(body_root,"sphere",Color("#df9987"),Vector3(x,2.30,.20),Vector3(.19,.19,.055))
-			"pig":
-				for x in [-.61,.61]:
-					_solid(body_root,"sphere",skin.darkened(.08),Vector3(x,2.04,.03),Vector3(.30,.35,.16))
-			"dog":
-				for x in [-.64,.64]:
-						_solid(body_root,"capsule",Color("#96683d"),Vector3(x,1.95,-.05),Vector3(.22,.47,.17))
-		_solid(body_root,"sphere",skin.lightened(.12),Vector3(0,1.62,.60),Vector3(.35,.23,.24))
-		if species == "pig":
-			_solid(body_root,"sphere",Color("#e89396"),Vector3(0,1.67,.77),Vector3(.38,.24,.19))
-			for x in [-.13,.13]:_solid(body_root,"sphere",Color("#b46c6d"),Vector3(x,1.69,.934),Vector3(.067,.08,.035))
-		else:
-			_solid(body_root,"sphere",Color("#4f3c39"),Vector3(0,1.72,.82),Vector3(.13,.11,.10))
-		if species == "cat":
-			for x in [-.36,.36]:
-				for y in [1.65,1.55]:
-					_solid(body_root,"cylinder",Color("#fff2df"),Vector3(x,y,.68),Vector3(.33,.012,.012))
-		_solid(body_root,"sphere",skin.darkened(.07),Vector3(0,1.0,-.69),Vector3(.19,.36,.53))
-	_solid(body_root, "sphere", Color("#fff9ef"), Vector3(-.19, 1.85, .606), Vector3(.18,.19,.09))
-	_solid(body_root, "sphere", Color("#fff9ef"), Vector3(.19, 1.85, .606), Vector3(.18,.19,.09))
-	_solid(body_root, "sphere", Color("#2d323d"), Vector3(-.18,1.86,.677), Vector3(.076,.10,.045))
-	_solid(body_root, "sphere", Color("#2d323d"), Vector3(.18,1.86,.677), Vector3(.076,.10,.045))
-	_solid(body_root, "sphere", Color("#cd8a6f"), Vector3(0,1.66,.69), Vector3(.14,.08,.07))
-	_solid(body_root, "sphere", skin, Vector3(-.68,1.82,0), Vector3(.14,.20,.15))
-	_solid(body_root, "sphere", skin, Vector3(.68,1.82,0), Vector3(.14,.20,.15))
-	# Clothing details make the avatar recognisable from a top-down camera.
-	_solid(body_root, "box", Color("#fff4db"), Vector3(0,1.24,.40), Vector3(.15,.41,.04))
-	_solid(body_root, "sphere", Color("#ffd36f"), Vector3(0,1.47,.44), Vector3(.11,.10,.04))
-	# Soft brimmed hat and belt for lead character.
-	if character_role != "customer" or character_role == "vendor":
-		_solid(body_root, "cylinder", Color("#e7b968"), Vector3(0,2.29,0), Vector3(.93,.075,.87))
-		_solid(body_root, "cylinder", Color("#d8a253"), Vector3(0,2.48,0), Vector3(.55,.23,.56))
-		_solid(body_root, "cylinder", Color("#70492e"), Vector3(0,2.33,0), Vector3(.58,.05,.59))
-	left_arm = Node3D.new(); left_arm.position = Vector3(-.43,1.41,0); body_root.add_child(left_arm)
-	right_arm = Node3D.new(); right_arm.position = Vector3(.43,1.41,0); body_root.add_child(right_arm)
-	_solid(left_arm,"capsule",outfit.darkened(.08), Vector3(-.10,-.32,0),Vector3(.22,.47,.25))
-	_solid(right_arm,"capsule",outfit.darkened(.08), Vector3(.10,-.32,0),Vector3(.22,.47,.25))
-	_solid(left_arm,"sphere",skin,Vector3(-.10,-.57,.01),Vector3(.22,.22,.22))
-	_solid(right_arm,"sphere",skin,Vector3(.10,-.57,.01),Vector3(.22,.22,.22))
-	left_leg = Node3D.new(); left_leg.position = Vector3(-.21,.70,0); body_root.add_child(left_leg)
-	right_leg = Node3D.new(); right_leg.position = Vector3(.21,.70,0); body_root.add_child(right_leg)
-	_solid(left_leg,"capsule",Color("#364960"),Vector3(0,-.27,0),Vector3(.27,.42,.28))
-	_solid(right_leg,"capsule",Color("#364960"),Vector3(0,-.27,0),Vector3(.27,.42,.28))
-	_solid(left_leg,"sphere",Color("#503a2c"),Vector3(0,-.57,.13),Vector3(.32,.18,.42))
-	_solid(right_leg,"sphere",Color("#503a2c"),Vector3(0,-.57,.13),Vector3(.32,.18,.42))
-	# Backpack is physically attached to character and visibly fills up.
-	_solid(body_root,"box",Color("#875c32"),Vector3(0,1.14,-.49),Vector3(.59,.64,.27))
-	_solid(body_root,"box",Color("#d7af66"),Vector3(0,1.36,-.645),Vector3(.52,.065,.02))
-	goods_root = Node3D.new(); goods_root.position = Vector3(0,1.53,-.50); body_root.add_child(goods_root)
-	for i in range(5):
-		var x := (float(i % 3) - 1.0) * .19
-		var z := -float(i / 3) * .18
-		_solid(goods_root,"sphere", Color("#d94336") if i % 2 == 0 else Color("#e8a03a"),Vector3(x,float(i%2)*.12,z),Vector3(.20,.20,.20))
+		_solid(head_root,"sphere",Color("#49382f"),Vector3(0,.29,-.09),Vector3(1.04,.41,.85))
+		for x in [-.49,.49]:_solid(head_root,"sphere",skin,Vector3(x,0,0),Vector3(.18,.24,.18))
+	if character_role in ["player","helper","guard"]:
+		var cap: Color=Color("#258a86") if character_role=="player" else (Color("#e6ae50") if character_role=="helper" else Color("#526e9d"))
+		_solid(head_root,"cylinder",cap,Vector3(0,.43,.015),Vector3(1.13,.075,1.02))
+		_solid(head_root,"sphere",cap,Vector3(0,.47,-.05),Vector3(.92,.41,.85))
+		_solid(head_root,"box",Color("#fff1cc"),Vector3(0,.47,.37),Vector3(.20,.11,.035))
+	left_arm=_pivot(Vector3(-.34,1.12,0),body_root); right_arm=_pivot(Vector3(.34,1.12,0),body_root)
+	for arm in [left_arm,right_arm]:
+		_solid(arm,"sphere",outfit.darkened(.06),Vector3(0,-.15,0),Vector3(.28,.44,.29))
+		_solid(arm,"sphere",skin,Vector3(0,-.36,.02),Vector3(.26,.26,.26))
+	left_leg=_pivot(Vector3(-.19,.60,0),body_root); right_leg=_pivot(Vector3(.19,.60,0),body_root)
+	for leg in [left_leg,right_leg]:
+		_solid(leg,"sphere",Color("#3d5069"),Vector3(0,-.17,0),Vector3(.30,.46,.32))
+		var foot:=_pivot(Vector3(0,-.47,.10),leg)
+		_solid(foot,"sphere",Color("#455357"),Vector3.ZERO,Vector3(.36,.20,.49))
+		if leg==left_leg:left_foot=foot
+		else:right_foot=foot
+	if character_role in ["player","helper","thief"]:
+		_solid(body_root,"sphere",Color("#ba8b58") if character_role!="thief" else Color("#786f88"),Vector3(0,1.03,-.35),Vector3(.58,.65,.39))
+	goods_root=_pivot(Vector3(0,1.37,-.36),body_root)
+	for i in range(6):
+		_solid(goods_root,"sphere",[Color("#e78965"),Color("#e8bb5a"),Color("#9b83b6")][i%3],Vector3((i%2-.5)*.20,float(i/2)*.13,0),Vector3(.24,.24,.24))
 	set_carry(0)
+	last_position=position
 
 func set_carry(amount: int) -> void:
-	carrying = amount
-	if goods_root != null:
-		goods_root.visible = amount > 0
-		goods_root.scale = Vector3.ONE * (.6 + minf(float(amount), 10.0) * .05)
+	carrying=amount
+	if goods_root!=null:
+		goods_root.visible=amount>0
+		goods_root.scale=Vector3.ONE*(.75+minf(amount,12)*.025)
+
+func act(kind: String) -> void:
+	action=kind; action_duration=.32 if kind=="harvest" else .55; action_left=action_duration
 
 func walk_to(direction: Vector3, speed: float) -> void:
-	walk_amount = minf(speed / 4.7, 1.0)
-	if direction.length_squared() > .0001:
-		facing = atan2(direction.x, direction.z)
+	walk_amount=minf(speed/5,1)
+	if direction.length_squared()>.0001:facing=atan2(direction.x,direction.z)
 
 func _process(delta: float) -> void:
-	rotation.y=lerp_angle(rotation.y,facing,1.0-exp(-20.0*delta))
-	anim_t += delta * (3.0 + 11.0 * walk_amount)
-	var step := sin(anim_t) * walk_amount
-	left_leg.rotation.x = step * .60
-	right_leg.rotation.x = -step * .60
-	left_arm.rotation.x = -step * .43
-	right_arm.rotation.x = step * .43
-	body_root.position.y = absf(sin(anim_t)) * walk_amount * .075
-	body_root.rotation.z = sin(anim_t * .5) * walk_amount * .035
-	walk_amount = move_toward(walk_amount, 0.0, delta * 3.0)
+	var distance:=position.distance_to(last_position); last_position=position
+	var moving:=minf(distance/maxf(delta,.001)/5,1) if distance<3 else 0.0
+	walk_amount=lerpf(walk_amount,moving,1-exp(-14*delta))
+	rotation.y=lerp_angle(rotation.y,facing,1-exp(-18*delta))
+	anim_t+=distance*3.8 if distance<3 else 0
+	var stride:=sin(anim_t)*walk_amount
+	left_leg.rotation.x=stride*.52; right_leg.rotation.x=-stride*.52
+	var bob:=absf(sin(anim_t))*walk_amount*.04
+	left_leg.position.y=.13+.47*cos(left_leg.rotation.x)+.10*sin(left_leg.rotation.x)+maxf(0,-cos(anim_t))*.13*walk_amount-bob
+	right_leg.position.y=.13+.47*cos(right_leg.rotation.x)+.10*sin(right_leg.rotation.x)+maxf(0,cos(anim_t))*.13*walk_amount-bob
+	left_foot.rotation.x=-left_leg.rotation.x; right_foot.rotation.x=-right_leg.rotation.x
+	var carry_pose: float=-.44 if carrying>0 else 0.0
+	left_arm.rotation.x=-stride*.54+carry_pose; right_arm.rotation.x=stride*.54+carry_pose
+	var ground_y: float=ground_sampler.call(position) if ground_sampler.is_valid() else .03
+	ground_offset=lerpf(ground_offset,ground_y-.03,1-exp(-20*delta))
+	body_root.position.y=ground_offset+bob+sin(Time.get_ticks_msec()*.002)*.009
+	body_root.rotation.z=stride*.035
+	body_root.rotation.x=walk_amount*.045
+	head_root.rotation.x=-walk_amount*.035
+	for i in range(ears.size()):ears[i].rotation.x=sin(anim_t-.5)*walk_amount*.10
+	if action_left>0:
+		action_left=maxf(0,action_left-delta)
+		var emphasis:=sin((1-action_left/action_duration)*PI)
+		left_arm.rotation.x-=emphasis*.8; right_arm.rotation.x-=emphasis*.8
+		if action=="harvest":body_root.rotation.x+=emphasis*.22
+		if action=="intercept":head_root.rotation.z=emphasis*.12
+	else:head_root.rotation.z=0

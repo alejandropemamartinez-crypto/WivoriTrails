@@ -32,6 +32,7 @@ var pad_title: Label
 var pad_detail: Label
 var pad_button: Button
 var wayfinder
+var intercept_button: Button
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
@@ -179,6 +180,12 @@ func build(game: Node3D) -> void:
 	g.shop_button.offset_top=-152; g.shop_button.offset_bottom=-68
 	g.shop_button.pressed.connect(func():g._toggle_shop())
 
+	intercept_button=button("AHUYENTAR",Color("#b55d50"),19); root.add_child(intercept_button)
+	intercept_button.anchor_left=1; intercept_button.anchor_right=1; intercept_button.anchor_top=1; intercept_button.anchor_bottom=1
+	intercept_button.offset_left=-286; intercept_button.offset_right=-24; intercept_button.offset_top=-330; intercept_button.offset_bottom=-254
+	intercept_button.pressed.connect(func():g._intercept())
+	intercept_button.visible=false
+
 	var footer := panel(Color(.98,.97,.90,.92)); root.add_child(footer)
 	footer.anchor_top=1; footer.anchor_bottom=1; footer.anchor_right=1
 	footer.offset_left=242; footer.offset_right=-24; footer.offset_top=-55; footer.offset_bottom=-12
@@ -186,7 +193,7 @@ func build(game: Node3D) -> void:
 	footer_style.content_margin_left=10; footer_style.content_margin_right=10
 	footer_style.content_margin_top=4; footer_style.content_margin_bottom=4
 	footer.add_theme_stylebox_override("panel",footer_style)
-	g.hint_label=label("Movete o tocá el camino",14); g.hint_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	g.hint_label=label("Vos movés al personaje con el joystick",14); g.hint_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	footer.add_child(g.hint_label)
 
 	g.event_label=label("",23,PAPER); root.add_child(g.event_label)
@@ -265,8 +272,9 @@ func build_shop() -> void:
 	scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL; column.add_child(scroll)
 	var upgrades := VBoxContainer.new(); upgrades.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	upgrades.add_theme_constant_override("separation",12); scroll.add_child(upgrades)
-	var names := {"helper":"Ayudante automático","checkout":"Caja rápida","speed":"Zapatillas turbo","bag":"Mochila más grande","expand":"Huerto de manzanas","pier":"Muelle de exportación"}
-	for key in ["helper","checkout","bag","speed","expand","pier"]:
+	var names := {}
+	for kind in g.UPGRADE_POS:names[kind]=g._upgrade(kind)["name"]
+	for key in ["helper","checkout","lock","alarm","guard","bag","speed","expand","pier"]:
 		var card := panel(Color("#eef2e6")); upgrades.add_child(card)
 		card.add_theme_stylebox_override("panel",style(Color("#eef2e6"),16))
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",14); card.add_child(row)
@@ -290,8 +298,8 @@ func refresh() -> void:
 	team_label.text="Equipo  %d" % g.worker_count
 	queue_label.text="Fila  %d/6" % g._waiting_count()
 	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
-	level_label.text="%02d" % g.quest_level
-	level_progress.value=g.sold%20
+	level_label.text="%02d" % g.run.level
+	level_progress.max_value=1.0; level_progress.value=g.run.progress()
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	g.mission_label.text=objective["title"]
@@ -311,11 +319,18 @@ func refresh() -> void:
 		pad_title.text=upgrade["name"]
 		pad_detail.text=upgrade["benefit"]
 		pad_button.text="COMPRAR\n%d monedas" % upgrade["price"]
-		pad_button.disabled=g.coins<upgrade["price"]
+		pad_button.disabled=g.coins<upgrade["price"] or upgrade["locked"]
 		if pad_button.disabled:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
-	g.event_label.offset_top=-542 if pad_panel.visible else -337
+	var raiding: bool=not g.run.threat().is_empty()
+	intercept_button.visible=raiding and not g.shop_panel.visible
+	intercept_button.disabled=not g.run.can_intercept()
+	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"
+	intercept_button.add_theme_font_size_override("font_size",19 if not intercept_button.disabled else 15)
+	pad_panel.offset_top=-550 if raiding else -458
+	pad_panel.offset_bottom=-408 if raiding else -316
+	g.event_label.offset_top=(-634 if raiding else -542) if pad_panel.visible else (-420 if raiding else -337)
 	g.event_label.offset_bottom=g.event_label.offset_top+72
-	wayfinder.bottom_margin=500 if pad_panel.visible else 290
+	wayfinder.bottom_margin=(590 if raiding else 500) if pad_panel.visible else (380 if raiding else 290)
 	wayfinder.top_margin=438 if alert_panel.visible else 332
 	g.shipping_label.get_parent().visible=g.pier_owned
 	position_top(g.shipping_label.get_parent(),438 if alert_panel.visible else 336,54)
@@ -327,10 +342,10 @@ func refresh() -> void:
 	var affordable := 0
 	for key in g.UPGRADE_POS:
 		var upgrade: Dictionary=g._upgrade(key)
-		g.store_buttons[key].disabled=upgrade["done"] or g.coins<upgrade["price"]
-		g.store_buttons[key].text="LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"])
+		g.store_buttons[key].disabled=upgrade["done"] or upgrade["locked"] or g.coins<upgrade["price"]
+		g.store_buttons[key].text=("NIVEL 4" if key=="guard" else "NIVEL 3") if upgrade["locked"] else ("LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"]))
 		shop_details[key].text=upgrade["benefit"]
-		if not upgrade["done"] and g.coins>=upgrade["price"]:affordable+=1
+		if not upgrade["done"] and not upgrade["locked"] and g.coins>=upgrade["price"]:affordable+=1
 	g.shop_button.text="MEJORAS  ·  %d" % affordable if affordable>0 else "MEJORAS"
 
 func _number(value: int) -> String:

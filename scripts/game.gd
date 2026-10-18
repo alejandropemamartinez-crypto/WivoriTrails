@@ -6,13 +6,15 @@ const HudScript = preload("res://scripts/hud.gd")
 const SaveStore = preload("res://scripts/save_store.gd")
 const DirectorScript = preload("res://scripts/market_director.gd")
 const TrailScript = preload("res://scripts/trail_guide.gd")
+const RunScript = preload("res://scripts/market_run.gd")
 const SAVE_PATH = "user://wivori_trails_save.json"
 const MAX_HELPERS := 12
 const BASE_SPEED := 6.8
 const MAX_SPEED := 14.3
 const PAD_RADIUS := 1.85
 const UPGRADE_POS = {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
-	"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12)}
+	"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),
+	"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
 const SHIPMENT_SIZE := 6
 const SHIPMENT_RESERVE := 3
 const SHIPMENT_DURATION := 30.0
@@ -77,6 +79,9 @@ var shipments_completed := 0
 var saved_helpers: Array = []
 var checkout_level := 0
 var director
+var run
+var manual_delivered := 0
+var marker_time := 0.0
 var trail
 var active_pad := ""
 var guide_override := {}
@@ -90,6 +95,7 @@ func _ready() -> void:
 	world.name = "Wivori Trails"
 	add_child(world)
 	player = ActorScript.new()
+	player.ground_sampler=Callable(world,"ground_height")
 	player.name = "Personaje controlable"
 	player.setup("player",Color("#398a9b"))
 	add_child(player)
@@ -97,6 +103,7 @@ func _ready() -> void:
 	world.shape(player,"cylinder",Vector3(0,.06,0),Vector3(1.05,.025,1.05),Color("#328c87"),"Tu personaje")
 	world.shape(player,"cylinder",Vector3(0,.08,0),Vector3(.78,.025,.78),Color("#d5eadb"))
 	cashier=ActorScript.new()
+	cashier.ground_sampler=Callable(world,"ground_height")
 	cashier.setup("vendor",Color("#b66242"),"dog")
 	cashier.name="Vendedor del mercado"
 	add_child(cashier)
@@ -106,6 +113,7 @@ func _ready() -> void:
 	_setup_destination_marker()
 	_setup_sounds()
 	director=DirectorScript.new(self)
+	run=RunScript.new(self)
 	_load_progress()
 	camera_follow=player.position
 	_update_camera(1.0)
@@ -197,6 +205,7 @@ func _total_stock() -> int:
 func _refresh_ui() -> void:
 	if hud == null: return
 	world.update_market_stock(counter)
+	world.update_security(run)
 	_update_active_pad()
 	var upgrades := {}
 	for kind in UPGRADE_POS:upgrades[kind]=_upgrade(kind)
@@ -211,10 +220,14 @@ func _upgrade(kind: String) -> Dictionary:
 		"bag":{"name":"Mochila más grande","short":"MOCHILA","price":bag_cost,"benefit":"Llevá %d productos por viaje." % mini(300,max_capacity+6),"done":max_capacity>=300},
 		"speed":{"name":"Zapatillas turbo","short":"VELOCIDAD","price":speed_cost,"benefit":"Más velocidad en todos tus viajes.","done":player_speed>=MAX_SPEED},
 		"expand":{"name":"Huerto de manzanas","short":"HUERTO","price":expand_cost,"benefit":"9 cultivos nuevos. Cada manzana vale 14.","done":orchard_owned},
-		"pier":{"name":"Muelle automático","short":"MUELLE","price":550,"benefit":"Exporta excedentes con 50% de ganancia extra.","done":pier_owned}}
+		"pier":{"name":"Muelle automático","short":"MUELLE","price":550,"benefit":"Exporta excedentes con 50% de ganancia extra.","done":pier_owned},
+		"lock":{"name":"Almacén seguro","short":"CERROJO","price":120+run.lock_level*130,"benefit":"Demora el robo: %d → %d segundos." % [4+run.lock_level*4,mini(16,8+run.lock_level*4)],"done":run.lock_level>=3},
+		"alarm":{"name":"Alarma de vigilancia","short":"ALARMA","price":160+run.alarm_level*140,"benefit":"Avisa antes y frena mapaches cerca del puesto.","done":run.alarm_level>=3},
+		"guard":{"name":"Guardia del mercado","short":"GUARDIA","price":260+run.guard_level*180,"benefit":"Patrulla e intercepta. Descansa entre intervenciones.","done":run.guard_level>=3}}
 	if not definitions.has(kind):return {}
 	var upgrade: Dictionary=definitions[kind]
 	upgrade["target"]=UPGRADE_POS[kind]
+	upgrade["locked"]=(kind in ["lock","alarm"] and run.level<3) or (kind=="guard" and run.level<4)
 	return upgrade
 
 func _harvest_target() -> Vector3:
@@ -234,7 +247,7 @@ func _update_active_pad() -> void:
 	if shop_panel!=null and shop_panel.visible:return
 	var closest := PAD_RADIUS
 	for kind in UPGRADE_POS:
-		if _upgrade(kind)["done"]:continue
+		if _upgrade(kind)["done"] or _upgrade(kind)["locked"]:continue
 		var distance: float=player.position.distance_to(UPGRADE_POS[kind])
 		if distance<closest:closest=distance; active_pad=kind
 
@@ -246,9 +259,8 @@ func _purchase_nearby() -> void:
 func _follow_alert() -> void:
 	var alert: Dictionary=director.alert()
 	if alert.is_empty():return
-	input_stick._clear(); boost_active=false
 	guide_override={"id":alert["id"],"target":alert["target"],"tag":"TU MERCADO NECESITA ATENCIÓN",
-		"title":alert["title"],"detail":alert["detail"],"goal":1,"value":1,"button":"GUIAR"}
+		"title":alert["title"],"detail":alert["detail"],"goal":1,"value":1,"button":"SEÑALAR"}
 	_set_world_goal(alert["target"])
 	_refresh_ui()
 
@@ -256,22 +268,32 @@ func _current_objective() -> Dictionary:
 	if not guide_override.is_empty():
 		var alert: Dictionary=director.alert()
 		if alert.get("id","")==guide_override["id"] and player.position.distance_to(guide_override["target"])>PAD_RADIUS:
+			if alert["id"]=="raid":guide_override["target"]=alert["target"]
 			return guide_override
 		guide_override={}
 	return director.objective()
 
 func _follow_objective() -> void:
-	input_stick._clear()
-	boost_active=false
 	var objective := _current_objective()
+	if objective.get("upgrade","")=="level":run.advance(); return
 	if objective.has("target"):
 		var kind: String=objective.get("upgrade","")
-		if not kind.is_empty() and player.position.distance_to(objective["target"])<=PAD_RADIUS:
-			_buy(kind)
-		else:
-			_set_world_goal(objective["target"])
-	else:
-		_toggle_shop()
+		if not kind.is_empty() and player.position.distance_to(objective["target"])<=PAD_RADIUS:_buy(kind)
+		else:_set_world_goal(objective["target"])
+	else:_toggle_shop()
+
+func _intercept() -> void:
+	run.intercept()
+	_refresh_ui()
+
+func _harvest_kind(kind: String) -> Vector3:
+	var target:=Vector3(-8,0,0)
+	var closest:=INF
+	for crop in world.crop_spots:
+		if crop["kind"]!=kind or not crop["enabled"]:continue
+		var d: float=player.position.distance_squared_to(crop["node"].global_position)+(0 if crop["ready"] else 100)
+		if d<closest:closest=d; target=crop["node"].global_position
+	return target
 
 func _toggle_camera_view() -> void:
 	camera_distance=1.0 if camera_distance>1.15 else 1.38
@@ -285,7 +307,7 @@ func _notice(message: String, time_: float = 1.45) -> void:
 
 func _buy(kind: String) -> void:
 	var upgrade := _upgrade(kind)
-	if upgrade.is_empty() or upgrade["done"]:return
+	if upgrade.is_empty() or upgrade["done"] or upgrade["locked"]:return
 	var price: int=upgrade["price"]
 	if coins<price:
 		_notice("TE FALTAN %d MONEDAS" % (price-coins),1.6)
@@ -304,6 +326,17 @@ func _buy(kind: String) -> void:
 			for customer in customers:
 				if customer["stage"]=="buying":customer["wait"]*=(_checkout_duration()/previous_time)
 			_notice("¡CAJA MÁS RÁPIDA!\nAhora los clientes esperan menos.",2.5)
+		"lock":
+			run.lock_level+=1
+			for raid in run.raiders:
+				if raid["state"]=="tamper":raid["remaining"]=minf(16,raid["remaining"]+4)
+			_notice("¡ALMACÉN ASEGURADO!\nAhora tardan más en llevarse productos.",2.5)
+		"alarm":
+			run.alarm_level+=1
+			_notice("¡ALARMA INSTALADA!\nMás aviso y mapaches más lentos cerca del puesto.",2.5)
+		"guard":
+			run.guard_level+=1
+			_notice("¡GUARDIA CONTRATADO!\nPatrulla; vos atendé pedidos e interceptá al resto.",2.5)
 		"speed":
 			player_speed=minf(MAX_SPEED,player_speed+.65)
 			speed_cost+=55
@@ -328,6 +361,7 @@ func _buy(kind: String) -> void:
 
 func _spawn_worker(index: int, saved: Dictionary = {}) -> void:
 	var actor: MarketActor=ActorScript.new()
+	actor.ground_sampler=Callable(world,"ground_height")
 	actor.setup("helper",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][index%3])
 	add_child(actor)
 	actor.position=world.navigation.nearest_free(SaveStore.position(saved.get("position"), UPGRADE_POS["helper"]+Vector3(float(index%3)*.95,0,1.3+float(index/3)*.8)))
@@ -367,6 +401,7 @@ func _queue_position(index: int) -> Vector3:
 func _spawn_customer() -> void:
 	if _queue_count()>=6:return
 	var a: MarketActor=ActorScript.new()
+	a.ground_sampler=Callable(world,"ground_height")
 	var species_: String=["cat","pig","rabbit","fox"][randi()%4]
 	a.setup("customer",{"cat":Color("#498f83"),"pig":Color("#b872ad"),"rabbit":Color("#8c94bf"),"fox":Color("#e2aa56")}[species_],species_)
 	add_child(a)
@@ -377,7 +412,7 @@ func _spawn_customer() -> void:
 	customers.append({"actor":a,"stage":"coming","wait":0.0,"lane":lane,"age":0.0,"bubble":bubble})
 
 func _move_actor(actor: MarketActor, destination: Vector3, step: float, delta: float) -> bool:
-	if not actor.has_meta("route_goal") or actor.get_meta("route_goal").distance_to(destination) > .05 or actor.get_meta("route_revision", -1) != world.navigation.revision:
+	if not actor.has_meta("route_goal") or actor.get_meta("route_goal").distance_to(destination) > (.5 if actor.character_role=="guard" else .05) or actor.get_meta("route_revision", -1) != world.navigation.revision:
 		actor.set_meta("route_goal", destination)
 		actor.set_meta("route", world.navigation.find_path(actor.position,destination))
 		actor.set_meta("route_index",0)
@@ -439,6 +474,7 @@ func _process_helpers(delta: float) -> void:
 				h["timer"]=float(h["timer"])-delta
 				if h["timer"]<=0:
 					h["cargo"]=world.harvest(h["crop"])
+					a.act("harvest")
 					if h["cargo"]!="":
 						h["cargo_amount"]=3
 						a.set_carry(3)
@@ -509,10 +545,7 @@ func _record_sale(amount: int, income: int) -> void:
 	coins+=income
 	earned+=income
 	sold+=amount
-	while sold >= quest_level*20:
-		quest_level+=1
-		coins+=70
-		_notice("¡MISIÓN SUPERADA!  +70",2.1)
+	quest_level=maxi(quest_level,int(sold/20)+1)
 
 func _shipment_income() -> int:
 	return int(SELL_VALUE.get(shipment["kind"],0))*int(shipment["amount"])*3/2
@@ -553,20 +586,8 @@ func _process_player(delta: float) -> void:
 	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): keyboard.y-=1
 	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN): keyboard.y+=1
 	var joy := (pad+keyboard).limit_length(1.0)
-	if joy.length() > .12:
-		has_tap_destination = false
-		destination_marker.visible = false
-	var world_motion := Vector3.ZERO
-	if has_tap_destination and joy.length() <= .12 and not shop_panel.visible:
-		var previous := player.position
-		if _move_actor(player,tap_destination,player_speed*(1.50 if boost_active else 1.0),delta):
-			has_tap_destination = false
-			destination_marker.visible = false
-		if player.position.distance_to(previous)>.001:
-			last_player_heading=(player.position-previous).normalized()
-	else:
-		# Joystick movement remains screen-relative even if the camera was rotated.
-		world_motion = Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
+	# Player travel is exclusively manual. Guides and terrain taps only mark.
+	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
 	if shop_panel.visible: world_motion = Vector3.ZERO
 	var velocity := world_motion * player_speed * (1.50 if boost_active else 1.0)
 	if velocity.length()>.05:
@@ -583,16 +604,20 @@ func _process_player(delta: float) -> void:
 			if resource!="":
 				stash[resource]+=1
 				player.set_carry(_total_bag())
+				player.act("harvest")
 				harvest_wait=.23
 				if harvest_sfx.stream:harvest_sfx.play()
 				_spawn_pickup_fx(crop["node"].global_position,resource)
 
+	if drop_wait<=0 and run.deliver_contract()>0:drop_wait=.6
 	if drop_wait<=0 and _total_bag()>0 and player.position.distance_to(Vector3(4,0,2.5))<2.5:
 		for resource in stash.keys():
+			manual_delivered+=stash[resource]
 			delivered+=stash[resource]
 			counter[resource]+=stash[resource]
 			stash[resource]=0
 		player.set_carry(0)
+		player.act("deliver")
 		_notice("¡PUESTO ABASTECIDO!",1.1)
 		drop_wait=.6
 	if _total_bag()>=max_capacity:
@@ -641,10 +666,13 @@ func _update_camera(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	anim_timer+=delta
+	marker_time-=delta
+	if marker_time<=0:destination_marker.visible=false
 	_process_player(delta)
 	_process_helpers(delta)
 	_process_customers(delta)
 	_process_shipping(delta)
+	if not shop_panel.visible:run.tick(delta)
 	director.tick(delta)
 	_update_camera(delta)
 	customers_timer-=delta
@@ -700,11 +728,13 @@ func _set_tap_goal(screen_position: Vector2) -> void:
 func _set_world_goal(destination: Vector3) -> void:
 	var goal: Vector3=world.navigation.nearest_free(destination)
 	if world.navigation.find_path(player.position,goal).is_empty(): return
+	# Mark the destination; never create a player movement route.
 	tap_destination=goal
-	if player.has_meta("route_goal"): player.remove_meta("route_goal")
-	has_tap_destination=true
+	has_tap_destination=false
+	marker_time=4.0
 	destination_marker.position=goal+Vector3(0,.12,0)
 	destination_marker.visible=true
+
 
 func _save_data() -> Dictionary:
 	var workers: Array = []
@@ -716,13 +746,14 @@ func _save_data() -> Dictionary:
 	var crops: Array = []
 	for crop in world.crop_spots:
 		crops.append({"regrow":crop["regrow"] if not crop["ready"] else 0.0})
-	return {"version":3,"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
+	return {"version":4,"coins":coins,"earned":earned,"sold":sold,"delivered":delivered,
 		"worker_count":worker_count,"player_speed":player_speed,"max_capacity":max_capacity,
 		"stash":stash,"counter":counter,"quest_level":quest_level,"total_buyers":total_buyers,
 		"helper_cost":helper_cost,"speed_cost":speed_cost,"bag_cost":bag_cost,"orchard_owned":orchard_owned,
 		"pier_owned":pier_owned,"player_pos":[player.position.x,player.position.z],"helpers":workers,
 		"crops":crops,"shipment":shipment,"shipments_completed":shipments_completed,"camera_distance":camera_distance,
-		"checkout_level":checkout_level,"announced_upgrades":director.announced.keys()}
+		"checkout_level":checkout_level,"announced_upgrades":director.announced.keys(),
+		"manual_delivered":manual_delivered,"run":run.save_state()}
 
 func _save_progress() -> bool:
 	var success := SaveStore.write_data(save_path,_save_data())
@@ -783,6 +814,8 @@ func _load_progress() -> void:
 		shipment={"kind":kind,"amount":int(SaveStore.number(saved_shipment,"amount",SHIPMENT_SIZE,1,SHIPMENT_SIZE)),
 			"remaining":SaveStore.number(saved_shipment,"remaining",SHIPMENT_DURATION,0,SHIPMENT_DURATION)}
 	shipments_completed=int(SaveStore.number(data,"shipments_completed",0,0,10000000))
+	manual_delivered=int(SaveStore.number(data,"manual_delivered",0,0,10000000))
+	run.load_state(data["run"] if data.get("run") is Dictionary else {})
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
 	player.set_carry(_total_bag())
 

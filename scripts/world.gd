@@ -21,6 +21,14 @@ var orchard_label: Label3D
 var upgrade_pads := {}
 var locked_sites := {}
 var hero_ring: MeshInstance3D
+var premium_root: Node3D
+var premium_label: Label3D
+var security_root: Node3D
+var lock_root: Node3D
+var alarm_root: Node3D
+var alarm_ring: MeshInstance3D
+var security_active := false
+var alarm_radius := 6.0
 
 const GREEN = Color("#90bc92")
 const DARK_GREEN = Color("#316947")
@@ -106,6 +114,7 @@ func _ready() -> void:
 	build_scenery()
 	build_expansions()
 	build_upgrade_pads()
+	build_security()
 	navigation.build()
 
 func build_land() -> void:
@@ -201,6 +210,7 @@ func build_scenery() -> void:
 		var x := rng.randf_range(-28.0,28.0)
 		var z := rng.randf_range(-28.0,28.0)
 		if absf(x) < 14.0 and absf(z) < 13.0: continue
+		if absf(x)<4.5 and z>-18 and z<-10:continue
 		build_tree(Vector3(x,0,z),rng.randf_range(.73,1.55))
 	# Trees at visible edges frame the player; custom individual crowns and fruit.
 	for loc in [Vector3(-14,0,-5),Vector3(-15,0,13),Vector3(-12,0,16),Vector3(13,0,11),Vector3(15,0,-11)]:
@@ -268,8 +278,8 @@ func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
 
 func build_upgrade_pads() -> void:
 	var locations := {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
-		"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12)}
-	var names := {"helper":"EQUIPO","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA","expand":"HUERTO","pier":"MUELLE"}
+		"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12),"lock":Vector3(7,0,-6.5),"alarm":Vector3(12,0,9.8),"guard":Vector3(7.5,0,11)}
+	var names := {"helper":"EQUIPO","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA","expand":"HUERTO","pier":"MUELLE","lock":"CERROJO","alarm":"ALARMA","guard":"GUARDIA"}
 	for kind in locations:
 		var pad := Node3D.new(); pad.position=locations[kind]; pad.name="Mejora " + kind; add_child(pad)
 		shape(pad,"cylinder",Vector3(0,.10,0),Vector3(2.5,.18,2.5),Color("#356a62"))
@@ -294,7 +304,7 @@ func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) 
 		var pad: Dictionary=upgrade_pads[kind]
 		var upgrade: Dictionary=upgrades[kind]
 		var done: bool=upgrade["done"]
-		pad["node"].visible=not done
+		pad["node"].visible=not done and not upgrade["locked"]
 		var afford: bool=coins>=upgrade["price"]
 		pad["face"].material_override=material(Color("#f6d27b") if afford else Color("#d2dfcf"))
 		pad["label"].text=("★ " if kind==recommended and afford else "")+pad["short"]
@@ -377,6 +387,10 @@ func harvest(crop: Dictionary) -> String:
 
 func _process(delta: float) -> void:
 	clock+=delta
+	if alarm_root!=null:
+		alarm_root.rotation.y=sin(clock*3)*.3 if security_active else 0.0
+	if alarm_ring!=null:
+		alarm_ring.scale=Vector3.ONE*(alarm_radius/6)*(1+sin(clock*5)*.025)
 	for crop in crop_spots:
 		if not crop["ready"]:
 			crop["regrow"] = float(crop["regrow"])-delta
@@ -389,3 +403,64 @@ func _process(delta: float) -> void:
 		var phase: float = data["phase"]
 		animal.position=data["base"]+Vector3(sin(clock*.9+phase)*.36,0,cos(clock*.75+phase)*.3)
 		animal.rotation.y=sin(clock+phase)*.30
+
+func build_security() -> void:
+	navigation.add_obstacle(Rect2(-2.15,-15.6,4.3,2.8))
+	premium_root=Node3D.new(); premium_root.position=Vector3(0,0,-14.2); add_child(premium_root)
+	shape(premium_root,"box",Vector3(0,.7,0),Vector3(3.6,1.15,2.1),Color("#e8b356"))
+	shape(premium_root,"box",Vector3(0,1.39,0),Vector3(3.7,.16,2.2),Color("#356f70"))
+	for x in [-1.5,1.5]:
+		for z in [-.82,.82]:
+			var wheel:=shape(premium_root,"cylinder",Vector3(x,.3,z),Vector3(.50,.16,.50),Color("#45565d")); wheel.rotation.z=PI*.5
+	shape(premium_root,"box",Vector3(0,1.9,-.6),Vector3(3.3,.20,2.6),Color("#3c8d86"))
+	for x in [-1.45,1.45]:shape(premium_root,"cylinder",Vector3(x,1.5,0),Vector3(.11,1.8,.11),WOOD)
+	premium_label=make_label(premium_root,"PEDIDO PREMIUM ×2",Vector3(0,2.9,.6),48)
+	premium_label.pixel_size=.010
+	premium_root.visible=false
+	security_root=Node3D.new(); add_child(security_root)
+	lock_root=Node3D.new(); security_root.add_child(lock_root)
+	shape(lock_root,"box",Vector3(6,.7,1.3),Vector3(1.2,1.3,1.15),Color("#557a78"))
+	shape(lock_root,"box",Vector3(6,.80,1.9),Vector3(1.24,.19,.1),Color("#efc86e"))
+	shape(lock_root,"sphere",Vector3(6,.83,2.02),Vector3(.35,.40,.13),Color("#efc86e"))
+	lock_root.visible=false
+	alarm_root=Node3D.new(); alarm_root.position=Vector3(6,3.3,-1.8); security_root.add_child(alarm_root)
+	shape(alarm_root,"cylinder",Vector3(0,.12,0),Vector3(.70,.12,.70),Color("#385d67"))
+	shape(alarm_root,"sphere",Vector3(0,.40,0),Vector3(.59,.53,.59),Color("#eaa365"))
+	alarm_root.visible=false
+	alarm_ring=MeshInstance3D.new(); var ring:=TorusMesh.new(); ring.inner_radius=6; ring.outer_radius=6.04; ring.rings=64; ring.ring_segments=6
+	alarm_ring.mesh=ring; alarm_ring.position=Vector3(4,.17,2.5)
+	var mat:=StandardMaterial3D.new(); mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED; mat.albedo_color=Color("#e8a752")
+	alarm_ring.material_override=mat; alarm_ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	security_root.add_child(alarm_ring); alarm_ring.visible=false
+
+func update_security(run) -> void:
+	premium_root.visible=true
+	premium_label.text=("PEDIDO PREMIUM ×2\n%d/%d %s" % [run.contract_done,run.contract_goal(),run.g.CROP_NAMES[run.contract_kind()].to_upper()]) if run.level>=4 else "PEDIDOS PREMIUM\nNIVEL 4"
+	lock_root.visible=run.lock_level>0
+	alarm_root.visible=run.alarm_level>0
+	security_active=not run.raiders.is_empty() or run.warning>0
+	alarm_radius=6+run.alarm_level
+	alarm_ring.visible=run.alarm_level>0 and security_active
+
+func whistle_pulse(at: Vector3) -> void:
+	var item:=MeshInstance3D.new(); var mesh:=TorusMesh.new(); mesh.inner_radius=.7; mesh.outer_radius=.8; mesh.rings=32; mesh.ring_segments=6
+	item.mesh=mesh; item.position=at+Vector3(0,.25,0)
+	var mat:=StandardMaterial3D.new(); mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED; mat.albedo_color=Color("#fff0b3"); mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	item.material_override=mat; add_child(item)
+	var tween:=create_tween().set_parallel(true)
+	tween.tween_property(item,"scale",Vector3.ONE*4,.55)
+	tween.tween_property(mat,"albedo_color:a",0.0,.55)
+	tween.chain().tween_callback(item.queue_free)
+
+func ground_height(at: Vector3) -> float:
+	var point:=Vector2(at.x,at.z)
+	var height: float=-.02
+	if absf(at.x)<2.5 and absf(at.z)<21.5:height=.08
+	if Rect2(-1.45,-5.4,12.5,10).has_point(point):height=.105
+	if Rect2(7.75,.3,3.5,8.6).has_point(point):height=.115
+	if point.distance_to(Vector2(4,2.5))<1.48:height=.28
+	for pad in upgrade_pads.values():
+		if pad["node"].visible and point.distance_to(Vector2(pad["node"].position.x,pad["node"].position.z))<1.11:height=maxf(height,.30)
+	for bed in farm_root.get_children():
+		if absf(at.x-bed.position.x)<2.75 and absf(at.z-bed.position.z)<2.2:height=maxf(height,.335)
+	return height
