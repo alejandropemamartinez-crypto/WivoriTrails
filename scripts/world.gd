@@ -18,13 +18,16 @@ var navigation = preload("res://scripts/navigation.gd").new()
 var pier_boat: Node3D
 var pier_label: Label3D
 var orchard_label: Label3D
+var upgrade_pads := {}
+var locked_sites := {}
+var hero_ring: MeshInstance3D
 
-const GREEN = Color("#74b96b")
+const GREEN = Color("#90bc92")
 const DARK_GREEN = Color("#316947")
-const WOOD = Color("#a66c3b")
+const WOOD = Color("#ba8d62")
 const CREAM = Color("#f4dfb0")
 const SOIL = Color("#6e4b36")
-const RED = Color("#da6555")
+const RED = Color("#df7867")
 const BLUE = Color("#57a3b9")
 
 func material(tint: Color, rough: float = .91) -> StandardMaterial3D:
@@ -55,6 +58,7 @@ func shape(parent: Node3D, kind: String, position_: Vector3, scale_: Vector3, ti
 	item.position = position_
 	item.scale = scale_
 	item.name = name_ if name_ != "" else kind
+	if scale_.x*scale_.y*scale_.z<.30:item.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(item)
 	return item
 
@@ -101,25 +105,26 @@ func _ready() -> void:
 	build_farms()
 	build_scenery()
 	build_expansions()
+	build_upgrade_pads()
 	navigation.build()
 
 func build_land() -> void:
 	shape(self,"box",Vector3(0,-.42,0),Vector3(65,.8,65),GREEN,"Base de isla")
 	shape(self,"box",Vector3(0,-.84,0),Vector3(66,.35,66),Color("#c6aa72"),"Corte de isla")
-	# Each paving block is a GPU instance, not a separate scene node.
-	var stones: Array[Dictionary] = []
-	for i in range(-20,22):
-		for j in range(-2,3):
-			var p := Vector3(float(j)*.92,.025,float(i)*.95)
-			p.x += sin(float(i) * .32) * .45
-			stones.append({"pos":p,"scale":Vector3(.86,.08,.86),"color":CREAM.darkened(rng.randf_range(0,.12))})
-	for i in range(-5,7):
-		for j in range(-4,5):
-			stones.append({"pos":Vector3(float(i)*.94,.045,float(j)*.89-2.0),"scale":Vector3(.87,.08,.84),"color":CREAM.darkened(rng.randf_range(0,.16))})
-	for z in [-9.0,8.5]:
-		for i in range(-12,1):
-			stones.append({"pos":Vector3(float(i)*.82,.05,z),"scale":Vector3(.73,.08,.9),"color":CREAM.darkened(rng.randf_range(0,.13))})
+	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
+	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#cabb9e"),"Paseo principal")
+	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#cabb9e"),"Plaza comercial")
+	shape(self,"box",Vector3(9.5,.045,4.6),Vector3(3.5,.14,8.6),Color("#c1b89d"),"Zona de fila")
+	for z in [-9.0,0.0,8.5]:
+		shape(self,"box",Vector3(-5,.04,z),Vector3(9,.12,1.8),Color("#cabb9e"))
+	var stones: Array[Dictionary]=[]
+	for z in range(-10,11):
+		for x in [-2.7,2.7]:
+			stones.append({"pos":Vector3(x,.04,float(z)*2),"scale":Vector3(.24,.16,1.5),"color":Color("#d2c5a4")})
 	batch_paving(stones)
+	for i in range(6):
+		var at := Vector3(8.3,.14,.6) if i==0 else Vector3(9.5,.14,.8+float(i)*1.4)
+		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#f6eedc"),"Lugar de cliente %d" % i)
 	# Shallow pond with solid shore, decorative and not in player movement area.
 	shape(self,"cylinder",Vector3(18,.08,15),Vector3(7,.12,6),Color("#c8e5ca"))
 	shape(self,"cylinder",Vector3(18,.12,15),Vector3(6,.14,5),Color("#5aaec2"))
@@ -127,6 +132,7 @@ func build_land() -> void:
 func build_market() -> void:
 	navigation.add_obstacle(Rect2(1.30, -3.95, 5.40, 3.85))
 	var root := Node3D.new(); root.position = Vector3(4,0,-2); root.name = "Puesto central"; add_child(root)
+	shape(root,"box",Vector3(0,.08,0),Vector3(5.25,.24,4.1),Color("#356a62"),"Base del puesto")
 	shape(root,"box",Vector3(0,.66,0),Vector3(4.5,1.35,3.2),WOOD)
 	shape(root,"box",Vector3(0,1.31,1.5),Vector3(4.8,.18,.45),Color("#e9b775"))
 	shape(root,"box",Vector3(0,1.75,-1.3),Vector3(4.5,2.25,.28),Color("#d2a36d"))
@@ -136,7 +142,8 @@ func build_market() -> void:
 	for x in [-2.35,2.35]:
 		for z in [-1.35,1.35]:
 			shape(root,"cylinder",Vector3(x,1.5,z),Vector3(.17,3.0,.17),Color("#83502f"))
-	make_label(root,"MERCADO",Vector3(0,3.45,1.67),40)
+	shape(root,"box",Vector3(0,3.23,1.5),Vector3(3.2,.65,.16),Color("#285d59"),"Rótulo")
+	make_label(root,"WIVORI",Vector3(0,3.28,1.67),62)
 	# Product crates and chunky produce form physical sale stock.
 	for i in range(4):
 		var rack := Node3D.new(); rack.name="Cajón surtido %d" % i; rack.position=Vector3.ZERO; root.add_child(rack)
@@ -146,8 +153,10 @@ func build_market() -> void:
 		for f in range(6):
 			shape(rack,"sphere",c+Vector3((float(f%3)-1.0)*.22,.25+float(f/3)*.18,0),Vector3(.24,.23,.25),[RED,Color("#f3b843"),Color("#8bc963"),Color("#ac71b5")][i])
 	# Delivery pad is an explicit, visible interaction area.
-	shape(self,"cylinder",Vector3(4,.10,2.5),Vector3(2.8,.11,2.8),Color("#f2c870"))
-	make_label(self,"ENTREGAR",Vector3(4,.75,2.5),36)
+	shape(self,"cylinder",Vector3(4,.12,2.5),Vector3(3.3,.13,3.3),Color("#b18d47"))
+	shape(self,"cylinder",Vector3(4,.20,2.5),Vector3(2.95,.08,2.95),Color("#f5d57f"))
+	var stock_sign := make_label(self,"ENTREGAR",Vector3(4,.75,2.5),48)
+	stock_sign.modulate=Color("#72552d"); stock_sign.outline_size=0; stock_sign.pixel_size=.010
 	# Coin chest and market decorations.
 	shape(root,"box",Vector3(2.0,.37,-.05),Vector3(.9,.7,.9),Color("#9a6f40"))
 	shape(root,"box",Vector3(2.0,.78,-.05),Vector3(.94,.12,.94),Color("#efcc67"))
@@ -166,12 +175,22 @@ func make_bed(title: String, pos: Vector3, tint: Color, resource: String, enable
 		for col in range(3):
 			var local := Vector3((float(col)-1)*1.55,.40,(float(row)-1)*1.25)
 			var unit := Node3D.new(); unit.position = local; bed.add_child(unit)
-			shape(unit,"cylinder",Vector3(0,.20,0),Vector3(.1,.44,.11),DARK_GREEN)
-			shape(unit,"sphere",Vector3(0,.44,0),Vector3(.48,.22,.43),Color("#4e9850"))
-			shape(unit,"sphere",Vector3(-.18,.31,.17),Vector3(.33,.32,.32),tint)
-			shape(unit,"sphere",Vector3(.20,.32,-.10),Vector3(.31,.29,.31),tint)
+			if resource=="carrot":
+				shape(unit,"cone",Vector3(0,.20,0),Vector3(.42,-.65,.42),tint)
+				for x in [-.15,.15]:
+					var leaf := shape(unit,"sphere",Vector3(x,.68,0),Vector3(.18,.50,.16),DARK_GREEN)
+					leaf.rotation.z=x*2
+			elif resource=="berry":
+				shape(unit,"sphere",Vector3(0,.30,0),Vector3(.80,.64,.72),DARK_GREEN)
+				for x in [-.22,0,.22]:shape(unit,"sphere",Vector3(x,.55,.25),Vector3(.25,.26,.25),tint)
+			else:
+				shape(unit,"cylinder",Vector3(0,.30,0),Vector3(.1,.65,.11),DARK_GREEN)
+				shape(unit,"sphere",Vector3(0,.64,0),Vector3(.68,.22,.43),Color("#4e9850"))
+				shape(unit,"sphere",Vector3(-.18,.38,.17),Vector3(.44,.43,.42),tint)
+				shape(unit,"sphere",Vector3(.20,.38,-.10),Vector3(.41,.40,.41),tint)
 			crop_spots.append({"node":unit,"kind":resource,"ready":true,"regrow":0.0,"enabled":enabled_,"root":bed})
-	make_label(bed,title.to_upper(),Vector3(0,2.18,-2.35),34)
+	var bed_label := make_label(bed,title.to_upper(),Vector3(0,1.65,-2.35),48)
+	bed_label.pixel_size=.010
 	# Corners and fences are built from meshes, not backdrop pixels.
 	for z in [-2.35,2.35]:
 		for x in [-2.85,2.85]:
@@ -186,9 +205,9 @@ func build_scenery() -> void:
 	# Trees at visible edges frame the player; custom individual crowns and fruit.
 	for loc in [Vector3(-14,0,-5),Vector3(-15,0,13),Vector3(-12,0,16),Vector3(13,0,11),Vector3(15,0,-11)]:
 		build_tree(loc,1.12)
-	for i in range(110):
+	for i in range(45):
 		var p := Vector3(rng.randf_range(-20,20),.05,rng.randf_range(-22,22))
-		if absf(p.x) < 3.5: continue
+		if absf(p.x)<14 and absf(p.z)<14:continue
 		shape(self,"sphere",p,Vector3(.12,.15,.12),Color("#f9eab8") if i%2 == 0 else Color("#ffc1d0"))
 	# Chicken pen and rustic lamp posts.
 	shape(self,"box",Vector3(12,.20,3.2),Vector3(7,.35,5.5),Color("#83bb6b"))
@@ -201,11 +220,11 @@ func build_scenery() -> void:
 		shape(n,"sphere",Vector3(0,.96,.25),Vector3(.36,.35,.38),Color("#fff7e5"))
 		shape(n,"cone",Vector3(0,.90,.59),Vector3(.22,.29,.22),Color("#f2b14b"))
 		dynamic_animals.append({"node":n,"base":n.position,"phase":float(i)*1.8})
-	for pos in [Vector3(-3,0,3),Vector3(8,0,-7),Vector3(-4,0,13)]:
+	for pos in [Vector3(-4.6,0,3.7),Vector3(8,0,-7),Vector3(-5,0,14.5)]:
 		navigation.add_obstacle(Rect2(Vector2(pos.x, pos.z) - Vector2.ONE * .38, Vector2.ONE * .76))
-		shape(self,"cylinder",pos+Vector3(0,1.3,0),Vector3(.17,2.6,.17),WOOD)
-		shape(self,"box",pos+Vector3(0,2.4,0),Vector3(.76,.72,.76),Color("#f6d891"))
-		shape(self,"cone",pos+Vector3(0,2.83,0),Vector3(1.02,.42,1.02),Color("#593e2d"))
+		shape(self,"cylinder",pos+Vector3(0,.64,0),Vector3(.17,1.28,.17),WOOD)
+		shape(self,"sphere",pos+Vector3(0,1.27,0),Vector3(.46,.50,.46),Color("#f6d891"))
+		shape(self,"cone",pos+Vector3(0,1.59,0),Vector3(.67,.25,.67),Color("#326c63"))
 
 func build_tree(pos: Vector3, scale_: float) -> void:
 	var radius := .28 * scale_ + .25
@@ -246,6 +265,61 @@ func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
 	for k in range(5):
 		var theta := float(k)*TAU/5.0
 		shape(p,"sphere",Vector3(cos(theta),2.5,sin(theta)),Vector3(.3,.33,.3),RED)
+
+func build_upgrade_pads() -> void:
+	var locations := {"helper":Vector3(-2.6,0,6.3),"bag":Vector3(-3,0,11),"speed":Vector3(3.5,0,10),
+		"checkout":Vector3(9,0,-3),"expand":Vector3(10,0,-10),"pier":Vector3(16,0,12)}
+	var names := {"helper":"EQUIPO","bag":"MOCHILA","speed":"TURBO","checkout":"CAJA","expand":"HUERTO","pier":"MUELLE"}
+	for kind in locations:
+		var pad := Node3D.new(); pad.position=locations[kind]; pad.name="Mejora " + kind; add_child(pad)
+		shape(pad,"cylinder",Vector3(0,.10,0),Vector3(2.5,.18,2.5),Color("#356a62"))
+		var face := shape(pad,"cylinder",Vector3(0,.22,0),Vector3(2.22,.08,2.22),Color("#e9eddf"))
+		var sign := make_label(pad,names[kind],Vector3(0,.95,0),52)
+		sign.modulate=Color("#285d59"); sign.outline_size=0; sign.pixel_size=.012
+		var price := make_label(pad,"",Vector3(0,.47,.35),68)
+		price.outline_size=0; price.pixel_size=.012
+		upgrade_pads[kind]={"node":pad,"face":face,"label":sign,"price":price,"short":names[kind]}
+	for kind in ["expand","pier"]:
+		var site := Node3D.new(); add_child(site)
+		var center := Vector3(14,0,-13) if kind=="expand" else Vector3(19,0,15)
+		shape(site,"box",center+Vector3(0,.03,0),Vector3(9,.12,7),Color("#a3c4a0") if kind=="expand" else Color("#a4c9c2"))
+		for x in [-4.5,4.5]:
+			for z in [-3.5,3.5]:
+				shape(site,"cylinder",center+Vector3(x,.5,z),Vector3(.15,1,.15),CREAM)
+		make_label(site,"PRÓXIMO: HUERTO" if kind=="expand" else "PRÓXIMO: EXPORTACIÓN",center+Vector3(0,1.5,-2),30)
+		locked_sites[kind]=site
+
+func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) -> void:
+	for kind in upgrade_pads:
+		var pad: Dictionary=upgrade_pads[kind]
+		var upgrade: Dictionary=upgrades[kind]
+		var done: bool=upgrade["done"]
+		pad["node"].visible=not done
+		var afford: bool=coins>=upgrade["price"]
+		pad["face"].material_override=material(Color("#f6d27b") if afford else Color("#d2dfcf"))
+		pad["label"].text=("★ " if kind==recommended and afford else "")+pad["short"]
+		pad["price"].text=str(upgrade["price"])
+		pad["price"].modulate=Color("#76552c") if afford else Color("#51706b")
+		if locked_sites.has(kind):locked_sites[kind].visible=not done
+
+func celebrate_upgrade(kind: String) -> void:
+	if not upgrade_pads.has(kind):return
+	var at: Vector3=upgrade_pads[kind]["node"].position
+	for i in range(9):
+		var piece := shape(self,"box",at+Vector3(0,.6,0),Vector3(.16,.16,.16),[RED,BLUE,Color("#f2d382")][i%3])
+		var angle := float(i)*TAU/9
+		var tween := create_tween().set_parallel(true)
+		tween.tween_property(piece,"position",at+Vector3(cos(angle)*2,2.5,sin(angle)*2),.75).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(piece,"scale",Vector3.ZERO,.85)
+		tween.chain().tween_callback(piece.queue_free)
+
+func sale_receipt(at: Vector3, income: int) -> void:
+	var receipt := make_label(self,"+%d" % income,at+Vector3(0,2.8,0),38)
+	receipt.modulate=Color("#ffde8c")
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(receipt,"position",receipt.position+Vector3(0,1.8,0),1.15)
+	tween.tween_property(receipt,"modulate:a",0.0,1.15)
+	tween.chain().tween_callback(receipt.queue_free)
 
 func update_market_stock(stock: Dictionary) -> void:
 	for i in range(market_crates.size()):

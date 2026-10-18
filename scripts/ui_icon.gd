@@ -28,6 +28,11 @@ func _draw() -> void:
 			draw_arc(center+Vector2(0,radius*.75),radius*.77,PI,TAU,24,tint,width*2,true)
 		"speed":
 			draw_colored_polygon(PackedVector2Array([center+Vector2(radius*.2,-radius),center+Vector2(-radius*.7,radius*.1),center+Vector2(0,radius*.1),center+Vector2(-radius*.2,radius),center+Vector2(radius*.7,-radius*.1),center+Vector2(0,-radius*.1)]),tint)
+		"checkout":
+			draw_rect(Rect2(center+Vector2(-radius*.9,0),Vector2(radius*1.8,radius*.8)),tint,false,width)
+			draw_rect(Rect2(center+Vector2(-radius*.7,-radius*.9),Vector2(radius*1.1,radius*.7)),tint,false,width)
+			draw_line(center+Vector2(0,-radius*.2),center+Vector2(0,0),tint,width,true)
+			draw_circle(center+Vector2(radius*.55,-radius*.5),radius*.27,Color("#efb34c"))
 		"shop":
 			draw_rect(Rect2(center-Vector2(radius*.8,radius*.3),Vector2(radius*1.6,radius*1.2)),tint,false,width)
 			draw_colored_polygon(PackedVector2Array([center+Vector2(-radius,-radius*.25),center+Vector2(-radius*.7,-radius*.9),center+Vector2(radius*.7,-radius*.9),center+Vector2(radius,-radius*.25)]),tint)

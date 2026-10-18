@@ -68,11 +68,21 @@ func run() -> void:
 		if i%46==0:game._spawn_customer()
 		game._process_customers(.1)
 	game._refresh_ui()
-	check(game.hud.guide_button.text=="CONTRATAR", "First sales expose the affordable automation upgrade")
+	check(game.hud.guide_button.text=="IR AHÍ", "First sales expose the affordable automation upgrade")
 	var old_coins: int=game.coins
 	game.hud.guide_button.pressed.emit()
-	check(game.worker_count==1 and game.coins==old_coins-80, "The onboarding action buys one helper for the displayed price")
-	check(game._current_objective().get("upgrade")=="expand", "After hiring, the next goal becomes the orchard")
+	check(game.worker_count==0 and game.coins==old_coins, "The guide routes to the upgrade without spending remotely")
+	for i in range(100):game._process_player(.1)
+	game._refresh_ui(); await process_frame
+	check(game.hud.pad_panel.visible and game.active_pad=="helper", "Arriving at the marked pad shows its purchase card")
+	if DisplayServer.get_name()!="headless":
+		check(game.hud.pad_panel.get_global_rect().end.y<game.shop_button.get_global_rect().position.y and game.hud.pad_button.get_global_rect().end.x<=720, "World upgrade card fits above the movement and shop controls")
+	var pad_at: Vector2=game.hud.pad_button.get_global_rect().get_center()
+	await touch_at(pad_at,4,true); await touch_at(pad_at,4,false,true)
+	check(game.worker_count==0 and game.coins==old_coins, "A cancelled touch on a world upgrade cannot spend coins")
+	await touch_at(pad_at,4,true); await touch_at(pad_at,4,false)
+	check(game.worker_count==1 and game.coins==old_coins-80, "A real touch hires exactly one helper for the displayed price")
+	check(game.director.recommended()=="helper", "After hiring, the next investment grows the automatic team")
 	game.coins=50; game._refresh_ui()
 	check(game.store_buttons["expand"].disabled and game.store_buttons["pier"].disabled, "Unaffordable expansions show a disabled purchase button")
 	await click(game.shop_button)
@@ -99,7 +109,7 @@ func run() -> void:
 	var guide_at: Vector2=game.hud.guide_button.get_global_rect().get_center()
 	await touch_at(guide_at,3,true)
 	await touch_at(guide_at,3,false,true)
-	check(not game.orchard_owned and game.coins==1000, "A cancelled touch cannot purchase an expansion")
+	check(game.worker_count==1 and game.coins==1000, "A cancelled guide touch cannot purchase an upgrade")
 	await touch_at(run_at,1,true)
 	game.propagate_notification(Node.NOTIFICATION_APPLICATION_PAUSED)
 	check(not game.boost_active and game.hud.run_button.touch_index==-1, "Pausing releases a held touch button")
@@ -108,7 +118,22 @@ func run() -> void:
 	game._save_progress()
 	game.queue_free(); await process_frame
 	await start_game()
-	check(game.worker_count==1 and game._current_objective().get("upgrade")=="expand" and is_equal_approx(game.camera_distance,distance), "Reload preserves progress, skips completed onboarding and restores the chosen view")
+	check(game.worker_count==1 and game.director.recommended()=="helper" and is_equal_approx(game.camera_distance,distance), "Reload preserves progress, skips completed onboarding and restores the chosen view")
+	game.hud.wayfinder.objective={"target":Vector3(22,0,-22)}
+	var marker: Dictionary=game.hud.wayfinder.indicator()
+	check(not marker.is_empty(), "An offscreen objective produces a direction indicator")
+	if not marker.is_empty():
+		var at: Vector2=marker["position"]
+		check(at.x>=58 and at.x<=662 and at.y>=game.hud.wayfinder.top_margin and at.y<=1280-game.hud.wayfinder.bottom_margin, "The offscreen arrow stays inside the playable area between HUD and controls")
+	for key in game.counter:game.counter[key]=0
+	game.stash["tomato"]=1
+	for i in range(6):game._spawn_customer()
+	for i in range(100):game._process_customers(.1)
+	game._refresh_ui(); await process_frame
+	check(game.hud.alert_panel.visible, "Waiting without stock displays the actionable business alert")
+	var alert_at: Vector2=game.hud.alert_button.get_global_rect().get_center()
+	await touch_at(alert_at,5,true); await touch_at(alert_at,5,false)
+	check(game.has_tap_destination and game.tap_destination==Vector3(4,0,2.5), "Touching replenish routes to the delivery point with carried stock")
 	game.queue_free(); await process_frame
 	clean_files()
 	print("RESULT: %d mobile UI checks, %d failures" % [checks,failures])

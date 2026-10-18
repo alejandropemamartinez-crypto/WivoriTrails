@@ -16,6 +16,9 @@ var left_leg: Node3D
 var right_leg: Node3D
 var goods_root: Node3D
 var body_y := 0.0
+var facing := 0.0
+static var meshes := {}
+static var materials := {}
 
 func setup(role: String, color: Color, species_: String = "human") -> void:
 	character_role = role
@@ -24,35 +27,26 @@ func setup(role: String, color: Color, species_: String = "human") -> void:
 
 func _solid(parent: Node3D, shape: String, tint: Color, pos: Vector3, size: Vector3) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
-	var mesh: PrimitiveMesh
-	match shape:
-		"sphere":
-			var s := SphereMesh.new()
-			s.radial_segments = 16
-			s.rings = 8
-			mesh = s
-		"capsule":
-			var c := CapsuleMesh.new()
-			c.radial_segments = 12
-			c.rings = 6
-			mesh = c
-		"cylinder":
-			var c := CylinderMesh.new()
-			c.radial_segments = 18
-			mesh = c
-		"cone":
-			var c := CylinderMesh.new()
-			c.top_radius = 0.0
-			c.bottom_radius = .5
-			c.radial_segments = 16
-			mesh = c
-		_:
-			mesh = BoxMesh.new()
-	m.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = tint
-	mat.roughness = 0.83
-	m.material_override = mat
+	if not meshes.has(shape):
+		var mesh: PrimitiveMesh
+		match shape:
+			"sphere":
+				var sphere := SphereMesh.new(); sphere.radial_segments=12; sphere.rings=7; mesh=sphere
+			"capsule":
+				var capsule := CapsuleMesh.new(); capsule.radial_segments=12; capsule.rings=6; mesh=capsule
+			"cylinder":
+				var cylinder := CylinderMesh.new(); cylinder.radial_segments=12; mesh=cylinder
+			"cone":
+				var cone := CylinderMesh.new(); cone.top_radius=0; cone.bottom_radius=.5; cone.radial_segments=12; mesh=cone
+			_:
+				mesh=BoxMesh.new()
+		meshes[shape]=mesh
+	m.mesh=meshes[shape]
+	var key := tint.to_html(true)
+	if not materials.has(key):
+		var mat := StandardMaterial3D.new(); mat.albedo_color=tint; mat.roughness=.83
+		materials[key]=mat
+	m.material_override=materials[key]
 	m.position = pos
 	m.scale = size
 	parent.add_child(m)
@@ -150,9 +144,10 @@ func set_carry(amount: int) -> void:
 func walk_to(direction: Vector3, speed: float) -> void:
 	walk_amount = minf(speed / 4.7, 1.0)
 	if direction.length_squared() > .0001:
-		rotation.y = lerp_angle(rotation.y, atan2(direction.x, direction.z), .20)
+		facing = atan2(direction.x, direction.z)
 
 func _process(delta: float) -> void:
+	rotation.y=lerp_angle(rotation.y,facing,1.0-exp(-20.0*delta))
 	anim_t += delta * (3.0 + 11.0 * walk_amount)
 	var step := sin(anim_t) * walk_amount
 	left_leg.rotation.x = step * .60
