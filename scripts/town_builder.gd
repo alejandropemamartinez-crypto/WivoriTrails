@@ -144,7 +144,6 @@ func build(kind: String) -> bool:
 		g.max_capacity=mini(300,g.max_capacity+6)
 	g.world.navigation.add_obstacle(Rect2(
 		Vector2(LOCATIONS[selected].x-2.2,LOCATIONS[selected].z-1.9),Vector2(4.4,3.8)))
-	g.world.navigation.build()
 	g._notice("¡NUEVA CONSTRUCCIÓN!\n%s" % TYPES[kind]["name"],2.5)
 	_refresh_plots()
 	g._save_progress()
@@ -248,5 +247,4 @@ func load_state(data: Dictionary) -> void:
 			constructed[i]=kind
 			_make_building(plot_nodes[i],kind,false)
 			g.world.navigation.add_obstacle(Rect2(Vector2(LOCATIONS[i].x-2.2,LOCATIONS[i].z-1.9),Vector2(4.4,3.8)))
-	g.world.navigation.build()
 	_refresh_plots()
