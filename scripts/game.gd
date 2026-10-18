@@ -167,8 +167,8 @@ func _panel(color_: Color, radius_: int=22) -> PanelContainer:
 	var p := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color=color_
-	style.corner_radius_top_left=radius; style.corner_radius_top_right=radius
-	style.corner_radius_bottom_left=radius; style.corner_radius_bottom_right=radius
+	style.corner_radius_top_left=radius_; style.corner_radius_top_right=radius_
+	style.corner_radius_bottom_left=radius_; style.corner_radius_bottom_right=radius_
 	style.content_margin_left=16; style.content_margin_right=16
 	style.content_margin_top=12; style.content_margin_bottom=12
 	p.add_theme_stylebox_override("panel",style)
