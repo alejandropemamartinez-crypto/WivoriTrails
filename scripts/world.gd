@@ -230,7 +230,7 @@ func build_orchard_tree(parent: Node3D, loc: Vector3) -> void:
 
 func update_market_stock(stock: Dictionary) -> void:
 	for i in range(market_crates.size()):
-		var kind := ["tomato","carrot","berry","apple"][i]
+		var kind: String = ["tomato","carrot","berry","apple"][i]
 		market_crates[i].visible=int(stock.get(kind,0))>0
 
 func open_orchard() -> void:
