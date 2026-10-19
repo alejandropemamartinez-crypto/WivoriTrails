@@ -20,12 +20,16 @@ static func place(parent: Node3D, asset: String, at: Vector3=Vector3.ZERO, size_
 		if not ResourceLoader.exists(path):
 			push_error("Wivori Trails: falta el modelo importado "+path)
 			return _missing_model(parent,asset,at,size_)
-		var resource:Resource=load(path)
-		if not resource is PackedScene:
+		var resource:PackedScene=load(path) as PackedScene
+		if resource==null:
 			push_error("Wivori Trails: el modelo 3D no es una escena válida: "+path)
 			return _missing_model(parent,asset,at,size_)
 		packed[asset]=resource
-	var instance:Node=packed[asset].instantiate()
+	var scene:PackedScene=packed[asset] as PackedScene
+	if scene==null:
+		push_error("Wivori Trails: cache GLB inválida "+path)
+		return _missing_model(parent,asset,at,size_)
+	var instance:Node=scene.instantiate()
 	var node:Node3D=instance as Node3D
 	if node==null:
 		if instance!=null:instance.free()
