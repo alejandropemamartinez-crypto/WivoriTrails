@@ -39,7 +39,10 @@ func run_tests() -> void:
 		site.add_child(facade)
 		require(facade.name.contains(kind),"Factory %s has an authored recognizable identity" % kind)
 		require(facade.window_batches.size()==1 and facade.window_batches[0].multimesh.instance_count==6,"Factory %s uses one batched set of six glazed windows" % kind)
-		require(facade.window_batches[0].multimesh.get_instance_transform(0).origin.z>0.0,"Factory %s windows face the positive-Z player approach, not the back wall" % kind)
+		# The dummy rendering server does not retain MultiMesh transforms.
+		# Check the actual GPU buffer in the native visual test instead.
+		if DisplayServer.get_name()!="headless":
+			require(facade.window_batches[0].multimesh.get_instance_transform(0).origin.z>0.0,"Factory %s windows face the positive-Z player approach, not the back wall" % kind)
 		require(facade.moving_parts.size()>0 and facade.is_processing(),"Factory %s has local procedural animation" % kind)
 		var moving:Node3D=facade.moving_parts[0]["node"]
 		var first:Transform3D=moving.transform
@@ -70,5 +73,5 @@ func run_tests() -> void:
 	await process_frame
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path+suffix))
-	print("RESULT: %d checks, %d failures (unexecuted until Godot QA)" % [checked,failed])
+	print("RESULT: %d checks, %d failures" % [checked,failed])
 	quit(1 if failed>0 else 0)

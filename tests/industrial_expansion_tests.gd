@@ -57,7 +57,7 @@ func run_tests() -> void:
 	check(route.region==4 and route.region_identity!=null and game.world.navigation.is_walkable(game.player.position,.25),"Industrial arrival restores navigable, visually distinct scenery")
 	check(route.region_identity.machine_rotors.is_empty() and route.region_identity.storage_props.is_empty(),"New industrial island cannot display factories or stored cargo before construction")
 	check(game.world.navigation.is_walkable(Vector3(-17,0,17),.20),"The unbuilt industrial dock remains an open space")
-	check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).is_empty(),"Unbuilt factory silos are absent from the initial landscape")
+	check(route.region_identity.find_children("Silo industrial*","MeshInstance3D",true,false).is_empty(),"Unbuilt factory silos are absent from the initial landscape")
 
 	for stage_index in range(route.INDUSTRY_PROJECTS.size()):
 		var project: Dictionary=route.industry_project()
@@ -82,7 +82,7 @@ func run_tests() -> void:
 			check(not route.pinned,"Reload does not forcibly hijack the player's market objective")
 		if stage_index==1:
 			check(route.RECIPES.has("packaging") and route.processing_visuals.has("packaging"),"Packaging plant actually unlocks physical production")
-			check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).size()==2,"Purchased packaging plant reveals its two silos")
+			check(route.region_identity.find_children("Silo industrial*","MeshInstance3D",true,false).size()==2,"Purchased packaging plant reveals its two silos")
 			check(route.region_identity.machine_rotors.is_empty(),"Unbuilt preserves line cannot run ventilation machinery")
 			var obstacles_before:int=game.world.navigation.obstacles.size()
 			route._refresh_region_identity()

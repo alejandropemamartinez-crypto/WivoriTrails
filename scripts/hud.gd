@@ -526,9 +526,9 @@ func build_shop() -> void:
 		row.add_child(description)
 		var category_caption:=label("EQUIPO DEL PUEBLO" if key in ["helper","collector","guard"] else "MEJORA DEL NEGOCIO",11,accent)
 		description.add_child(category_caption)
-		var heading:=label(names[key],19,INK)
-		heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		description.add_child(heading)
+		var upgrade_heading:=label(names[key],19,INK)
+		upgrade_heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		description.add_child(upgrade_heading)
 		var detail:=label("",14,MUTED)
 		detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		detail.max_lines_visible=2

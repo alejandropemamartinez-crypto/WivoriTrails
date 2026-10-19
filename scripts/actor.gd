@@ -283,7 +283,7 @@ func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -
 		# Match by actual asset rather than old slot. A change in one product
 		# cannot unnecessarily discard unrelated, already-imported meshes.
 		var available:Array=reusable.get(expected,[])
-		var item:Node3D=available.pop_back() if not available.is_empty() else null
+		var item:Node3D=available.pop_front() if not available.is_empty() else null
 		if item==null:
 			item=model(asset)
 			destination.add_child(item)

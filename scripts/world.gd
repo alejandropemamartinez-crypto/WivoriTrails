@@ -174,8 +174,10 @@ func build_market() -> void:
 	shape(self,"box",Vector3(4,.10,2.5),Vector3(3.7,.12,2.7),Color("#aa8967"),"Terraza de entregas")
 	var rug:=shape(self,"box",Vector3(4,.18,2.5),Vector3(3.30,.08,2.34),Color("#d6ba84"),"Alfombra de entregas")
 	var paint:=ShaderMaterial.new();paint.shader=preload("res://scripts/ground.gdshader");paint.set_shader_parameter("cobbled",true);paint.set_shader_parameter("base_color",Color("#e0c89a"));rug.material_override=paint
-	var sign:=make_label(self,"ENTREGAR",Vector3(1.25,1.7,3.5),48)
-	sign.pixel_size=.011
+	# Keep the manual delivery point readable without covering the hero on
+	# the central approach. The rug remains the actual interaction target.
+	var sign:=make_label(self,"ENTREGAR",Vector3(4,2.7,2.5),46)
+	sign.pixel_size=.008
 
 func build_farms() -> void:
 	farm_root = Node3D.new(); farm_root.name = "Huertos"; add_child(farm_root)

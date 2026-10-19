@@ -102,5 +102,5 @@ func run_tests() -> void:
 	await process_frame
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
-	print("RESULT: %d passed, %d failed (not run automatically)" % [passed,failed])
+	print("RESULT: %d passed, %d failed" % [passed,failed])
 	quit(1 if failed>0 else 0)

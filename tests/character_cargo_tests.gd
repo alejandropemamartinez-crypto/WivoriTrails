@@ -142,5 +142,5 @@ func run_tests() -> void:
 	await process_frame
 	await process_frame
 	clean()
-	print("RESULT: %d checks, %d failures (never executed on this branch)" % [checked,failed])
+	print("RESULT: %d checks, %d failures" % [checked,failed])
 	quit(1 if failed>0 else 0)

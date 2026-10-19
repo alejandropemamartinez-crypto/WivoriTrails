@@ -139,5 +139,5 @@ func run_tests() -> void:
 	await process_frame
 	await process_frame
 	clear_save()
-	print("RESULT: %d prepared modal checks, %d failures; NOT RUN in stage 5N" % [checked,failed])
+	print("RESULT: %d prepared modal checks, %d failures" % [checked,failed])
 	quit(1 if failed else 0)

@@ -139,5 +139,5 @@ func run_tests() -> void:
 	await process_frame
 	await process_frame
 	clean()
-	print("RESULT: %d prepared worker checks, %d failures (not executed)" % [successes+failures,failures])
+	print("RESULT: %d prepared worker checks, %d failures" % [successes+failures,failures])
 	quit(1 if failures else 0)

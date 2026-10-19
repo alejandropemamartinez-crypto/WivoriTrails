@@ -82,5 +82,5 @@ func run_tests() -> void:
 	check(protagonist.money_bag.visible and not protagonist.goods_root.visible,"Cash couriers keep their money bag instead of fake produce")
 	temp.queue_free()
 	await process_frame
-	print("RESULT: %d checks, %d failures; authored but NOT executed" % [checked,failed])
+	print("RESULT: %d checks, %d failures" % [checked,failed])
 	quit(1 if failed else 0)

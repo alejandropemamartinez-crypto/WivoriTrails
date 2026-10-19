@@ -163,5 +163,5 @@ func run_tests() -> void:
 	check(ResourceLoader.exists("res://assets/ui/icons/shop.svg"),"Missing future upgrade icons can safely fall back to the known shop pictogram")
 	check(ResourceLoader.exists("res://assets/ui/signs/star.svg"),"The CONSTRUIR project sign uses an imported star pictogram")
 	check(ResourceLoader.exists("res://Main.tscn"),"The configured startup scene has a valid file")
-	print("RESULT: %d checks, %d failures; never executed during code-only development" % [checked,failures])
+	print("RESULT: %d checks, %d failures" % [checked,failures])
 	quit(1 if failures else 0)

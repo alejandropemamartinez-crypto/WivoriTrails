@@ -1,5 +1,11 @@
 # Wivori Trails — hoja de ruta de finalización por etapas
 
+**Actualización 0.18.0:** la fase de ejecución está autorizada y realizada en
+Godot 4.4.1. Se corrigieron errores que bloqueaban el arranque; se verifican
+campaña, controles y capturas nativas, y se prepara el APK Android con firma
+estable. [Validación actual](release-v0.18.md). Las notas «sin compilar» de cada
+etapa que siguen describen el estado histórico en que se escribió ese avance.
+
 Fecha de línea base: 18 de octubre de 2026, rama `main`, versión 0.16.0.
 Este documento deriva de los requisitos del proyecto «Revisión de idea de juego» y
 las correcciones posteriores. No presupone que 0.16.0 tenga acabado comercial.

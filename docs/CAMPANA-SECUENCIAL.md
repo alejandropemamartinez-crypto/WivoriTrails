@@ -1,9 +1,9 @@
-# Campaña secuencial — revisión de fuente, etapa 6
+# Campaña secuencial — seis mapas
 
-Esta implementación continúa la rama `feat/v018-stage5n-input-modal-qa-no-build`.
-No es una versión publicada: no se ejecutaron Godot, pruebas funcionales,
-capturas ni compilación Android. Los requisitos siguientes están implementados
-en código y necesitan validarse jugando antes de aprobarlos.
+La implementación de la etapa 6 ya pasó por la revisión de ejecución de 0.18.0:
+importación, pruebas funcionales y capturas nativas de Godot. Se revisaron los
+seis mapas y controles; Android se exporta y verifica en CI. Los resultados y
+límites se documentan en [release-v0.18.md](release-v0.18.md).
 
 ## Propósito y avance
 
@@ -54,7 +54,8 @@ El antiguo texto largo «PEDIDO PREMIUM ×2» se sustituyó por un tablero SVG
 propio de tamaño fijo, título **PEDIDOS ×2**, producto y cantidad separados.
 Incluye estados bloqueado, activo y completado, tipografía Quicksand y fondo
 opaco de alto contraste. Los cambios de producto no modifican su escala.
-La legibilidad real, oclusiones y tamaño en Android siguen pendientes de render.
+Su tamaño y legibilidad se revisaron en capturas nativas de ambas proporciones
+verticales. La lectura en un teléfono Android físico sigue pendiente.
 
 Los carteles generales calculan ancho por la línea más larga y alto por número
 de líneas; ya no miden un bloque multilineal como una única cadena horizontal.

@@ -81,5 +81,5 @@ func run_tests() -> void:
 	await process_frame
 	await process_frame
 	clean()
-	print("RESULT: %d checked, %d failed (unexecuted)" % [passed+failed,failed])
+	print("RESULT: %d checked, %d failed" % [passed+failed,failed])
 	quit(1 if failed else 0)

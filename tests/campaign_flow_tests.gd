@@ -56,9 +56,17 @@ func run_checks() -> void:
 	check(game.route.unlocked()==4,"Five contracts do not prematurely open Aurora")
 	game.route.industry_orders_done=6
 	check(game.route.unlocked()==5,"Maxed factories and the full six-order round open the sixth map")
-	game.route.access_floor=5;game.route.aurora_stage=game.route.AURORA_PROJECTS.size()
-	for project in game.route.AURORA_PROJECTS:game.route.built.append(project["id"])
-	game.route._arrive(5);game.player.position=game.route.MARKET
+	game.route.access_floor=5;game.route._arrive(5)
+	game.coins=100000
+	for project in game.route.AURORA_PROJECTS:
+		for key in project["needs"]:game.route.inventory[key]=int(project["needs"][key])
+		var approach: Vector3=project["at"]+(Vector3(0,0,3.2) if not project["model"].is_empty() else Vector3.ZERO)
+		game.player.position=approach+Vector3(6,0,0)
+		wallet=game.coins
+		check(not game.route.build_project() and game.coins==wallet,"Aurora construction requires reaching the actual plot")
+		game.player.position=approach
+		check(game.route.build_project() and game.coins==wallet-int(project["cost"]),"Aurora builds and charges each sequential project exactly once")
+	game.player.position=game.route.MARKET
 	check(game.route.region_identity.expedition_boat!=null,"The purchased shipyard supplies an independent visible freight ship")
 	var manifest: Dictionary=game.route.EXPEDITIONS[0]
 	for key in manifest["needs"]:game.route.inventory[key]=int(manifest["needs"][key])
@@ -79,6 +87,22 @@ func run_checks() -> void:
 	check(game.route.expedition.is_empty() and game.route.expeditions_done==1,"Reload cannot revive an already paid expedition")
 	check(game.route.expedition_routes.size()==1 and not game.route.campaign.completed(5),"Repeating one route does not complete the three-route network")
 	check(game._save_data()["version"]==8,"Campaign additions preserve the existing outer save schema")
+	# Complete the remaining routes through the public departure/payment path.
+	# Fixtures supply cargo; timers, consumption, rewards and persistence are real.
+	for index in [0,1,2]:
+		game.route._arrive(5);game.player.position=game.route.MARKET
+		manifest=game.route.EXPEDITIONS[index]
+		for key in manifest["needs"]:game.route.inventory[key]=int(manifest["needs"][key])
+		check(game.route.start_expedition(index),"Each selected expedition accepts its own real manifest")
+		game.route._arrive(1)
+		old_cash=game.route.market_money[5]
+		game.route.tick(float(manifest["duration"])+.1)
+		check(game.route.market_money[5]==old_cash+int(manifest["reward"]),"Every distinct route pays into Aurora while the hero works elsewhere")
+		check(game.route.expedition_routes.size()==index+1,"Repeating the coast does not count as another distinct expedition route")
+	check(game.route.campaign.completed(5),"The campaign has a reachable completion after all three expedition types")
+	check(not game.milestone.is_open(),"Completing the final campaign goal never interrupts manual play")
+	await reload()
+	check(game.route.campaign.completed(5) and game.route.expeditions_done==4,"Final completion survives reload without losing repeat expedition history")
 
 	# Order content changes independently from its fixed sign geometry.
 	game.run.level=4;game.world.update_security(game.run)

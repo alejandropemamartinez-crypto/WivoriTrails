@@ -51,5 +51,5 @@ func run_tests() -> void:
 		"Invisible portrait no longer demands costly offscreen renders")
 	banner.queue_free()
 	await process_frame
-	print("RESULT: %d portrait contract checks, %d failed (not executed on stage 5M)" % [checked,failed])
+	print("RESULT: %d portrait contract checks, %d failed" % [checked,failed])
 	quit(1 if failed else 0)

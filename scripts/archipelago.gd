@@ -824,7 +824,7 @@ func _tick_expedition(delta: float) -> void:
 	# Clear the in-flight transaction before saving; reload cannot pay twice.
 	g._save_progress()
 	if region==5:g._float_activity(MARKET,"EXPEDICIÓN ENTREGADA · COBRÁ EN CAJA",Color("#f1cb79"))
-	if expedition_routes.size()==EXPEDITIONS.size():g.milestone.announce("fleet:network","¡Red comercial fundada!","Completaste las tres rutas de Aurora. Podés ampliar tu flota comercial y seguir eligiendo cargamentos entre todos tus pueblos.","boat","route","META DEL ARCHIPIÉLAGO")
+	if expedition_routes.size()==EXPEDITIONS.size():g.milestone.announce("fleet:network","¡Red comercial fundada!","Completaste las tres rutas de Aurora. Tus seis pueblos siguen abiertos para comerciar, fabricar y preparar nuevos cargamentos.","boat","route","META DEL ARCHIPIÉLAGO")
 	refresh_board()
 
 func expedition_objective(result: Dictionary) -> Dictionary:
@@ -834,7 +834,8 @@ func expedition_objective(result: Dictionary) -> Dictionary:
 	if not expedition.is_empty():
 		result.merge({"title":"%s · %d s" % [EXPEDITIONS[int(expedition["index"])]["title"],ceili(float(expedition["remaining"]))],"detail":"La flota viaja mientras atendés, fabricás o abastecés otros pueblos.","button":"VER MAPA","action":"route:board"},true);return result
 	if selected_expedition<0:
-		result.merge({"title":"Elegí tu siguiente expedición","detail":"Tres rutas, distintas cargas y duración. Completá una de cada tipo.","button":"ELEGIR RUTA","action":"route:board"},true);return result
+		var network_complete: bool=expedition_routes.size()>=EXPEDITIONS.size()
+		result.merge({"title":"¡Red comercial fundada!" if network_complete else "Elegí tu siguiente expedición","detail":"Meta cumplida. Elegí otra ruta o seguí comerciando entre tus pueblos." if network_complete else "Tres rutas, distintas cargas y duración. Completá una de cada tipo.","button":"ELEGIR RUTA","action":"route:board"},true);return result
 	var manifest: Dictionary=EXPEDITIONS[selected_expedition]
 	for key in manifest["needs"]:
 		if amount(key)<int(manifest["needs"][key]):
@@ -900,8 +901,8 @@ func _text(message: String,size_: int=20,color_: Color=Color("#285269")) -> Labe
 	if size_>=23:
 		# Section headings live in lightly embossed cards rather than mixing
 		# with all body copy; route projects, villages and production are distinct.
-		var section:=g.hud.panel(Color("#fff8e4"))
-		var skin:=g.hud.style(Color("#fff8e4"),15)
+		var section: PanelContainer=g.hud.panel(Color("#fff8e4"))
+		var skin: StyleBoxFlat=g.hud.style(Color("#fff8e4"),15)
 		skin.border_color=Color("#bfd3b7")
 		skin.border_width_left=7
 		skin.border_width_right=1
@@ -918,7 +919,7 @@ func _text(message: String,size_: int=20,color_: Color=Color("#285269")) -> Labe
 func _button(message: String,callback: Callable,disabled: bool=false) -> Button:
 	var b: Button=g.hud.button(message,Color("#388b98"),18);b.custom_minimum_size.y=76;b.disabled=disabled;listing.add_child(b);b.pressed.connect(callback);return b
 func route_caption() -> String:
-	var caption: String="MAPA · %d/%d" % [unlocked()+1,NAMES.size()]
+	var caption: String="MAPAS · %d/%d" % [unlocked()+1,NAMES.size()]
 	return caption+" •" if g.milestone!=null and not g.milestone.pending.is_empty() else caption
 func refresh_board() -> void:
 	if route_button!=null:route_button.text=route_caption()

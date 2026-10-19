@@ -177,7 +177,7 @@ func _industrial_quarter() -> void:
 	if completed_projects.has("packaging_plant"):
 		for at in [Vector3(-24,0,-22),Vector3(24,0,-22)]:
 			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial")
-			_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial")
+			_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial · "+("oeste" if at.x<0 else "este"))
 			_solid("cylinder",at+Vector3(0,3.6,0),Vector3(1.62,.18,1.62),copper,"Coronación metálica")
 			_solid("box",at+Vector3(0,2.4,1.06),Vector3(.45,.20,1.35),Color("#e6d6b6"),"Canalización del silo")
 			_register_collision(Rect2(at.x-1.58,at.z-1.58,3.16,3.16))
