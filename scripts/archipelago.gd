@@ -185,7 +185,9 @@ func build_project() -> bool:
 	var new_forja:bool=not industrial and stage==PROJECTS.size()
 	var finished_industry:bool=industrial and industry_stage==INDUSTRY_PROJECTS.size()
 	var detail: String="Siguiente proyecto: "+next.get("name","")+"\n\n"+next.get("why","")
-	if new_forja:detail="La Ruta del Faro está completa. ¡Desbloqueaste Distrito Forja! Viajá para iniciar cinco proyectos industriales."
+	if new_forja:
+		detail="La Ruta del Faro está completa. ¡Desbloqueaste Distrito Forja! Viajá para iniciar cinco proyectos industriales."
+		pinned=true
 	if finished_industry:detail="La industria ya conecta todas las islas. Los contratos comerciales mixtos están disponibles en el mercado de Forja."
 	g.milestone.announce(("industry:stage:%d" % industry_stage) if industrial else ("route:stage:%d" % stage),"¡"+p["name"]+"!",detail,"boat" if p["id"].ends_with("route") else "star","","INDUSTRIA COMPLETA" if finished_industry else "RUTA COMPLETA · FORJA ABIERTA" if new_forja else "INDUSTRIA %d / %d" % [industry_stage,INDUSTRY_PROJECTS.size()] if industrial else "PROYECTO %d / %d" % [stage,PROJECTS.size()])
 	g.player.act("build");g._save_progress();g._refresh_ui();refresh_board();return true
@@ -356,7 +358,7 @@ func _build_region() -> void:
 	region_identity=RegionIdentity.new()
 	region_identity.configure(g.world,region)
 	scenery.add_child(region_identity)
-	region_identity.set_warehouse_stock(_total_warehouse_stock())
+	region_identity.set_warehouse_stock(_total_warehouse_stock() if region!=4 or built.has("dockworks") else 0)
 	g.world.navigation.build();_update_project_marker()
 	var accents:=PackedVector3Array()
 	for i in range(100):
@@ -456,7 +458,7 @@ func _total_warehouse_stock() -> int:
 
 func _update_cargo() -> void:
 	if is_instance_valid(region_identity):
-		region_identity.set_warehouse_stock(_total_warehouse_stock())
+		region_identity.set_warehouse_stock(_total_warehouse_stock() if region!=4 or built.has("dockworks") else 0)
 	g.player.set_carry(g._total_bag())
 	var key:=""
 	for item in bag:
@@ -715,6 +717,7 @@ func load_state(data: Dictionary) -> void:
 	for i in range(stage):built.append(PROJECTS[i]["id"])
 	industry_stage=int(Store.number(data,"industry_stage",0,0,INDUSTRY_PROJECTS.size())) if stage==PROJECTS.size() else 0
 	industry_orders_done=int(Store.number(data,"industry_orders_done",0,0,1000000)) if industry_stage==INDUSTRY_PROJECTS.size() else 0
+	pinned=stage==PROJECTS.size()
 	for i in range(industry_stage):built.append(INDUSTRY_PROJECTS[i]["id"])
 	for key in GOODS:
 		inventory[key]=int(Store.number(data.get("inventory",{}) if data.get("inventory") is Dictionary else {},key,0,0,100000))
