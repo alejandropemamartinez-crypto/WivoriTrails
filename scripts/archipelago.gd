@@ -177,6 +177,9 @@ func build_project() -> bool:
 	if p.is_empty() or region!=p["region"] or g.player.position.distance_to(p["at"]+Vector3(0,0,3.2) if not p["model"].is_empty() else p["at"])>2.8:return false
 	if g.coins<p["cost"] or not has_needs(p["needs"]):return false
 	g.coins-=p["cost"];consume(p["needs"]);built.append(p["id"])
+	# Building consumes real backpack and stored ingredients. Reflect that
+	# immediately, rather than waiting for an unrelated next frame.
+	_update_cargo()
 	var industrial:bool=stage==PROJECTS.size()
 	if industrial:industry_stage+=1
 	else:stage+=1
@@ -219,8 +222,18 @@ func start_batch(key: String,automatic: bool=false) -> bool:
 	job["remaining"]=recipe["time"]*pow(.8,int(mastery.get(key,0)))
 	job["automatic"]=automatic
 	jobs[key]=job
-	if not automatic:g.player.act("deliver");g._notice("Preparando "+GOODS[key]+" · Podés hacer otra tarea",2)
-	g._save_progress();return true
+	# Auto-workers can start dozens of batches in the same update; avoid
+	# rewriting and backing up the entire v8 save on each workshop start.
+	# Manual production still saves immediately. Automatic runs request a
+	# coalesced autosave, bounded by two seconds, not every new batch.
+	_update_cargo()
+	if not automatic:
+		g.player.act("deliver")
+		g._notice("Preparando "+GOODS[key]+" · Podés hacer otra tarea",2)
+		g._save_progress()
+	else:
+		g.save_timer=minf(g.save_timer,2.0)
+	return true
 func pickup(key: String) -> bool:
 	if not jobs.has(key) or region!=RECIPES[key]["region"] or g.player.position.distance_to(station(key))>2.8:return false
 	var count:=mini(int(jobs[key]["ready"]),g.max_capacity-g._total_bag())
@@ -539,7 +552,9 @@ func tick(delta: float) -> void:
 				g._float_activity(station(key),"¡"+GOODS[key].to_upper()+" LISTO!",Color("#f1cb79"))
 	for key in employees:
 		if employees[key]:start_batch(key,true)
-	_update_cargo()
+	# The _update_cargo render operation is triggered by mutations
+	# (production input, construction, pickup, storage, sales), not 60
+	# times per second while a character stands still.
 	if not away():return
 	harvest_wait=maxf(0,harvest_wait-delta)
 	if not wheat.is_empty():crop_timers.clear()
