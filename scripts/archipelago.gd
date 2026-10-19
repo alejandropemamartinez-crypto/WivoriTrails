@@ -561,8 +561,22 @@ func objective() -> Dictionary:
 	if p.is_empty():
 		var order:=industry_order()
 		if not order.is_empty():
+			# Do not send an empty-handed player to the cash register. Resolve
+			# each missing contract ingredient through the existing recipe DAG
+			# and ferry travel guide. No autocrafting or teleportation.
+			for key in order["needs"]:
+				if amount(key)>=int(order["needs"][key]):continue
+				var task: Dictionary=result
+				if key=="wheat":
+					task.merge({"title":"Conseguí trigo para "+order["title"],"target":Vector3(-12,0,-8) if region==1 else (DOCK if away() else HOME_DOCK),"action":"" if region==1 else "route:board","button":"SEÑALAR" if region==1 else "DESTINOS","detail":need_text(order["needs"])},true)
+				elif RECIPES.has(key):
+					task=recipe_objective(key,result)
+					task["detail"]="Para "+order["title"]+" · "+str(task.get("detail",""))
+				else:
+					task.merge({"title":"Reuní "+GOODS[key],"target":DOCK if away() else HOME_DOCK,"action":"route:board","button":"DESTINOS","detail":need_text(order["needs"])},true)
+				return task
 			var at_factory:bool=region==4
-			result.merge({"title":order["title"],"detail":"Contrato industrial: "+need_text(order["needs"])+" · Paga %d monedas en la caja" % order["reward"],"target":MARKET if at_factory else (DOCK if away() else HOME_DOCK),"button":"ENTREGAR" if at_factory and has_needs(order["needs"]) else "DESTINOS" if not at_factory else "SEÑALAR","action":"route:order" if at_factory else "route:board"},true)
+			result.merge({"title":order["title"],"detail":"Contrato completo: "+need_text(order["needs"])+" · Paga %d monedas en la caja" % order["reward"],"target":MARKET if at_factory else (DOCK if away() else HOME_DOCK),"button":"ENTREGAR" if at_factory else "DESTINOS","action":"route:order" if at_factory else "route:board"},true)
 			return result
 		result["title"]="¡Ruta del Faro completada!";result["detail"]="Mejorá talleres, comerciá y visitá tus pueblos."
 		return result
