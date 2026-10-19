@@ -138,6 +138,19 @@ construcciones o trabajadores.
 - **Sin validar en Godot:** compilación/parseo real de GDScript, comportamiento de la interfaz, capturas auténticas, obstáculos decorativos y rendimiento. No se ha generado APK ni fusionado la rama.
 - **Siguiente intervención importante:** diseñar una expansión industrial jugable realmente distinta tras completar el Faro (cadena de productos y nuevo distrito persistente), no un simple cambio de color o una lista interminable de pedidos. Será una etapa propia porque exige probar migración de partidas, rutas y balance de progresión.
 
+## Etapa 4B — Distrito Forja, después del Faro (rama independiente, no compilada)
+- Rama: `feat/v018-industrial-expansion-no-build` (parte de etapa 4, **sin** fusionar con `main`).
+- Se conserva íntegra la campaña original de **15 proyectos**: completar su inauguración habilita un quinto destino, **Distrito Forja**, sin reiniciar mercados, trabajadores, construcciones o el faro.
+- Cinco inversiones nuevas y secuenciales: muelle industrial, empaquetadora, conservera, centro de logística y bolsa de comercio isleño. Cada una tiene coste, lugar y requisitos de productos transportados.
+- Nuevas cadenas industriales: trigo y harina → empaques; empaques y provisiones → conservas; conservas, empaques y queso → kits de comercio. Las fábricas existentes siguen suministrando recursos.
+- Se reutilizan modelos GLB legítimos de parcelas/mercancías (no hay cargas inexistentes), con **estructuras metálicas procedurales** añadidas para distinguir las máquinas. Es un primer acabado técnico, no arte comercial aprobado.
+- Contratos industriales mixtos rotativos al terminar los cinco proyectos. La entrega consume ingredientes una sola vez; el pago queda en la caja de Forja y **solo es disponible tras recogerlo**. Hay tres combinaciones/recompensas definidas.
+- `scripts/region_identity.gd` incluye un barrio portuario industrial con silos, aspas móviles, áreas de carga y contenedores; la representación del stock usa exclusivamente inventario real y exige haber construido el muelle industrial.
+- Progreso almacenado de forma **aditiva** en la sección `route` del guardado v8: `industry_stage`, `industry_orders_done`, quinta caja de efectivo y nuevos lotes. Partidas anteriores carecen de estos campos, por lo que cargan con progreso industrial cero sin perder los quince proyectos del Faro.
+- `tests/industrial_expansion_tests.gd` preparada (no ejecutada) para gates, viaje, proyectos, producción, recarga, entrega de contratos, efectivo en tránsito y ausencia de créditos duplicados. Actualizada además la expectativa de destino final en `tests/archipelago_tests.gd`.
+- **Riesgos conocidos**: GDScript aún no se ha importado ni parseado con Godot; arquitectura industrial no ha sido inspeccionada mediante capturas auténticas; colisiones, rendimiento móvil y balance de ingresos de largo plazo no se han medido. No se generó APK ni se ejecutó ninguna prueba.
+- **Siguiente bloque**: auditar en el motor la integración de las etapas 1–4B, corregir fallos encontrados, evaluar arte industrial y transiciones y preparar una compilación **solo cuando el creador autorice la etapa de pruebas**.
+
 ## Etapa 5 — Calidad y publicación experimental
 - Importar Godot sin errores; correr todas las suites de regresión.
 - Exportar APK ARM64 con el mismo package/firma y un versionCode nuevo.
