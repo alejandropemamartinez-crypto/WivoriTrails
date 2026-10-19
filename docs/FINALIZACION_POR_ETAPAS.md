@@ -175,6 +175,17 @@ Correcciones incorporadas:
 
 **Pendientes antes de dar aprobación**: parseo e importación Godot 4.4.1, ejecutar todas las suites, revisar en capturas del motor solapes reales, rutas de navegación y colocación de objetos, probar a dos tamaños de pantalla, mirar animaciones del protagonista/NPC, FPS y persistencia en Android físico, auditoría de licencias. Los cambios descritos son una implementación sin prueba funcional.
 
+### Auditoría 5B — dinero entre islas, guías y colisiones (sin compilar)
+Rama: `feat/v018-stage5b-transport-cash-qa-no-build`, derivada de la auditoría 5A, no fusionada a `main`.
+
+- Se corrigió un defecto concreto: las monedas en tránsito de las **cajas locales** se dibujaban y animaban como hijas del sistema de cobros de Wivori, que está oculto y desactivado durante los viajes. Ahora `_fly_money` crea los objetos temporales y sus tweens en la ruta persistente, visible y activa en los otros pueblos. No se altera la suma de cobro pendiente ni el momento de acreditarla al monedero.
+- El botón de contratos industriales usa la misma fuente de objetivos que la guía HUD: con ingredientes faltantes señala la fábrica/cosecha o abre los destinos del barco, y ya no lleva engañosamente a la caja vacía.
+- La decoración sólida de las islas (carros, barriles, carga portuaria, muelles de Forja, silos y contenedores) comunica sus huellas al sistema de navegación. Antes los actores podían caminar *a través* de utilería visible. Se quitan las colisiones antiguas antes de regenerar la decoración al construir, para evitar obstáculos fantasma o duplicados.
+- Habitantes y operarios ahora consultan la elevación del terreno de cada isla; los operarios dentro de un nodo de taller traducen su posición local a coordenadas globales para no hundirse en el suelo.
+- Se eliminó de la alerta del puesto vacío la referencia ya obsoleta a un «círculo dorado».
+- Añadida la suite `tests/cross_island_cash_tests.gd`, que define pruebas de visibilidad de monedas, viaje de Forja a Wivori, recarga durante dinero en vuelo y ausencia de duplicaciones. Ampliadas `tests/industrial_expansion_tests.gd` y `tests/region_identity_tests.gd` con huellas de colisión, liberación de obstáculos y anclaje de NPC.
+- **Estado:** fuente guardada; no se ha ejecutado Godot, las suites, una importación de escenas, Android ni la compilación de un APK. Las pruebas preparadas son especificaciones para la fase de validación, no aprobaciones. Siguen pendientes evaluación artística, capturas reales, rendimiento y localización física de posibles colisiones residuales.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
