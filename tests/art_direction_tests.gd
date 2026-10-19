@@ -67,6 +67,22 @@ func run() -> void:
 	game.world.focus_upgrade_labels(Vector3(400,0,400),false,"")
 	check(not buy_label.visible, "Offscreen distant market signs are not rendered unnecessarily")
 
+	# Stage 2: design contracts only. These do not substitute rendered mobile QA.
+	check(game.hud.shop_cards.size()==10 and game.hud.shop_states.size()==10,
+		"All ten shop upgrades have individual visual cards and availability captions")
+	check(game.hud.shop_tabs.size()==2 and game.hud.town_cards.size()==9 and game.hud.town_statuses.size()==9,
+		"Shop tabs and nine illustrated building cards use a consistent catalogue")
+	check(game.hud.semantic_color("helper")!=game.hud.semantic_color("speed"),
+		"Worker and movement upgrades use distinct semantic accent colours")
+	var shop_skin: StyleBoxFlat=game.hud.shop_cards["helper"].get_theme_stylebox("panel") as StyleBoxFlat
+	check(shop_skin!=null and shop_skin.border_width_left>=6,
+		"Upgrade cards have a strong coloured left edge and clear visual hierarchy")
+	var building_skin: StyleBoxFlat=game.hud.town_cards["house"].get_theme_stylebox("panel") as StyleBoxFlat
+	check(building_skin!=null and building_skin.border_width_left>=6,
+		"Town building illustrations have identifiable, coloured cards")
+	check(game.hud.guide_button.custom_minimum_size.y>=72,
+		"Main objective's guiding action keeps an accessible mobile touch area")
+
 	var card: PanelContainer=game.milestone.card
 	check(card.anchor_bottom-card.anchor_top>=.75 and card.anchor_right-card.anchor_left>=.75,
 		"Major story milestones occupy at least three-quarters of the viewport")
