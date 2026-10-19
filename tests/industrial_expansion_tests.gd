@@ -56,6 +56,7 @@ func run_tests() -> void:
 	route.tick(1.4)
 	check(route.region==4 and route.region_identity!=null and game.world.navigation.is_walkable(game.player.position,.25),"Industrial arrival restores navigable, visually distinct scenery")
 	check(route.region_identity.machine_rotors.is_empty() and route.region_identity.storage_props.is_empty(),"New industrial island cannot display factories or stored cargo before construction")
+	check(game.world.navigation.is_walkable(Vector3(-17,0,17),.20),"The unbuilt industrial dock remains an open space")
 	check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).is_empty(),"Unbuilt factory silos are absent from the initial landscape")
 
 	for stage_index in range(route.INDUSTRY_PROJECTS.size()):
@@ -69,8 +70,11 @@ func run_tests() -> void:
 		if stage_index==2:
 			check(route.region_identity.machine_rotors.size()==2,"Preserves plant actually reveals two animated industrial rotors")
 		if stage_index==3:
+			check(not game.world.navigation.is_walkable(Vector3(-14.5,0,16.5),.20),"Completed logistics crates physically block walking through cargo")
+		if stage_index==3:
 			check(route.region_identity.storage_props.size()==6,"Logistics hub unlocks six stock-dependent cargo props")
 		if stage_index==0:
+			check(not game.world.navigation.is_walkable(Vector3(-17,0,17),.20),"Paid port platforms add matching navigation obstacles")
 			await reload()
 			route=game.route
 			check(route.region==4 and route.industry_stage==1 and route.built.has("dockworks"),"First industrial project and fifth town survive reload")
@@ -80,6 +84,9 @@ func run_tests() -> void:
 			check(route.RECIPES.has("packaging") and route.processing_visuals.has("packaging"),"Packaging plant actually unlocks physical production")
 			check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).size()==2,"Purchased packaging plant reveals its two silos")
 			check(route.region_identity.machine_rotors.is_empty(),"Unbuilt preserves line cannot run ventilation machinery")
+			var obstacles_before:int=game.world.navigation.obstacles.size()
+			route._refresh_region_identity()
+			check(game.world.navigation.obstacles.size()==obstacles_before,"Recreating decorations does not leak duplicate obstacles")
 			route.inventory["wheat"]=8
 			route.inventory["flour"]=4
 			game.player.position=route.station("packaging")
