@@ -86,7 +86,7 @@ func run_tests() -> void:
 			var region: int=game.route.region;var stock: Dictionary=game.route.inventory.duplicate();var position: Vector3=game.player.position;await stop();await start()
 			check(game.route.stage==stage+1 and game.route.region==region and game.route.inventory==stock,"Reload preserves current town, projects and warehouse")
 			check(game.player.position.distance_to(position)<.8,"Reload restores The protagonist near his saved position in the active town")
-	check(game.route.unlocked()==3 and game.route.project().is_empty() and game.route.built.has("beacon"),"All towns culminate in a completed lighthouse campaign")
+	check(game.route.unlocked()==4 and game.route.project().is_empty() and game.route.industry_stage==0 and game.route.built.has("beacon"),"Fifteen historical lighthouse chapters remain complete and open the optional industrial destination")
 	await go(1);await ensure("wheat",12);game.player.position=game.route.DOCK;game.route.deposit();game.player.position=game.route.station("flour");price=game.coins
 	check(game.route.hire("flour") and game.coins==price-650,"A station operator is an explicit paid automation upgrade")
 	game.route.employees["flour"]=false;price=game.coins
