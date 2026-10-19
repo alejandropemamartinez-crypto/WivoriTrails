@@ -57,10 +57,12 @@ func run_tests() -> void:
 	# personal bag, even when that player happens to be in another region.
 	route.inventory["wheat"]=20
 	route.bag["wheat"]=5
+	verify(route._job_status("flour")=="PREPARAR LOTE","A ready but unstaffed mill no longer displays misleading zero-second progress")
 	route.employees["flour"]=true
 	g.save_timer=8.0
 	route.tick(.1)
 	verify(route.jobs.has("flour") and route.jobs["flour"]["remaining"]>0,"A hired mill worker starts a real batch while Wivori is active")
+	verify(route._job_status("flour").begins_with("EN PROCESO"),"Working machines display remaining real production seconds")
 	verify(route.inventory["wheat"]==17 and route.bag["wheat"]==5,"Automatic production consumes exactly three stored wheat, not carried wheat")
 	verify(g.save_timer<=2.0,"The first automatic batch requests one coalesced near-term save instead of synchronous file writes")
 	var remaining:float=route.jobs["flour"]["remaining"]
@@ -76,6 +78,7 @@ func run_tests() -> void:
 	route.employees["flour"]=false
 	route.tick(13.0)
 	verify(route.jobs["flour"]["ready"]==4 and route.jobs["flour"]["remaining"]==0.0,"Pausing an operator lets its existing paid batch finish, then stops")
+	verify(route._job_status("flour")=="¡LISTO! ×4","Completed products take precedence over a paused employee notice")
 	verify(route.inventory["wheat"]==14 and route.bag["wheat"]==5,"Paused operator neither steals player cargo nor restarts itself")
 	var stored:int=route.jobs["flour"]["ready"]
 	route.tick(26.0)
@@ -95,6 +98,7 @@ func run_tests() -> void:
 	g.player.position=route.station("flour")
 	verify(route.pickup("flour") and route.bag["flour"]==6,"Physically visiting the mill transfers finished stock into backpack")
 	verify(route.jobs["flour"]["ready"]==0 and g.player.carrying==11,"Pickup removes the finite output exactly once and updates the visible player load")
+	verify(route._job_status("flour")=="OPERARIO PAUSADO","After the last pickup, an intentionally paused employee is explicitly identified")
 	verify(not route.pickup("flour"),"Picking the same finished output a second time gives nothing")
 	# A manually started batch must take inputs from the carried pouch first.
 	# This previously left the 3D backpack stale until the next route tick.
@@ -105,6 +109,7 @@ func run_tests() -> void:
 	verify(route.bag["wheat"]==2 and route.inventory["wheat"]==wheat_before,"Manual batch consumes the player's three wheat before taking warehouse stock")
 	verify(g.player.carrying==avatar_before-3 and g.player.goods_root.get_child_count()==6,"Manual ingredient consumption refreshes the real 3D backpack immediately")
 	verify(route.jobs["flour"]["remaining"]>0,"Manual workshop uses the same non-instant production timer as workers")
+	verify(route._job_status("flour").begins_with("EN PROCESO"),"Manual batches display ongoing work instead of zero remaining seconds")
 	var inventory:Dictionary=route.inventory.duplicate()
 	var bag:Dictionary=route.bag.duplicate()
 	await sail(0)
