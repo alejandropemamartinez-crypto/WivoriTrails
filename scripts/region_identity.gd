@@ -12,6 +12,7 @@ const REGION_THEMES={
 }
 var world: MarketWorld
 var region_index:=0
+var completed_projects: Array[String]=[]
 var pennants: Array[Dictionary]=[]
 var elapsed:=0.0
 var machine_rotors: Array[Node3D]=[]
@@ -19,9 +20,10 @@ var storage_props: Array[Node3D]=[]
 var last_stock_count:=-1
 var landmark_count:=0
 
-func configure(source: MarketWorld, selected: int) -> void:
+func configure(source: MarketWorld, selected: int, completed: Array[String]=[]) -> void:
 	world=source
 	region_index=selected
+	completed_projects=completed.duplicate()
 
 func _ready() -> void:
 	if world==null or not REGION_THEMES.has(region_index):return
@@ -135,36 +137,46 @@ func _maritime_quarter() -> void:
 		_solid("cone",at+Vector3(0,3.18,0),Vector3(.9,.38,.9),Color("#427b85"))
 
 func _industrial_quarter() -> void:
-	# Architectural language is different from the farm: steel, copper,
-	# warehouses, dry cargo lanes and clean-energy rotary ventilators.
-	# It stays near the coast; all commercial construction plots are clear.
+	# An unfinished district must not display operating factories.
+	# Each themed landmark only appears after its matching purchased project;
+	# basic lights and banners remain to distinguish the empty industrial port.
 	var steel:=Color("#66808a")
 	var concrete:=Color("#9aa5a0")
 	var copper:=Color("#c68c61")
-	for at in [Vector3(-24,0,-22),Vector3(24,0,-22)]:
-		_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial")
-		_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial")
-		_solid("cylinder",at+Vector3(0,3.6,0),Vector3(1.62,.18,1.62),copper,"Coronación metálica")
-		_solid("box",at+Vector3(0,2.4,1.06),Vector3(.45,.20,1.35),Color("#e6d6b6"),"Canalización del silo")
-	for at in [Vector3(-25,0,-6),Vector3(25,0,11)]:
-		_solid("cylinder",at+Vector3(0,2.3,0),Vector3(.27,4.6,.27),steel,"Torre eólica")
-		var rotor:=Node3D.new()
-		rotor.name="Aspas de energía limpia"
-		rotor.position=at+Vector3(0,4.6,.12)
-		add_child(rotor)
+	if completed_projects.has("dockworks"):
+		for at in [Vector3(-21,0,15),Vector3(21,0,15)]:
+			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial construida")
+			_solid("box",at+Vector3(0,1.06,0),Vector3(2.4,.22,2.8),Color("#c1a780"),"Zona de descarga industrial")
+	if completed_projects.has("packaging_plant"):
+		for at in [Vector3(-24,0,-22),Vector3(24,0,-22)]:
+			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial")
+			_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial")
+			_solid("cylinder",at+Vector3(0,3.6,0),Vector3(1.62,.18,1.62),copper,"Coronación metálica")
+			_solid("box",at+Vector3(0,2.4,1.06),Vector3(.45,.20,1.35),Color("#e6d6b6"),"Canalización del silo")
+	if completed_projects.has("preserves_line"):
+		for at in [Vector3(-25,0,-6),Vector3(25,0,11)]:
+			_solid("cylinder",at+Vector3(0,2.3,0),Vector3(.27,4.6,.27),steel,"Torre de ventilación")
+			var rotor:=Node3D.new()
+			rotor.name="Aspas de ventilación"
+			rotor.position=at+Vector3(0,4.6,.12)
+			add_child(rotor)
+			for i in range(3):
+				var a:float=float(i)*TAU/3.0
+				var vane:=world.shape(rotor,"box",Vector3(sin(a)*.72,cos(a)*.72,0),Vector3(.22,1.34,.09),Color("#e7dfc8"),"Aspa")
+				vane.rotation.z=-a
+			machine_rotors.append(rotor)
+	if completed_projects.has("shipping_hub"):
 		for i in range(3):
-			var a:float=float(i)*TAU/3.0
-			var vane:=world.shape(rotor,"box",Vector3(sin(a)*.72,cos(a)*.72,0),Vector3(.22,1.34,.09),Color("#e7dfc8"),"Aspa")
-			vane.rotation.z=-a
-		machine_rotors.append(rotor)
-	for i in range(3):
-		var at:=Vector3(-16.5+float(i)*2.0,0,16.5)
-		_solid("box",at+Vector3(0,.12,0),Vector3(1.8,.23,2.35),Color("#c6b28e"),"Plataforma logística")
-		for j in range(2):
-			var crate:=_asset("goods_crate",at+Vector3(0,.40+float(j)*.7,0),.75)
-			crate.name="Stock de fábrica %d" % (i*2+j+1)
-			crate.visible=false
-			storage_props.append(crate)
+			var at:=Vector3(-16.5+float(i)*2.0,0,16.5)
+			_solid("box",at+Vector3(0,.12,0),Vector3(1.8,.23,2.35),Color("#c6b28e"),"Plataforma logística")
+			for j in range(2):
+				var crate:=_asset("goods_crate",at+Vector3(0,.40+float(j)*.7,0),.75)
+				crate.name="Stock de fábrica %d" % (i*2+j+1)
+				crate.visible=false
+				storage_props.append(crate)
+	if completed_projects.has("trade_center"):
+		_solid("box",Vector3(0,3.3,-24),Vector3(4.0,.30,.9),copper,"Pórtico comercial")
+		_banner(Vector3(0,4.0,-24),Color("#e4c283"),2.0)
 	for at in [Vector3(-22,0,15),Vector3(22,0,15)]:
 		_solid("box",at+Vector3(0,.55,0),Vector3(1.0,1.1,1.0),copper,"Señal industrial")
 		_solid("sphere",at+Vector3(0,1.33,0),Vector3(.28,.28,.28),Color("#ffe6a4"),"Lámpara de carga")
