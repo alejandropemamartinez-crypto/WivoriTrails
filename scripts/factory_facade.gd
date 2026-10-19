@@ -69,8 +69,12 @@ func _add_window_batch() -> void:
 	batch.instance_count=6
 	for i in range(6):
 		var x:float=-1.6+float(i%3)*1.6
-		var y:float=1.62+float(i/3)*1.22
-		batch.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(x,y,-1.77)))
+		# The playable approach and camera are on positive Z; windows must
+		# face that side rather than being hidden behind the imported GLB.
+		var base_y:float=3.20 if kind in ["packaging_plant","shipping_hub"] else 1.62
+		var step_y:float=.56 if kind in ["packaging_plant","shipping_hub"] else 1.22
+		var y:float=base_y+float(i/3)*step_y
+		batch.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(x,y,1.75)))
 	var visible_windows:=MultiMeshInstance3D.new()
 	visible_windows.name="Seis ventanas acristaladas · un draw call"
 	visible_windows.multimesh=batch
@@ -146,10 +150,10 @@ func _freight_and_loading() -> void:
 	# moving pallet-lift track. Cargo display elsewhere remains tied
 	# to REAL inventory and is not duplicated by this decorative facade.
 	for x in [-1.55,1.55]:
-		_part(self,"box",Vector3(x,1.72,-1.80),Vector3(1.72,2.75,.22),INK,"Portón de nave de carga")
+		_part(self,"box",Vector3(x,1.72,1.80),Vector3(1.72,2.75,.22),INK,"Portón de nave de carga")
 		for i in range(5):
-			_part(self,"box",Vector3(x,.66+float(i)*.45,-1.91),Vector3(1.60,.065,.07),METAL,"Lama de portón enrollable")
-		_part(self,"box",Vector3(x,3.31,-1.88),Vector3(1.80,.22,.37),BRASS,"Dintel de muelle")
+			_part(self,"box",Vector3(x,.66+float(i)*.45,1.91),Vector3(1.60,.065,.07),METAL,"Lama de portón enrollable")
+		_part(self,"box",Vector3(x,3.31,1.88),Vector3(1.80,.22,.37),BRASS,"Dintel de muelle")
 	_part(self,"box",Vector3(0,.45,1.10),Vector3(4.00,.28,.48),Color("#7f9c9c"),"Transportador de mercancías")
 	var pallet:=_new_pivot("Palé de almacén en traslado",Vector3(-1.36,.78,1.10))
 	_part(pallet,"box",Vector3.ZERO,Vector3(.79,.18,.48),COPPER,"Tarima de madera")
@@ -160,18 +164,18 @@ func _trade_hall_and_clock() -> void:
 	# Trade centre: a civic building instead of a factory. A tall light
 	# clock and two symmetrical colonnades define an identifiable skyline.
 	for x in [-1.98,1.98]:
-		_part(self,"cylinder",Vector3(x,1.40,-.40),Vector3(.34,2.70,.34),IVORY,"Columna comercial")
-		_part(self,"cylinder",Vector3(x,2.79,-.40),Vector3(.55,.20,.55),BRASS,"Capitel")
-	_part(self,"box",Vector3(0,3.04,-.40),Vector3(4.7,.42,1.16),INK,"Cornisa central")
-	var clock_frame:=_part(self,"cylinder",Vector3(0,3.95,-1.80),Vector3(1.40,.20,1.40),BRASS,"Carátula del reloj")
+		_part(self,"cylinder",Vector3(x,1.40,1.54),Vector3(.34,2.70,.34),IVORY,"Columna comercial")
+		_part(self,"cylinder",Vector3(x,2.79,1.54),Vector3(.55,.20,.55),BRASS,"Capitel")
+	_part(self,"box",Vector3(0,3.04,1.54),Vector3(4.7,.42,1.16),INK,"Cornisa central")
+	var clock_frame:=_part(self,"cylinder",Vector3(0,3.95,1.80),Vector3(1.40,.20,1.40),BRASS,"Carátula del reloj")
 	clock_frame.rotation.x=PI/2
-	var clock_face:=_part(self,"cylinder",Vector3(0,3.95,-1.95),Vector3(1.20,.21,1.20),IVORY,"Esfera del reloj")
+	var clock_face:=_part(self,"cylinder",Vector3(0,3.95,1.95),Vector3(1.20,.21,1.20),IVORY,"Esfera del reloj")
 	clock_face.rotation.x=PI/2
-	var hand:=_new_pivot("Aguja de la plaza",Vector3(0,3.95,-2.08))
+	var hand:=_new_pivot("Aguja de la plaza",Vector3(0,3.95,2.08))
 	_part(hand,"box",Vector3(0,.25,0),Vector3(.070,.54,.09),INK,"Aguja del reloj")
 	moving_parts.append({"node":hand,"type":"clock","at":hand.position})
 	for x in [-1.4,1.4]:
-		_part(self,"box",Vector3(x,.53,-1.63),Vector3(.26,.72,.26),SEA,"Baliza del comercio")
+		_part(self,"box",Vector3(x,.53,1.63),Vector3(.26,.72,.26),SEA,"Baliza del comercio")
 
 func _process(delta: float) -> void:
 	clock+=delta
