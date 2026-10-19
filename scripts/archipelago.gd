@@ -5,6 +5,7 @@ const Finish=preload("res://scripts/scene_finish.gd")
 const Art=preload("res://scripts/art_library.gd")
 const RegionIdentity=preload("res://scripts/region_identity.gd")
 const FactoryFacade=preload("res://scripts/factory_facade.gd")
+const VillageFacade=preload("res://scripts/village_facade.gd")
 const Store=preload("res://scripts/save_store.gd")
 const Nav=preload("res://scripts/navigation.gd")
 const HOME_DOCK=preload("res://scripts/town_layout.gd").DOCK
@@ -394,12 +395,19 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
 	var model:=Art.place(root,p["model"])
 	if p["id"]=="beacon":_make_beam(root)
+	var authored: Node3D
 	if p["region"]==4:
-		var authored:=FactoryFacade.new()
-		authored.configure(g.world,p["id"])
+		var industry_facade:=FactoryFacade.new()
+		industry_facade.configure(g.world,p["id"])
+		authored=industry_facade
+	elif p["region"] in [1,2,3]:
+		var town_facade:=VillageFacade.new()
+		town_facade.configure(g.world,p["id"])
+		authored=town_facade
+	if authored!=null:
 		root.add_child(authored)
-		# Let new architectural features rise together with the original
-		# imported building instead of appearing fully built instantaneously.
+		# Decorative details arrive with purchased projects; neither
+		# the actual models nor any saved economy state are replaced.
 		if animated:
 			authored.scale=Vector3(1,.05,1)
 			create_tween().tween_property(authored,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
