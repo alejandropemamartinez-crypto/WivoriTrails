@@ -79,6 +79,7 @@ func start_batch(kind: String) -> bool:
 func pickup(kind: String) -> bool:
 	if not jobs.has(kind) or not jobs[kind]["ready"] or cargo_total()>=3 or g.player.position.distance_to(station(kind))>2.4:return false
 	jobs.erase(kind);cargo[kind]=int(cargo.get(kind,0))+1;g.player.act("collect");_update_visuals()
+	g._fly_model_goods(RECIPES[kind]["model"],station(kind)+Vector3(0,1.15,0),g.player.position+Vector3(0,1.3,0),1,g.player)
 	g._notice("LOTE RECOGIDO\nLlevalo al despacho del valle.",2);g._save_progress();g._refresh_ui();return true
 func deliver() -> bool:
 	if active.is_empty() or g.player.position.distance_to(DISPATCH)>2.6:return false
@@ -90,7 +91,8 @@ func deliver() -> bool:
 	if fast:rush_done+=1
 	if g.run.level>=12:festival_done+=1
 	if not recipes_seen.has(kind):recipes_seen.append(kind)
-	active={};g._record_sale(1,income);g.player.act("celebrate");_update_visuals()
+	active={};g._fly_model_goods(RECIPES[kind]["model"],g.player.position+Vector3(0,1.1,0),DISPATCH+Vector3(0,1.2,0),1)
+	g._record_sale(1,income,DISPATCH+Vector3(0,1.4,0));g.player.act("deliver");_update_visuals()
 	g.world.sale_receipt(DISPATCH,income)
 	g._notice("¡ENCARGO ENTREGADO!\n+%d en caja%s" % [income," · extra de rapidez" if fast else ""],2.2)
 	g._save_progress();g._refresh_ui();return true
