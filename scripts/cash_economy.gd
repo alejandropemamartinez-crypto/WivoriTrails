@@ -116,12 +116,18 @@ func _coin_at(t: float, coin: Node3D, start: Vector3, finish: Vector3, follow_he
 	coin.scale=Vector3.ONE*lerpf(.7,.15,t)
 
 func _fly_money(from: Vector3, target: Vector3, count: int, to_hero: bool) -> float:
-	var duration:=.0
+	# The home cash node is hidden and PROCESS_MODE_DISABLED while a ferry
+	# island is active. FX parented/bound to this node were consequently
+	# invisible or paused even though the wallet transfer timer continued.
+	# Use the always-present route container for transient money flights, in
+	# both the market and the other islands, while leaving the ledger alone.
+	var fx_host: Node3D=g.route if g.route!=null and is_instance_valid(g.route) else self
+	var duration:=0.0
 	for j in range(mini(12,count)):
 		var start:=from+Vector3(float(j%3-1)*.13,.06*float(j),0)
-		var piece:=Art.place(self,"coin",start,Vector3.ONE*.7)
+		var piece:=Art.place(fx_host,"coin",start,Vector3.ONE*.7)
 		var delay:=float(j)*.035
-		var tween:=create_tween()
+		var tween:=fx_host.create_tween()
 		tween.tween_interval(delay)
 		tween.tween_method(Callable(self,"_coin_at").bind(piece,start,target,to_hero),0.0,1.0,.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_callback(piece.queue_free)
