@@ -4,6 +4,7 @@ class_name WivoriArchipelago
 const Finish=preload("res://scripts/scene_finish.gd")
 const Art=preload("res://scripts/art_library.gd")
 const RegionIdentity=preload("res://scripts/region_identity.gd")
+const FactoryFacade=preload("res://scripts/factory_facade.gd")
 const Store=preload("res://scripts/save_store.gd")
 const Nav=preload("res://scripts/navigation.gd")
 const HOME_DOCK=preload("res://scripts/town_layout.gd").DOCK
@@ -393,7 +394,10 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
 	var model:=Art.place(root,p["model"])
 	if p["id"]=="beacon":_make_beam(root)
-	if p["region"]==4:_decorate_industry_facility(root,p["id"])
+	if p["region"]==4:
+		var authored:=FactoryFacade.new()
+		authored.configure(g.world,p["id"])
+		root.add_child(authored)
 	if p["id"]=="grainmill":
 		for node in model.find_children("*","Node3D",true,false):
 			if "rotor" in node.name.to_lower():mill_rotor=node;break
@@ -429,26 +433,6 @@ func _build_process_visual(root: Node3D, key: String) -> void:
 	product.name="Producto en elaboración "+key
 	product.visible=false
 	processing_visuals[key]={"node":product,"origin":Vector3(-.45,.78,0)}
-
-func _decorate_industry_facility(root: Node3D, id: String) -> void:
-	# Industrial identity layered onto imported buildings without new binary
-	# assets. These details are visual and do not modify the navigation mesh.
-	var cobalt:=Color("#60858e")
-	var copper:=Color("#cb9066")
-	var plaster:=Color("#ebdfbb")
-	for i in range(2):
-		var x:float=-1.85 if i==0 else 1.85
-		g.world.shape(root,"cylinder",Vector3(x,1.15,-.55),Vector3(.44,2.3,.44),cobalt,"Depósito vertical")
-		g.world.shape(root,"cylinder",Vector3(x,2.40,-.55),Vector3(.50,.25,.50),copper,"Remate de depósito")
-		g.world.shape(root,"box",Vector3(x,1.90,.07),Vector3(.16,.17,1.24),plaster,"Tubería de taller")
-	if id=="packaging_plant":
-		for i in range(3):
-			g.world.shape(root,"box",Vector3(-1.25+float(i)*1.25,.68,2.12),Vector3(.70,.40,.48),Color("#d4b28b"),"Empaques en máquina")
-	if id=="preserves_line":
-		for i in range(3):
-			g.world.shape(root,"cylinder",Vector3(-1.3+float(i)*1.25,.67,2.12),Vector3(.52,.62,.52),Color("#c5d6ce"),"Lata de conserva")
-	if id=="trade_center":
-		g.world.shape(root,"box",Vector3(0,3.55,0),Vector3(2.5,.25,1.10),Color("#f2d28c"),"Emblema del comercio isleño")
 
 func _station_ground_height(local_at: Vector3, station_root: Node3D) -> float:
 	# Workshop actors live under a translated root; sample terrain at their
