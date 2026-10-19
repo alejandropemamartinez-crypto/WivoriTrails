@@ -294,7 +294,7 @@ func load_state(data: Dictionary) -> void:
 
 func lesson() -> String:
 	var lessons: Array[String]=[
-		"Mové a Scottie con el joystick.
+		"Movete con el joystick.
 
 1. Cosechá 6 productos.
 2. Lleválos a ENTREGAR.

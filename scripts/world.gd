@@ -2,6 +2,7 @@ extends Node3D
 class_name MarketWorld
 
 # Gameplay geometry and original imported production meshes share navigation.
+const Finish=preload("res://scripts/scene_finish.gd")
 const Art=preload("res://scripts/art_library.gd")
 const TownFont=preload("res://assets/fonts/Quicksand-Bold.ttf")
 var crop_spots: Array[Dictionary] = []
@@ -56,9 +57,9 @@ func shape(parent: Node3D, kind: String, position_: Vector3, scale_: Vector3, ti
 		var model: PrimitiveMesh
 		match kind:
 			"sphere":
-				var s := SphereMesh.new(); s.radial_segments = 12; s.rings = 7; model = s
+				var s := SphereMesh.new(); s.radial_segments = 20; s.rings = 7; model = s
 			"cylinder":
-				var c := CylinderMesh.new(); c.radial_segments = 12; model = c
+				var c := CylinderMesh.new(); c.radial_segments = 64; model = c
 			"cone":
 				var c := CylinderMesh.new(); c.radial_segments = 12; c.top_radius = 0.0; c.bottom_radius = .5; model = c
 			_:
@@ -100,7 +101,7 @@ func make_label(parent: Node3D, message: String, pos: Vector3, size_: int = 70, 
 	var is_sign: bool=sign_ or message in ["ENTREGAR","TESORERÍA","Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS","MUELLE","PEDIDO PREMIUM","ENCARGOS DEL VALLE","WIVORI"] or message in ["RUTA AL FARO","EMBARCAR","CAJA LOCAL"] or parent.name.begins_with("Caja ")
 	var label: Label3D=preload("res://scripts/world_sign.gd").new() if is_sign else Label3D.new()
 	if is_sign:
-		label.symbol="money" if message=="TESORERÍA" or message in ["RUTA AL FARO","EMBARCAR","CAJA LOCAL"] or parent.name.begins_with("Caja ") else "harvest" if message in ["Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS"] else "deliver"
+		label.symbol="boat" if message in ["RUTA AL FARO","EMBARCAR","MUELLE"] else "star" if message in ["CONSTRUIR","FARO"] else "money" if message in ["TESORERÍA","CAJA LOCAL"] or parent.name.begins_with("Caja ") else "harvest" if message in ["Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS"] else "deliver"
 		size_=maxi(size_,46)
 	label.text = message
 	label.font=TownFont
@@ -127,6 +128,11 @@ func _ready() -> void:
 	quarters.w=self
 	add_child(quarters)
 	navigation.build()
+	var accents:=PackedVector3Array()
+	for i in range(90):
+		var at:=Vector3((-1 if i%2==0 else 1)*(3.8+sin(float(i)*7.3)*.55),.06,-19+float(i/2)*.91+sin(float(i)*4.7)*.30)
+		if navigation.is_walkable(at,.6) and absf(at.z)>5.8 and absf(at.z-8.5)>1.4 and absf(at.z+9)>1.4:accents.append(at)
+	Finish.meadow(self,accents)
 
 func build_land() -> void:
 	var grass:=shape(self,"box",Vector3(0,-.42,0),Vector3(150,.8,150),GREEN,"Base de isla")
@@ -151,7 +157,7 @@ func build_land() -> void:
 		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#e1cfaa"),"Lugar de cliente %d" % i)
 	# Shallow pond with solid shore, decorative and not in player movement area.
 	shape(self,"cylinder",Vector3(18,.08,15),Vector3(7,.12,6),Color("#c8e5ca"))
-	shape(self,"cylinder",Vector3(18,.12,15),Vector3(6,.14,5),Color("#5aaec2"))
+	Finish.water(shape(self,"cylinder",Vector3(18,.12,15),Vector3(6,.14,5),Color("#5aaec2")))
 
 func build_market() -> void:
 	navigation.add_obstacle(Rect2(1.30,-3.95,5.40,4.25))

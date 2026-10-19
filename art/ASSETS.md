@@ -1,11 +1,13 @@
-# Arte de Wivori Trails 0.14
+# Arte de Wivori Trails 0.16
 
 Se creó específicamente para este proyecto. No se utilizaron personajes,
 edificios, texturas ni recursos de Township/Playrix ni de otros juegos.
 
 | Recursos | Fuente editable | Uso |
 | --- | --- | --- |
-| Terrier gris atigrado | `source/terrier.blend` | Protagonista y vecinos caninos |
+| Perrito aventurero sin nombre | `source/hero.blend` | Protagonista exclusivo |
+| Zorro, cerdo y pato | `source/{fox,pig,duck}.blend` | Vecinos y trabajadores |
+| Establo, gallinero, corral y cercas | `source/farm_*.blend` | Arquitectura rural y animales |
 | Conejo | `source/rabbit.blend` | Ayudantes, recaudador y mensajera |
 | Mapache | `source/raccoon.blend` | Incursiones y mercancía robada |
 | 9 edificios | `source/{house,cafe,depot,bakery,greenhouse,workshop,park,watchtower,mill}.blend` | Bonificaciones económicas del pueblo |
@@ -61,3 +63,13 @@ las fuentes editables autoritativas de esta revisión. Se reexportan sin reconst
 el esculpido mediante `art/source/export_authored.py`. El generador histórico
 `build_assets.py` sigue disponible para los demás modelos. Los nuevos recursos
 se rigen por la misma licencia original del proyecto.
+
+## Nuevo protagonista y acabado 0.16
+
+`build_hero.py` reconstruye únicamente el protagonista sin nombre, con su rostro
+continuo nuevo, detalles anclados a la piel, ropa, esqueleto, 14 clips y atlas
+original de 1024 px. `build_farm_finish.py` genera las tres fachadas agrícolas
+y las cercas de madera abiertas. Los shaders de agua, suelo y contacto son
+originales del proyecto y funcionan con el renderizador Compatibility.
+Los modelos antiguos se conservan como fuentes históricas; el juego carga
+`hero.glb` exclusivamente para el jugador.

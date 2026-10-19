@@ -26,6 +26,7 @@ var action_duration := .8
 var ground_sampler: Callable
 var ground_offset := 0.0
 var current_clip := ""
+var contact_shadow: MeshInstance3D
 var last_speed := 0.0
 var is_money_courier := false
 var cargo_kind := ""
@@ -41,12 +42,13 @@ static func model(kind: String) -> Node3D:
 	return scenes[kind].instantiate()
 
 func _ready() -> void:
-	var animal: String="terrier" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
-	if animal not in ["terrier","fox","pig","duck","rabbit","raccoon"]:animal="rabbit"
+	var animal: String="hero" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
+	if animal not in ["hero","fox","pig","duck","rabbit","raccoon"]:animal="rabbit"
 	body_root=model(animal)
 	body_root.name="Personaje orgánico con esqueleto"
 	body_root.scale=Vector3.ONE*.84
 	add_child(body_root)
+	contact_shadow=preload("res://scripts/scene_finish.gd").contact(self)
 	skeleton=_find_skeleton(body_root)
 	animator=_find_animator(body_root)
 	head_mesh=_find_mesh(body_root)
@@ -159,11 +161,14 @@ func _process(delta: float) -> void:
 	last_position=position
 	var speed:=distance/maxf(delta,.001) if distance<3 else 0.0
 	walk_amount=lerpf(walk_amount,minf(speed/4.2,1),1-exp(-14*delta))
+	var turn_lean: float=clampf(angle_difference(rotation.y,facing),-.35,.35)*walk_amount*.22
+	body_root.rotation.z=lerpf(body_root.rotation.z,-turn_lean,1-exp(-10*delta))
 	rotation.y=lerp_angle(rotation.y,facing,1-exp(-12*delta))
 	anim_t+=distance*3.8 if distance<3 else 0
 	var ground_y: float=ground_sampler.call(position) if ground_sampler.is_valid() else .03
 	ground_offset=lerpf(ground_offset,ground_y,1-exp(-20*delta))
 	body_root.position.y=ground_offset
+	contact_shadow.position.y=ground_offset+.025
 	goods_root.position.y=1.40+ground_offset+sin(anim_t)*walk_amount*.025
 	stolen_bundle.position.y=.86+ground_offset+sin(anim_t)*walk_amount*.025
 	money_bag.position.y=.78+ground_offset+sin(anim_t)*walk_amount*.025

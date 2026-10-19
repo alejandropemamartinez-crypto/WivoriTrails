@@ -57,7 +57,7 @@ func run() -> void:
 	game.cash.tick(.1)
 	check(game.coins==50 and game.cash.player_held==money_in_register,"A started pickup cannot spend money before its visible arrival")
 	for i in range(12):game.cash.tick(.1)
-	check(game.coins==50+money_in_register and game.cash.total_pending()==0, "Scottie automatically picks up exactly one full cash stack on approach")
+	check(game.coins==50+money_in_register and game.cash.total_pending()==0, "The protagonist automatically picks up exactly one full cash stack on approach")
 	game.cash.tick(.1)
 	check(game.coins==50+money_in_register, "Standing near the empty register never duplicates cash")
 	game.player.position=Vector3(4,0,4)

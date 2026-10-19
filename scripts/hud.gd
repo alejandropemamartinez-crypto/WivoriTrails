@@ -215,7 +215,7 @@ func build(game: Node3D) -> void:
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
-	g.input_stick=load("res://scripts/joystick.gd").new(); root.add_child(g.input_stick)
+	g.input_stick=load("res://scripts/joystick.gd").new(); root.add_child(g.input_stick);g.input_stick.input_allowed=Callable(g,"_movement_input_allowed")
 	g.input_stick.anchor_top=1; g.input_stick.anchor_bottom=1
 	g.input_stick.offset_left=18; g.input_stick.offset_right=223
 	g.input_stick.offset_top=-252; g.input_stick.offset_bottom=-37

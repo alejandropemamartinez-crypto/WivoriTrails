@@ -1,6 +1,7 @@
 extends Node3D
 class_name WivoriArchipelago
 
+const Finish=preload("res://scripts/scene_finish.gd")
 const Art=preload("res://scripts/art_library.gd")
 const Store=preload("res://scripts/save_store.gd")
 const Nav=preload("res://scripts/navigation.gd")
@@ -14,11 +15,11 @@ const PROJECTS=[
 	{"region":1,"id":"grain","name":"Campos de Villa Miga","cost":380,"needs":{},"at":Vector3(-12,0,-16),"model":"greenhouse","why":"Abrí los campos de trigo. La harina alimentará a tres pueblos."},
 	{"region":1,"id":"grainmill","name":"Molino de grano","cost":600,"needs":{"wheat":8},"at":Vector3(-12,0,4),"model":"mill","why":"Convertí trigo en harina o alimento para animales."},
 	{"region":1,"id":"breadshop","name":"Panadería del puerto","cost":720,"needs":{"flour":4},"at":Vector3(0,0,-12),"model":"bakery","why":"El pan abre el comercio con el siguiente pueblo."},
-	{"region":1,"id":"henhouse","name":"Granja de gallinas","cost":520,"needs":{"bread":4,"feed":4},"at":Vector3(12,0,-12),"model":"house","why":"Alimentá las gallinas y recogé huevos para los pedidos."},
+	{"region":1,"id":"henhouse","name":"Granja de gallinas","cost":520,"needs":{"bread":4,"feed":4},"at":Vector3(12,0,-12),"model":"farm_coop","why":"Alimentá las gallinas y recogé huevos para los pedidos."},
 	{"region":1,"id":"nata_route","name":"Abrir Puerto Nata","cost":900,"needs":{"bread":10,"egg":6},"at":DOCK,"model":"","why":"Un pueblo ganadero necesita pan y huevos. Abre una nueva isla."},
-	{"region":2,"id":"cowbarn","name":"Establo de vacas","cost":900,"needs":{"feed":10},"at":Vector3(-12,0,-12),"model":"house","why":"Traé alimento de Villa Miga para producir leche."},
+	{"region":2,"id":"cowbarn","name":"Establo de vacas","cost":900,"needs":{"feed":10},"at":Vector3(-12,0,-12),"model":"farm_barn","why":"Traé alimento de Villa Miga para producir leche."},
 	{"region":2,"id":"dairy","name":"Quesería de Nata","cost":1100,"needs":{"milk":8},"at":Vector3(0,0,-12),"model":"cafe","why":"Transformá leche en queso. Cada pueblo aporta un ingrediente."},
-	{"region":2,"id":"pigpen","name":"Corral de cerdos","cost":1000,"needs":{"feed":12,"cheese":4},"at":Vector3(12,0,-12),"model":"depot","why":"Ampliá la granja para abastecer la carnicería del pueblo."},
+	{"region":2,"id":"pigpen","name":"Corral de cerdos","cost":1000,"needs":{"feed":12,"cheese":4},"at":Vector3(12,0,-12),"model":"farm_corral","why":"Ampliá la granja para abastecer la carnicería del pueblo."},
 	{"region":2,"id":"butcher","name":"Carnicería del puerto","cost":1200,"needs":{"feed":8,"milk":6},"at":Vector3(-12,0,4),"model":"workshop","why":"Prepará paquetes de carne para comerciar. Sin escenas violentas."},
 	{"region":2,"id":"farol_route","name":"Abrir Bahía Farol","cost":1500,"needs":{"cheese":10,"meat":8,"bread":10},"at":DOCK,"model":"","why":"Llevá suministros para reconstruir el último puerto de la ruta."},
 	{"region":3,"id":"harbor_depot","name":"Almacén de la bahía","cost":1200,"needs":{"bread":8,"milk":6},"at":Vector3(-12,0,-12),"model":"depot","why":"Uní la producción de los pueblos en un puerto de intercambio."},
@@ -56,6 +57,8 @@ var home_nav
 var home_position:=Vector3.ZERO
 var scenery: Node3D
 var home_ferry: Node3D
+var home_harbor: Node3D
+const HOME_BERTH=Vector3(29,.16,19)
 var home_hidden: Array[Dictionary]=[]
 var station_nodes: Dictionary={}
 var wheat: Array[Dictionary]=[]
@@ -74,6 +77,7 @@ var focused_sale:=""
 var focused_deposit:=false
 var animals: Array[Dictionary]=[]
 var lighthouse_beam: Node3D
+var mill_rotor: Node3D
 var pinned:=false
 var board_tab:=0
 var board_wait:=0.0
@@ -89,12 +93,13 @@ var cargo_visual_kind:=""
 func _ready() -> void:
 	name="Ruta al Faro · pueblos persistentes"
 	home_nav=g.world.navigation
+	home_harbor=Node3D.new();home_harbor.name="Puerto de Wivori";add_child(home_harbor)
 	for key in GOODS:inventory[key]=0;bag[key]=0
-	g.world.shape(self,"box",Vector3(30,.07,17),Vector3(9,.14,17),Color("#6ebcc7"),"Canal del transbordador")
+	Finish.water(g.world.shape(home_harbor,"box",Vector3(30,.07,17),Vector3(9,.14,17),Color("#6ebcc7"),"Canal del transbordador"))
 	home_nav.add_obstacle(Rect2(26,8,8,18))
-	for x in [24.0,25.0]:g.world.shape(self,"box",Vector3(x,.22,20),Vector3(1.0,.28,5),Color("#b8895d"),"Embarcadero")
-	home_ferry=Art.place(self,"route_ferry",Vector3(29,.16,19),Vector3.ONE*.87)
-	var sign: Label3D=g.world.make_label(self,"RUTA AL FARO",HOME_DOCK+Vector3(0,2.4,0),44)
+	for x in [24.0,25.0]:g.world.shape(home_harbor,"box",Vector3(x,.22,20),Vector3(1.0,.28,5),Color("#b8895d"),"Embarcadero")
+	home_ferry=Art.place(home_harbor,"route_ferry",HOME_BERTH,Vector3.ONE*.87)
+	var sign: Label3D=g.world.make_label(home_harbor,"RUTA AL FARO",HOME_DOCK+Vector3(0,2.4,0),44)
 	sign.modulate=Color("#214960")
 	set_process(false)
 func away() -> bool:return region>0
@@ -162,7 +167,12 @@ func improve(key: String) -> bool:
 	g.coins-=cost;mastery[key]=tier+1;g._save_progress();refresh_board();return true
 func deposit() -> bool:
 	if g.player.position.distance_to(DOCK if away() else HOME_DOCK)>2.8 or bag_total()==0:return false
-	for key in bag:inventory[key]=mini(100000,int(inventory[key])+int(bag[key]));bag[key]=0
+	var transferred:=0
+	for key in bag:
+		var count:=mini(int(bag[key]),100000-int(inventory[key]))
+		inventory[key]+=count;bag[key]-=count;transferred+=count
+	if transferred==0:g._notice("Ese producto ya llena el almacén. Vendé un lote para liberar espacio.",2);return false
+	_update_cargo()
 	focused_deposit=false;g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
 func sell_bundle(key: String) -> bool:
 	if not away() or not GOODS.has(key) or g.player.position.distance_to(MARKET)>2.8 or amount(key)<3:return false
@@ -174,7 +184,7 @@ func travel(destination: int) -> bool:
 		g._notice("Terminá la defensa antes de embarcar.",2);return false
 	var dock:=DOCK if away() else HOME_DOCK
 	if g.player.position.distance_to(dock)>2.8:
-		close_board();g._set_world_goal(dock);g._notice("Llevá a Scottie al embarcadero con el joystick.",2.5);return false
+		close_board();g._set_world_goal(dock);g._notice("Acercate al embarcadero con el joystick.",2.5);return false
 	close_board();sailing=1.3;sail_target=destination;g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
 	g.player.act("deliver");g._notice("¡ZARPAMOS A "+NAMES[destination].to_upper()+"!",2);g._save_progress();return true
 func _arrive(destination: int,restore: bool=false) -> void:
@@ -184,12 +194,12 @@ func _arrive(destination: int,restore: bool=false) -> void:
 		for node in g.get_children():
 			if node is Node3D and node!=g.player and node!=g.camera and node!=self and not node is Light3D:
 				home_hidden.append({"node":node,"visible":node.visible,"mode":node.process_mode});node.visible=false;node.process_mode=Node.PROCESS_MODE_DISABLED
-		home_ferry.visible=false
+		home_harbor.visible=false
 	if not wheat.is_empty():
 		crop_timers.clear()
 		for crop in wheat:crop_timers.append(crop["remaining"])
 	if scenery!=null:scenery.free();scenery=null
-	region=destination;focused_recipe="";focused_sale="";focused_deposit=false;residents.clear();animals.clear();lighthouse_beam=null;station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
+	region=destination;focused_recipe="";focused_sale="";focused_deposit=false;residents.clear();animals.clear();lighthouse_beam=null;mill_rotor=null;station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
 	if away():
 		_build_region();g.player.position=DOCK+Vector3(0,0,-2)
 	else:
@@ -198,7 +208,7 @@ func _arrive(destination: int,restore: bool=false) -> void:
 		for item in home_hidden:
 			var node: Node3D=item["node"]
 			if is_instance_valid(node):node.visible=item["visible"];node.process_mode=item["mode"]
-		home_hidden.clear();home_ferry.visible=true;g.player.position=home_nav.nearest_free(HOME_DOCK+Vector3(-1,0,0))
+		home_hidden.clear();home_harbor.visible=true;home_ferry.position=HOME_BERTH;g.player.position=home_nav.nearest_free(HOME_DOCK+Vector3(-1,0,0))
 	if restore:g.player.position=g.world.navigation.nearest_free(restored_position)
 	g.camera_follow=g.player.position;g.camera_lead=Vector3.ZERO;g._update_camera(1)
 	g.milestone.announce("arrive:%d" % region,"¡Llegaste a "+NAMES[region]+"!",("Tu mercado conserva sus edificios y empleados. Podés volver a embarcar cuando quieras." if not away() else project().get("why","Tus pueblos siguen conectados. Mejorá tus talleres o prepará un contrato.")),"boat","","NUEVO DESTINO")
@@ -206,14 +216,17 @@ func _arrive(destination: int,restore: bool=false) -> void:
 func _build_region() -> void:
 	scenery=Node3D.new();scenery.name=NAMES[region];add_child(scenery)
 	g.world.navigation=Nav.new()
+	g.world.navigation.land_center=Vector2(0,-2)
+	g.world.navigation.land_radius=Vector2(30.4,29.4)
+	g.world.navigation.bridges.append(Rect2(-2.5,16.5,5,9))
 	g.player.ground_sampler=Callable(self,"ground_height")
-	g.world.shape(scenery,"box",Vector3(0,-.35,0),Vector3(69,.5,69),Color("#6cb9ca"))
+	Finish.water(g.world.shape(scenery,"box",Vector3(0,-.35,0),Vector3(69,.5,69),Color("#6cb9ca")),true)
 	g.world.shape(scenery,"cylinder",Vector3(0,-.28,-2),Vector3(62,.22,60),Color("#debd7e"))
-	g.world.shape(scenery,"cylinder",Vector3(0,-.14,-3),Vector3(57,.16,55),[Color("#82b47b"),Color("#9ac49b"),Color("#91b8a6")][region-1])
+	Finish.ground(g.world.shape(scenery,"cylinder",Vector3(0,-.14,-3),Vector3(57,.16,55),Color.WHITE),[Color("#82ae77"),Color("#94b58b"),Color("#87ada0")][region-1])
 	g.world.navigation.add_obstacle(Rect2(-34,25,68,9));g.world.navigation.add_obstacle(Rect2(-34,-34,68,5))
 	g.world.navigation.add_obstacle(Rect2(-34,-29,6,54));g.world.navigation.add_obstacle(Rect2(28,-29,6,54))
-	g.world.shape(scenery,"box",Vector3(0,.18,-1),Vector3(4.4,.10,44),Color("#e5cc97"))
-	for z in [-9.0,7.2]:g.world.shape(scenery,"box",Vector3(0,.19,z),Vector3(30,.1,3),Color("#e5cc97"))
+	Finish.ground(g.world.shape(scenery,"box",Vector3(0,.18,-1),Vector3(4.4,.10,44),Color.WHITE),Color("#d2c3a1"),true)
+	for z in [-9.0,7.2]:Finish.ground(g.world.shape(scenery,"box",Vector3(0,.19,z),Vector3(30,.1,3),Color.WHITE),Color("#d2c3a1"),true)
 	g.world.shape(scenery,"box",Vector3(0,.28,21),Vector3(5,.30,9),Color("#b78d5c"))
 	region_ferry=Art.place(scenery,"route_ferry",Vector3(4.8,.18,23),Vector3.ONE*.9)
 	g.world.navigation.add_obstacle(Rect2(2.8,20,4,8))
@@ -236,11 +249,19 @@ func _build_region() -> void:
 	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:Art.place(scenery,"oak_bench",at)
 	for at in [Vector3(7,0,10),Vector3(-7,0,-20)]:Art.place(scenery,"flower_cart",at,Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(at.x-.8,at.z-.5,1.6,1))
 	g.world.navigation.build();_update_project_marker()
+	var accents:=PackedVector3Array()
+	for i in range(100):
+		var at:=Vector3((-1 if i%2==0 else 1)*(3.4+sin(float(i)*7.3)*.45),.04,-22+float(i/2)*.88+sin(float(i)*4.7)*.24)
+		if g.world.navigation.is_walkable(at,.5) and absf(at.z+9)>2 and absf(at.z-7.2)>2:accents.append(at)
+	Finish.meadow(scenery,accents)
 func _place_project(p: Dictionary,animated: bool) -> void:
 	if scenery==null or station_nodes.has(p["id"]):return
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
 	var model:=Art.place(root,p["model"])
 	if p["id"]=="beacon":_make_beam(root)
+	if p["id"]=="grainmill":
+		for node in model.find_children("*","Node3D",true,false):
+			if "rotor" in node.name.to_lower():mill_rotor=node;break
 	g.world.navigation.add_obstacle(Rect2(p["at"].x-2.4,p["at"].z-2.2,4.8,4.4))
 	g.world.make_label(root,{"grain":"TRIGAL","grainmill":"MOLINO","breadshop":"PANADERÍA","henhouse":"GALLINERO","cowbarn":"ESTABLO","dairy":"QUESERÍA","pigpen":"CORRAL","butcher":"CARNICERÍA","harbor_depot":"ALMACÉN","cannery":"COCINA","route_watch":"VIGÍA","beacon":"FARO"}.get(p["id"],p["name"]),Vector3(0,4.1,0),40,true)
 	if animated:
@@ -250,7 +271,9 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		for i in range(2):
 			var animal:=Art.place(root,"farm_"+kind,Vector3(-1.2+i*2.4,0,3.7),Vector3.ONE*(.8 if kind!="hen" else 1.0));animal.rotation.y=.12 if i==0 else -.25
 			animals.append({"node":animal,"at":animal.position,"yaw":animal.rotation.y,"phase":float(i)*1.8})
-		for x in [-2.8,2.8]:g.world.shape(root,"box",Vector3(x,.5,1.8),Vector3(.12,.9,7),Color("#f1d8a5"))
+		for x in [-2.8,2.8]:
+			Art.place(root,"farm_fence",Vector3(x,0,2.1))
+			g.world.navigation.add_obstacle(Rect2(p["at"].x+x-.13,p["at"].z-1, .26,6.2))
 	for key in RECIPES:
 		if RECIPES[key]["building"]==p["id"]:
 			var output:=Art.place(root,"goods_"+key,Vector3(-1.0 if key=="flour" else 1.1,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
@@ -278,6 +301,7 @@ func _update_project_marker() -> void:
 	g.world.shape(marker,"cylinder",Vector3(0,.15,0),Vector3(2.5,.12,2.5),Color("#f0bd4b"))
 	g.world.make_label(marker,"CONSTRUIR",Vector3(0,1.4,0),34,true)
 func _update_cargo() -> void:
+	g.player.set_carry(g._total_bag())
 	var key:=""
 	for item in bag:
 		if bag[item]>0:key=item;break
@@ -292,6 +316,7 @@ func tick(delta: float) -> void:
 		animal["node"].position.y=animal["at"].y+.018*sin(clock*2+animal["phase"])
 		animal["node"].rotation.y=animal["yaw"]+.12*sin(clock*.7+animal["phase"])
 	if is_instance_valid(lighthouse_beam):lighthouse_beam.rotation.y=clock*.28
+	if is_instance_valid(mill_rotor):mill_rotor.rotation.z+=delta*.32
 	if sailing>0:
 		sailing=maxf(0,sailing-delta)
 		var boat: Node3D=region_ferry if away() else home_ferry
@@ -309,7 +334,9 @@ func tick(delta: float) -> void:
 	_update_cargo()
 	if not away():return
 	harvest_wait=maxf(0,harvest_wait-delta)
-	crop_timers.clear()
+	if not wheat.is_empty():crop_timers.clear()
+	else:
+		for i in range(crop_timers.size()):crop_timers[i]=maxf(0,crop_timers[i]-delta)
 	for crop in wheat:
 		crop["remaining"]=maxf(0,crop["remaining"]-delta);crop["node"].scale=Vector3.ONE*clampf(1-crop["remaining"]/8,.1,1);crop_timers.append(crop["remaining"])
 		if crop["remaining"]<=0 and harvest_wait<=0 and not board_visible() and g._total_bag()<g.max_capacity and g.player.position.distance_to(crop["node"].position)<1.5:
@@ -329,6 +356,8 @@ func tick(delta: float) -> void:
 		for key in RECIPES:
 			var root: Node3D=station_nodes.get(RECIPES[key]["building"])
 			if root==null:continue
+			var operator: MarketActor=root.get_node_or_null("Operator_"+key)
+			if operator!=null and employees.get(key,false) and jobs.get(key,{}).get("remaining",0.0)>0 and operator.action_left<=0:operator.act("build")
 			root.get_node("Output_"+key).visible=int(jobs.get(key,{}).get("ready",0))>0
 			root.get_node("Job_"+key).text=("¡LISTO! ×%d" % jobs[key]["ready"] if jobs[key]["ready"]>0 else "%ds" % ceili(jobs[key]["remaining"])) if jobs.has(key) else ""
 	
@@ -481,9 +510,10 @@ func _guide_sale(key: String) -> void:
 func sale_value(key: String) -> int:
 	return int((VALUES[key]*3+30)*(1.25 if region==3 and built.has("route_watch") else 1.0))
 func ground_height(at: Vector3) -> float:
-	if absf(at.x)<2.3 or absf(at.z+9)<1.6 and absf(at.x)<15 or absf(at.z-7.2)<1.6 and absf(at.x)<15:return .25
 	if absf(at.x)<2.6 and at.z>16:return .44
+	if absf(at.x)<2.3 or absf(at.z+9)<1.6 and absf(at.x)<15 or absf(at.z-7.2)<1.6 and absf(at.x)<15:return .25
 	if region==1 and built.has("grain") and absf(at.x+12)<3.5 and absf(at.z+8)<3:return .34
+	if (Vector2(at.x,at.z+3)/Vector2(28.5,27.5)).length_squared()>1:return -.05
 	return .04
 func _make_beam(root: Node3D) -> void:
 	lighthouse_beam=Node3D.new();root.add_child(lighthouse_beam);lighthouse_beam.position.y=5.5

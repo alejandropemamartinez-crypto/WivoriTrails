@@ -40,7 +40,7 @@ jobs:
             --script res://tools/capture_preview.gd -- "$PWD/previews"
           test -s previews/start.png
           test -s previews/faces.png
-          test -s previews/scottish_terrier_closeup.png
+          test -s previews/hero_closeup.png
           test -s previews/rabbit_robbery_alert.png
           test -s previews/cash_collection_flight.png
           test -s previews/town_overview.png
