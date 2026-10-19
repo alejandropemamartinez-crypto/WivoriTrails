@@ -179,7 +179,9 @@ func _complete_player_flight(delta: float) -> void:
 	g._cash_sound();g._refresh_ui();g._save_progress()
 
 func _process_collect_player() -> void:
-	if g.town.in_build_mode or g.shop_panel.visible:return
+	# The hired collector continues its own route, but pressing a purchase,
+	# map or contracts panel must not trigger proximity pickup by the hero.
+	if not g._movement_input_allowed():return
 	for i in range(active_registers):
 		if pending[i]>0 and g.player.position.distance_to(REGISTERS[i])<=COLLECTION_RADIUS:take_register(i,true)
 
