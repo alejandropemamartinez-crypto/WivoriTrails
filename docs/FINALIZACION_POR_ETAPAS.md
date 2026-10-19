@@ -128,6 +128,16 @@ construcciones o trabajadores.
 - `tests/region_identity_tests.gd`: suite añadida para revisar identidad de las tres islas, batching, presencia de maquinaria, animación animal, conservación de dinero e inventario y regreso al mercado.
 - **Estado real**: código guardado, **sin** importar Godot, ejecutar pruebas, tomar capturas ni compilar. Esta etapa es parcial: sigue pendiente inspeccionar las escenas con el motor, corregir interferencias de props, probar FPS en Android, enriquecer arquitectura authored y revisar el recorrido completo del Faro. La suite añadida no equivale a prueba superada.
 
+
+### Etapa 4 — segunda tanda de cambios (sin ejecución)
+- Las seis pilas visuales de mercancías de Bahía Farol ahora dependen del stock **real** del almacén del barco; no aparecen contenedores llenos si no hay carga. El decorado no puede modificar inventario ni moneda.
+- Los pedidos locales muestran productos de mayor demanda por región: +15 % de valor en productos característicos, y se respeta la vigía de Bahía Farol (+25 % cuando está construida). Son primas comerciales simples, sin alterar la cantidad vendida, créditos pendientes ni esquema de guardado.
+- Se eliminan los avisos repetitivos de lotes concluidos por operarios automáticos; los lotes manuales anuncian su finalización de forma breve y no modal en la estación. El cartel de cada taller sigue indicando la mercancía lista.
+- El guardado v8 lee y conserva si cada lote en curso fue iniciado por empleado o jugador, con valor seguro por defecto para partidas antiguas. La apariencia se reconstruye al entrar en cada isla; no se serializan nodos 3D.
+- Ampliadas las pruebas **preparadas** para cubrir almacén vacío/lleno/vaciado, especialidades de pueblo, precios deterministas y producción silenciosa.
+- **Sin validar en Godot:** compilación/parseo real de GDScript, comportamiento de la interfaz, capturas auténticas, obstáculos decorativos y rendimiento. No se ha generado APK ni fusionado la rama.
+- **Siguiente intervención importante:** diseñar una expansión industrial jugable realmente distinta tras completar el Faro (cadena de productos y nuevo distrito persistente), no un simple cambio de color o una lista interminable de pedidos. Será una etapa propia porque exige probar migración de partidas, rutas y balance de progresión.
+
 ## Etapa 5 — Calidad y publicación experimental
 - Importar Godot sin errores; correr todas las suites de regresión.
 - Exportar APK ARM64 con el mismo package/firma y un versionCode nuevo.
