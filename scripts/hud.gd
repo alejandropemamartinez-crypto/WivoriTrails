@@ -297,6 +297,7 @@ func build(game: Node3D) -> void:
 	intercept_button.offset_left=-286; intercept_button.offset_right=-24; intercept_button.offset_top=-384; intercept_button.offset_bottom=-288
 	intercept_button.pressed.connect(func():g._intercept())
 	intercept_button.visible=false
+	intercept_button.add_theme_color_override("font_disabled_color",INK)
 
 	var footer := panel(Color(.98,.97,.90,.92)); root.add_child(footer)
 	footer_panel=footer
@@ -314,6 +315,8 @@ func build(game: Node3D) -> void:
 	g.event_label.offset_left=24; g.event_label.offset_right=-24
 	g.event_label.offset_top=-337; g.event_label.offset_bottom=-273
 	g.event_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	g.event_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	g.event_label.max_lines_visible=3
 	g.event_label.add_theme_stylebox_override("normal",style(Color(.10,.26,.26,.94),18))
 	g.event_label.visible=false
 	build_action_cards()
@@ -326,12 +329,14 @@ func build(game: Node3D) -> void:
 	# The emergency interception control must win hit-testing over any nearby
 	# contextual purchase panels when several UI elements overlap.
 	root.move_child(intercept_button,root.get_child_count()-1)
+	root.resized.connect(layout_notifications)
+	g.event_label.minimum_size_changed.connect(layout_notifications)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)
 
 func build_action_cards() -> void:
 	alert_panel=panel(Color("#fff1de")); root.add_child(alert_panel)
-	position_top(alert_panel,224,98,24,-120)
+	position_top(alert_panel,300,98)
 	var compact:=style(Color("#fff1de"),18);compact.content_margin_top=5;compact.content_margin_bottom=5;alert_panel.add_theme_stylebox_override("panel",compact)
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation",12); alert_panel.add_child(row)
 	var column := VBoxContainer.new(); column.size_flags_horizontal=Control.SIZE_EXPAND_FILL; row.add_child(column)
@@ -465,6 +470,39 @@ func _apply_safe_area() -> void:
 	var factor := get_viewport().get_visible_rect().size.y/float(physical.y)
 	root.offset_top=maxf(0,safe.position.y)*factor
 	root.offset_bottom=-maxf(0,physical.y-safe.end.y)*factor
+	layout_notifications()
+
+func layout_notifications() -> void:
+	if root==null or rabbit_banner==null:return
+	# Navigation owns its row. Notifications begin after the real button
+	# bounds, including their minimum size and the Android safe-area parent.
+	var gap:=12.0
+	var top_end: float=view_button.get_rect().end.y
+	if g.route!=null and g.route.route_button!=null:
+		top_end=maxf(top_end,g.route.route_button.get_rect().end.y)
+	var next_y: float=top_end+gap
+	for notice in [rabbit_banner,alert_panel]:
+		var height: float=maxf(98.0,notice.get_combined_minimum_size().y)
+		var slide: float=rabbit_banner.slide_offset if notice==rabbit_banner else 0.0
+		position_top(notice,next_y,height,24.0+slide,-24.0+slide)
+		if notice.visible:
+			top_end=next_y+height
+			next_y=top_end+gap
+	var shipping: Control=g.shipping_label.get_parent()
+	position_top(shipping,next_y,maxf(52.0,shipping.get_combined_minimum_size().y))
+	if shipping.visible:top_end=shipping.get_rect().end.y
+	# Toast height depends on the actual wrapped text. Anchor its complete
+	# rectangle above the highest visible bottom control, not through it.
+	var controls_top: float=root.size.y
+	for control in [g.input_stick,run_button,town_button,g.shop_button,activity_button,intercept_button,pad_panel,town_panel]:
+		if control.visible:controls_top=minf(controls_top,control.get_rect().position.y)
+	var toast_height: float=maxf(72.0,g.event_label.get_combined_minimum_size().y)
+	g.event_label.offset_bottom=controls_top-gap-root.size.y
+	g.event_label.offset_top=g.event_label.offset_bottom-toast_height
+	if wayfinder!=null:
+		wayfinder.top_margin=top_end+42.0
+		var playable_bottom: float=minf(controls_top,g.event_label.get_rect().position.y) if g.event_label.visible else controls_top
+		wayfinder.bottom_margin=root.size.y-playable_bottom+72.0
 
 func build_shop() -> void:
 	scrim=ColorRect.new(); scrim.color=Color(.04,.14,.16,.58)
@@ -623,7 +661,7 @@ func refresh() -> void:
 			raid_phase="escape" if g.run.threat()["state"]=="escape" else "approach"
 	rabbit_banner.sync_state(raid_phase)
 	if not g.run.threat().is_empty():rabbit_banner.point_to(g.run.threat()["actor"].position,g.player.position)
-	alert_panel.visible=not alert.is_empty() and raid_phase.is_empty() and not g.shop_panel.visible and not city_mode
+	alert_panel.visible=not alert.is_empty() and raid_phase.is_empty() and not rabbit_banner.visible and not g.shop_panel.visible and not city_mode
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
@@ -638,20 +676,15 @@ func refresh() -> void:
 	var raiding: bool=not g.route.away() and not g.run.threat().is_empty()
 	intercept_button.visible=raiding and not g.shop_panel.visible and not city_mode
 	intercept_button.disabled=not g.run.can_intercept()
-	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"
-	intercept_button.add_theme_font_size_override("font_size",19 if not intercept_button.disabled else 15)
+	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE\nAL MAPACHE"
+	intercept_button.add_theme_font_size_override("font_size",19)
 	pad_panel.offset_top=-544 if raiding else -424
 	pad_panel.offset_bottom=-404 if raiding else -292
-	g.event_label.offset_top=(-634 if raiding else -542) if pad_panel.visible else (-420 if raiding else -337)
-	g.event_label.offset_bottom=g.event_label.offset_top+72
 	wayfinder.visible=not city_mode
-	wayfinder.bottom_margin=(590 if raiding else 500) if pad_panel.visible else (380 if raiding else 290)
-	wayfinder.top_margin=330 if alert_panel.visible or rabbit_banner.visible else 228
 	g.shipping_label.get_parent().visible=not g.route.away() and g.pier_owned and g.shipment["kind"]!="" and not city_mode
-	position_top(g.shipping_label.get_parent(),330 if alert_panel.visible else 224,40)
-	if g.pier_owned:wayfinder.top_margin+=64
 	if g.shipment["kind"]=="": g.shipping_label.text="MUELLE AUTO   ·   Esperando excedente   ·   +50%"
 	else:g.shipping_label.text="BARCO EN CAMINO   ·   %ds   ·   +%d monedas" % [ceili(g.shipment["remaining"]),g._shipment_income()]
+	layout_notifications()
 	scrim.visible=g.shop_panel.visible
 	shop_coins.text="Tenés %s monedas" % _number(g.coins)
 	var affordable := 0

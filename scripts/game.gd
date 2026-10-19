@@ -369,6 +369,7 @@ func _notice(message: String, time_: float = 1.45) -> void:
 	event_label.visible=true
 	event_label.modulate.a=1.0
 	event_fade=time_
+	if hud!=null:hud.layout_notifications()
 
 func _buy(kind: String) -> void:
 	if kind=="collector":
