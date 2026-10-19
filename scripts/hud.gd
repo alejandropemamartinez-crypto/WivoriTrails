@@ -391,28 +391,39 @@ func build_town_controls() -> void:
 	scroller.add_child(listing)
 	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
 		var detail: Dictionary=g.town.TYPES[kind]
-		var card:=panel(Color("#f0e8d5"))
-		card.custom_minimum_size=Vector2(186,0)
-		var border:=style(Color("#f0e8d5"),14)
-		border.content_margin_top=7; border.content_margin_bottom=6
-		border.content_margin_left=12; border.content_margin_right=12
-		card.add_theme_stylebox_override("panel",border)
+		var accent: Color=BUILDING_ACCENTS.get(kind,TEAL)
+		var card:=panel(Color("#fff9ed"))
+		card.custom_minimum_size=Vector2(203,0)
+		card.add_theme_stylebox_override("panel",_accent_card(Color("#fff9ed"),accent))
+		town_cards[kind]=card
 		listing.add_child(card)
 		var stack:=VBoxContainer.new()
 		stack.add_theme_constant_override("separation",3)
 		card.add_child(stack)
+		var picture_frame:=panel(accent.lightened(.72))
+		var frame_style:=style(accent.lightened(.72),12)
+		frame_style.content_margin_top=3;frame_style.content_margin_bottom=3
+		frame_style.content_margin_left=4;frame_style.content_margin_right=4
+		frame_style.set_border_width_all(1);frame_style.border_color=accent.lightened(.32)
+		picture_frame.add_theme_stylebox_override("panel",frame_style)
+		stack.add_child(picture_frame)
 		var picture:=TextureRect.new()
 		picture.texture=load("res://assets/ui/buildings/"+kind+".png")
-		picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		picture.custom_minimum_size=Vector2(0,94);picture.mouse_filter=Control.MOUSE_FILTER_IGNORE;stack.add_child(picture)
-		var heading:=label(detail["name"],14,INK)
-		heading.clip_text=true
+		picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		picture.custom_minimum_size=Vector2(0,74)
+		picture.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		picture_frame.add_child(picture)
+		var heading:=label(detail["name"],15,INK)
+		heading.clip_text=true;heading.tooltip_text=detail["name"]
 		stack.add_child(heading)
 		var info:=label(detail["benefit"],12,MUTED)
-		info.clip_text=true
+		info.clip_text=true;info.tooltip_text=detail["benefit"]
 		stack.add_child(info)
-		var buy:=button("%d" % detail["price"],TEAL,16)
-		buy.custom_minimum_size=Vector2(0,43)
+		var status:=label("DISPONIBLE",12,accent)
+		stack.add_child(status);town_statuses[kind]=status
+		var buy:=button("%d MON." % detail["price"],accent,15)
+		buy.custom_minimum_size=Vector2(0,49)
 		stack.add_child(buy)
 		buy.pressed.connect(Callable(g,"_build_town").bind(kind))
 		town_choices[kind]=buy
@@ -569,7 +580,10 @@ func refresh() -> void:
 			var detail: Dictionary=g.town.TYPES[kind]
 			var built: bool=g.town.has_building(kind)
 			town_choices[kind].disabled=built or not g.town.constructed[g.town.selected].is_empty() or g.coins<detail["price"] or not g.town.can_build(kind)
-			town_choices[kind].text="LISTO" if built else ("NIVEL %d" % g.town.BUILDING_LEVELS[kind] if g.run.level<g.town.BUILDING_LEVELS[kind] else "%d MON." % detail["price"])
+			town_choices[kind].text="CONSTRUIDO" if built else ("NIVEL %d" % g.town.BUILDING_LEVELS[kind] if g.run.level<g.town.BUILDING_LEVELS[kind] else "%d MON." % detail["price"])
+			var shortfall: int=maxi(0,int(detail["price"])-g.coins)
+			town_statuses[kind].text="CONSTRUIDO" if built else "BLOQUEADO" if not g.town.can_build(kind) else "FALTAN %d" % shortfall if shortfall>0 else "LISTO PARA CONSTRUIR"
+			town_statuses[kind].add_theme_color_override("font_color",Color("#2b8a6b") if not town_choices[kind].disabled else MUTED)
 	g.total_label.text=_number(g.coins)
 	if previous_wallet>=0 and previous_wallet!=g.coins:
 		g.total_label.pivot_offset=g.total_label.size*.5
