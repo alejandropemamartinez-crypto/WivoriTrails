@@ -385,16 +385,30 @@ func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) 
 		pad["price"].modulate=Color("#a57637") if afford else Color("#697c75")
 
 func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: String) -> void:
-	var nearest:=""
-	var best:=5.0
+	# The closest signs used to disappear when Scottie approached within 2.1 m.
+	# Keep two nearby raised plaques legible, plus the marked next investment.
+	# More than three at once would cover much of the village in portrait mode.
+	var distances: Array[Dictionary]=[]
 	for kind in upgrade_pads:
 		var distance: float=player_pos.distance_to(upgrade_pads[kind]["node"].position)
-		if distance<best:best=distance;nearest=kind
+		distances.append({"kind":kind,"distance":distance})
+	distances.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+		return float(a["distance"])<float(b["distance"]))
+	var readable: Array[String]=[]
+	if not building:
+		for entry in distances:
+			if float(entry["distance"])<=11.0 and readable.size()<2:
+				readable.append(str(entry["kind"]))
+		if upgrade_pads.has(recommended):
+			var recommended_distance: float=player_pos.distance_to(upgrade_pads[recommended]["node"].position)
+			if recommended_distance<=15.0 and not readable.has(recommended):
+				readable.append(recommended)
 	for kind in upgrade_pads:
 		var pad: Dictionary=upgrade_pads[kind]
-		var distance: float=player_pos.distance_to(pad["node"].position)
-		var show_label: bool=not building and distance>2.1 and (kind==nearest or kind==recommended and distance<10)
-		pad["label"].visible=show_label;pad["price"].visible=show_label;pad["board"].visible=show_label
+		var show_label: bool=readable.has(kind)
+		pad["label"].visible=show_label
+		pad["price"].visible=show_label
+		pad["board"].visible=show_label
 
 func celebrate_upgrade(kind: String) -> void:
 	if not upgrade_pads.has(kind):return
