@@ -43,7 +43,7 @@ func capture() -> void:
 	for actor in gallery:actor.queue_free()
 	game.player.visible=true;game.player.position=Vector3(0,0,18);game.player.facing=-.13;game.player.rotation.y=-.13
 	game.camera.position=Vector3(.30,2.5,23.5);game.camera.fov=34;game.camera.look_at(Vector3(0,1.22,18))
-	await frames(14);await shot("scottish_terrier_closeup")
+	await frames(14);await shot("hero_closeup")
 	game.hud.root.visible=true;game.camera.fov=43;game.player.position=Vector3(0,0,4);camera_reset()
 	game.input_stick.axis=Vector2.LEFT
 	for frame in range(22):

@@ -3,6 +3,7 @@ class_name MarketJoystick
 
 # Real multi-touch analog stick; independent of buttons on the other side.
 var axis := Vector2.ZERO
+var input_allowed: Callable
 var active_finger := -1
 var pressed := false
 const MAX_RADIUS := 65.0
@@ -13,6 +14,7 @@ func _ready() -> void:
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:
+	if input_allowed.is_valid() and not input_allowed.call():_clear();return
 	# Touch events are handled in _input so one finger continues to work outside
 	# this control rectangle. Mouse works here for desktop testing.
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -28,6 +30,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _input(event: InputEvent) -> void:
 	if not is_visible_in_tree():return
+	if input_allowed.is_valid() and not input_allowed.call():_clear();return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed and active_finger == -1:
 		_clear()
 	if event is InputEventScreenTouch:

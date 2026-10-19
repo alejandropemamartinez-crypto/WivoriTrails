@@ -61,7 +61,7 @@ func manual_walk(target: Vector3) -> void:
 func run() -> void:
 	clean_files()
 	await start_game()
-	check(game.player.species=="scottie", "Player is a grey-brindle Scottish Terrier with custom head geometry")
+	check(game.player.species=="dog" and game.player.body_root.scene_file_path=="res://assets/models/hero.glb", "The unnamed protagonist uses the redesigned original hero mesh")
 	check(game.player.head_mesh.mesh is ArrayMesh, "Every hero head is a dedicated continuous mesh")
 	check(game.player.head_mesh.skin!=null and game.player.skeleton.get_bone_count()>=17, "The hero uses a weighted skin and anatomical skeleton")
 	check(game.player.skeleton.find_bone("ear.L")>=0 and game.player.skeleton.find_bone("ear.R")>=0, "Both terrier ears are animated by actual deform bones")
@@ -92,7 +92,7 @@ func run() -> void:
 	check(game.coins==50 and game.cash.player_held>0, "Pickup reserves cash for the visible flight before it becomes spendable")
 	for i in range(12):game.cash.tick(.1)
 	game._refresh_ui()
-	check(game.coins>=80 and game.cash.total_pending()==0, "Scottie must approach the first register to afford the helper")
+	check(game.coins>=80 and game.cash.total_pending()==0, "The protagonist must approach the first register to afford the helper")
 	check(game._current_objective().get("upgrade")=="helper","Cash collection exposes the affordable worker investment")
 	var old_coins: int=game.coins
 	game.hud.guide_button.pressed.emit()

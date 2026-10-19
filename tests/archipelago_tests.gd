@@ -47,7 +47,7 @@ func run_tests() -> void:
 	var models: Dictionary={}
 	for species in ["dog","scottie","fox","cat","human","pig","duck","rabbit","raccoon"]:
 		var actor: MarketActor=game.ActorScript.new();actor.setup("customer",Color("#429b97"),species);game.add_child(actor)
-		check(actor.body_root.scene_file_path!="res://assets/models/terrier.glb","NPC alias %s cannot use Scottie's mesh" % species)
+		check(actor.body_root.scene_file_path not in ["res://assets/models/terrier.glb","res://assets/models/hero.glb"],"NPC alias %s cannot use the protagonist mesh" % species)
 		models[actor.body_root.scene_file_path]=true;actor.queue_free()
 	check(models.size()>=5,"NPCs have at least five distinct authored silhouettes")
 	var spaced:=true;var targets: Array=game.UPGRADE_POS.values()
@@ -85,7 +85,7 @@ func run_tests() -> void:
 		if stage in [2,6,11]:
 			var region: int=game.route.region;var stock: Dictionary=game.route.inventory.duplicate();var position: Vector3=game.player.position;await stop();await start()
 			check(game.route.stage==stage+1 and game.route.region==region and game.route.inventory==stock,"Reload preserves current town, projects and warehouse")
-			check(game.player.position.distance_to(position)<.8,"Reload restores Scottie near his saved position in the active town")
+			check(game.player.position.distance_to(position)<.8,"Reload restores The protagonist near his saved position in the active town")
 	check(game.route.unlocked()==3 and game.route.project().is_empty() and game.route.built.has("beacon"),"All towns culminate in a completed lighthouse campaign")
 	await go(1);await ensure("wheat",12);game.player.position=game.route.DOCK;game.route.deposit();game.player.position=game.route.station("flour");price=game.coins
 	check(game.route.hire("flour") and game.coins==price-650,"A station operator is an explicit paid automation upgrade")

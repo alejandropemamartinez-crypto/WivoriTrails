@@ -105,8 +105,8 @@ func _ready() -> void:
 	add_child(world)
 	player = ActorScript.new()
 	player.ground_sampler=Callable(world,"ground_height")
-	player.name = "Scottie, el terrier escocés"
-	player.setup("player",Color("#3c827b"),"scottie")
+	player.name = "Protagonista"
+	player.setup("player",Color("#3c827b"),"dog")
 	add_child(player)
 	player.position = Vector3(0,0,4)
 	world.shape(player,"cylinder",Vector3(0,.06,0),Vector3(1.05,.025,1.05),Color("#328c87"),"Tu personaje")
@@ -148,15 +148,15 @@ func _engine_world() -> void:
 	sky.background_color = Color("#b8dce1")
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	sky.ambient_light_color = Color("#d8e3e8")
-	sky.ambient_light_energy = .52
+	sky.ambient_light_energy = .62
 	sky.tonemap_mode = Environment.TONE_MAPPER_AGX
-	sky.tonemap_exposure = .86
+	sky.tonemap_exposure = .94
 	environment.environment = sky
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52,-37,0)
 	sun.light_color = Color("#fff3e5")
-	sun.light_energy = .43
+	sun.light_energy = .70
 	sun.directional_shadow_max_distance=36.0
 	sun.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur=3.0
@@ -639,6 +639,9 @@ func _process_shipping(delta: float) -> void:
 			_save_progress()
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
 
+func _movement_input_allowed() -> bool:
+	return not (milestone!=null and milestone.is_open()) and not (route!=null and (route.sailing>0 or route.board_visible())) and not (town!=null and town.in_build_mode) and not (shop_panel!=null and shop_panel.visible) and not (work!=null and work.board_visible())
+
 func _process_player(delta: float) -> void:
 	if town!=null and town.in_build_mode:return
 	var pad := input_stick.axis
@@ -653,7 +656,7 @@ func _process_player(delta: float) -> void:
 	if shop_panel.visible or work.board_visible() or route.board_visible():world_motion=Vector3.ZERO
 	var velocity := world_motion * minf(9.6,player_speed * town.player_speed_factor() * (1.16 if boost_active else 1.0))
 	# Turbo upgrades provide controllable acceleration, not runaway speed.
-	# When joystick is released, Scottie stops instead of sliding past a target.
+	# When joystick is released, the protagonist stops instead of sliding past a target.
 	if velocity.length()>.05:
 		move_velocity=move_velocity.lerp(velocity,1.0-exp(-16.0*delta))
 	else:

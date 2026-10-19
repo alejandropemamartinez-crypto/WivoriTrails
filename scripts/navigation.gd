@@ -9,6 +9,9 @@ var grid := AStarGrid2D.new()
 var obstacles: Array[Rect2] = []
 var revision := 0
 var grid_ready := false
+var land_center := Vector2.ZERO
+var land_radius := Vector2.ZERO
+var bridges: Array[Rect2] = []
 
 func remove_obstacle(bounds: Rect2) -> void:
 	var index:=obstacles.find(bounds)
@@ -57,6 +60,13 @@ func build() -> void:
 func is_walkable(at: Vector3, margin: float = 0.0) -> bool:
 	if absf(at.x) > LIMIT or absf(at.z) > LIMIT:
 		return false
+	if land_radius.x>0.0:
+		var point:=Vector2(at.x,at.z)
+		var normalized: Vector2=(point-land_center)/(land_radius-Vector2.ONE*margin)
+		var on_land: bool=normalized.length_squared()<=1.0
+		for bridge in bridges:
+			if bridge.grow(-margin).has_point(point):on_land=true
+		if not on_land:return false
 	for bounds in obstacles:
 		if bounds.grow(margin).has_point(Vector2(at.x, at.z)):
 			return false

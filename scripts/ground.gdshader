@@ -11,17 +11,18 @@ void vertex(){world_at=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz;}
 void fragment(){
 	vec2 at=world_at.xz;
 	float broad=soft_noise(at*.24);
-	float fine=soft_noise(at*22.0);
-	vec3 color=base_color*(.94+.07*broad+.025*fine);
+	float fine=soft_noise(at*12.0);
+	vec3 color=base_color*(.91+.13*broad+.015*fine);
 	if(cobbled){
-		vec2 grid=at*vec2(3.2,2.9);
+		vec2 grid=at*vec2(1.5,1.45);
 		grid.x+=mod(floor(grid.y),2.0)*.5;
 		vec2 cell=fract(grid);
 		vec2 edge=min(cell,1.0-cell);
-		float rim=smoothstep(.01,.045,min(edge.x,edge.y));
+		float rim=smoothstep(.008,.055,min(edge.x,edge.y));
 		float tone=hash(floor(grid));
-		color=base_color*(.95+.08*tone);
-		color=mix(color*.86,color,rim);
+		color=base_color*(.93+.12*tone);
+		color=mix(color*.79,color,rim);
+		color+=max(0.0,smoothstep(.04,.07,edge.y)-smoothstep(.07,.10,edge.y))*.012;
 	}
 	ALBEDO=color;
 	ROUGHNESS=.94;
