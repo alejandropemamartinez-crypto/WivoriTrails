@@ -546,12 +546,9 @@ func tick(delta: float) -> void:
 			visual.rotation.y=clock*.65
 	if is_instance_valid(lighthouse_beam):lighthouse_beam.rotation.y=clock*.28
 	if is_instance_valid(mill_rotor):mill_rotor.rotation.z+=delta*.32
-	if sailing>0:
-		sailing=maxf(0,sailing-delta)
-		var boat: Node3D=region_ferry if away() else home_ferry
-		if boat!=null:boat.position.z+=delta*2.3
-		if sailing<=0:_arrive(sail_target);sail_target=-1
-		return
+	# Factory timers are independent of the player's location. In
+	# particular, do not pause the entire production network just because
+	# the ferry is crossing between islands.
 	for key in jobs:
 		if jobs[key]["remaining"]<=0:continue
 		jobs[key]["remaining"]=maxf(0,jobs[key]["remaining"]-delta)
@@ -568,6 +565,17 @@ func tick(delta: float) -> void:
 				g._float_activity(station(key),"¡"+GOODS[key].to_upper()+" LISTO!",Color("#f1cb79"))
 	for key in employees:
 		if employees[key]:start_batch(key,true)
+	if sailing>0:
+		# Travelling still blocks manual collection, workshop interaction,
+		# crop harvest and physical cash pickup. Only time-based workshop
+		# production advances while the ferry is in transit.
+		sailing=maxf(0,sailing-delta)
+		var boat:Node3D=region_ferry if away() else home_ferry
+		if boat!=null:boat.position.z+=delta*2.3
+		if sailing<=0:
+			_arrive(sail_target)
+			sail_target=-1
+		return
 	# The _update_cargo render operation is triggered by mutations
 	# (production input, construction, pickup, storage, sales), not 60
 	# times per second while a character stands still.
