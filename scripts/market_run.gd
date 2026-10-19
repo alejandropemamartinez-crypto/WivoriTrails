@@ -193,7 +193,7 @@ func _spawn_wave() -> void:
 func _tick_guard(delta: float) -> void:
 	if guard_level<=0:return
 	if guard==null:
-		guard=g.ActorScript.new(); guard.setup("guard",Color("#547e9e"),"dog"); guard.ground_sampler=Callable(g.world,"ground_height"); g.add_child(guard); guard.position=saved_guard_position
+		guard=g.ActorScript.new(); guard.setup("guard",Color("#547e9e"),"fox"); guard.ground_sampler=Callable(g.world,"ground_height"); g.add_child(guard); guard.position=saved_guard_position
 		guard_label=g.world.make_label(guard,"GUARDIA",Vector3(0,2.8,0),35)
 	guard_cooldown=maxf(0,guard_cooldown-delta)
 	guard_label.text="GUARDIA · %ds" % ceili(guard_cooldown) if guard_cooldown>0 else "GUARDIA"
@@ -291,3 +291,46 @@ func load_state(data: Dictionary) -> void:
 	if actors is Array:
 		for saved in actors.slice(0,5):
 			if saved is Dictionary:_spawn_raider(Store.position(saved.get("entry"),ENTRIES[0]),saved)
+
+func lesson() -> String:
+	var lessons: Array[String]=[
+		"Mové a Scottie con el joystick.
+
+1. Cosechá 6 productos.
+2. Lleválos a ENTREGAR.
+3. Recogé tus monedas en CAJA y contratá un ayudante.",
+		"Tu equipo cosecha mientras vos atendés las entregas.
+
+Contratá un segundo ayudante y completá las ventas. Las flechas te muestran dónde invertir.",
+		"¡Llegan mapaches!
+
+Comprá un cerrojo. Acercate al ladrón y tocá AHUYENTAR. El guardia ayuda, pero vos también defendés el mercado.",
+		"Abrí el huerto de manzanas.
+
+El carro premium paga más por un pedido concreto. Llevá los ingredientes con el joystick.",
+		"Construí el muelle.
+
+Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.",
+		"Protegé tus ventas con alarma y guardia.
+
+También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.",
+		"Construí una panadería y prepará tu primera compota.
+
+Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.",
+		"El café prepara meriendas.
+
+Podés elegir un extra por rapidez; el pago base se conserva aunque se termine el tiempo.",
+		"Construí una torre vigía e iniciá una ronda.
+
+Defendé el stock antes de que escapen los mapaches.",
+		"Probá dos recetas y mejorá tus talleres.
+
+Decidí qué ingredientes vendés y cuáles transformás.",
+		"Construí el molino y combiná encargos con exportaciones.
+
+La ruta al Faro abre granjas y más cadenas de producción.",
+		"Prepará tres puestos para la feria y defendé una ronda.
+
+Después seguí construyendo los pueblos de la ruta marítima."
+	]
+	return lessons[mini(level-1,11)]

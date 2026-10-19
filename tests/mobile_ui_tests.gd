@@ -48,11 +48,14 @@ func touch_at(position: Vector2, index: int, down: bool, cancelled: bool=false) 
 	await process_frame
 
 func manual_walk(target: Vector3) -> void:
-	for i in range(160):
-		var difference: Vector3=target-game.player.position
-		if difference.length()<.25:break
-		game.input_stick.axis=Vector2(difference.x,difference.z).normalized()
-		game._process_player(.05); game.world._process(.05)
+	# Simulate a player following the guide around the real booth footprints.
+	var path: PackedVector3Array=game.world.navigation.find_path(game.player.position,target)
+	for waypoint in path:
+		for i in range(200):
+			var difference: Vector3=waypoint-game.player.position
+			if difference.length()<.25:break
+			game.input_stick.axis=Vector2(difference.x,difference.z).normalized()
+			game._process_player(.04);game.world._process(.04)
 	game.input_stick._clear()
 
 func run() -> void:

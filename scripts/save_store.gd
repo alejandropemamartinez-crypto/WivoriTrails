@@ -17,7 +17,7 @@ static func _read(path: String) -> Dictionary:
 	var version: Variant = data.get("version")
 	if not version is float and not version is int:
 		return {}
-	if int(version) not in [1, 2, 3, 4, 5, 6, 7]:
+	if int(version) not in [1, 2, 3, 4, 5, 6, 7, 8]:
 		return {}
 	return data
 
