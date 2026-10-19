@@ -54,15 +54,27 @@ func capture() -> void:
 	stage_material.albedo_color=Color("#b9d0b4");stage_material.roughness=1.0
 	stage_floor.material_override=stage_material
 	photo_stage.add_child(stage_floor)
+	# A dedicated warm key/fill pair prevents hidden-world lights from making
+	# dark fur unreadable in the character review. Both are real engine lights.
+	var key_light:=DirectionalLight3D.new()
+	key_light.rotation_degrees=Vector3(-46,-32,0)
+	key_light.light_energy=1.15
+	key_light.light_color=Color("#fff1d6")
+	photo_stage.add_child(key_light)
+	var fill_light:=DirectionalLight3D.new()
+	fill_light.rotation_degrees=Vector3(-18,145,0)
+	fill_light.light_energy=.58
+	fill_light.light_color=Color("#d9eefa")
+	photo_stage.add_child(fill_light)
 	var gallery: Array[MarketActor]=[]
 	# Distinct NPC species; the hero remains the only Scottish Terrier.
 	for i in range(3):
 		var actor: MarketActor=game.ActorScript.new()
 		actor.setup("customer",[Color("#4c9992"),Color("#d49f68"),Color("#70899b")][i],["fox","rabbit","pig"][i])
 		game.add_child(actor)
-		actor.position=Vector3((i-1)*1.65,0,0)
+		actor.position=Vector3((i-1)*1.13,0,0)
 		gallery.append(actor)
-	game.camera.position=Vector3(0,2.95,9.2);game.camera.fov=52
+	game.camera.position=Vector3(0,2.75,6.6);game.camera.fov=48
 	game.camera.look_at(Vector3(0,1.37,0))
 	await frames(12);await shot("faces")
 	for actor in gallery:actor.queue_free()
