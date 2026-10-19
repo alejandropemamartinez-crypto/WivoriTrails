@@ -94,6 +94,19 @@ recuperación visibles, con mensajera coneja gesticulando sin detener la partida
 No se acredita saldo duplicado al guardar/cargar, ni se roba una fruta invisible.
 Oleadas de mapaches escaladas sin molestar cada 15 segundos.
 
+### Avance técnico de la etapa 3 — rama sin compilación
+- Rama: `feat/v017-stage3-physical-flows-no-build`, continuada desde la etapa 2 (sin fusionar).
+- La compra animada de un cliente parte físicamente del comprador y termina en la caja correspondiente; el dinero sigue sin ser gastable hasta la recogida y finalización de su traslado.
+- Nuevas trayectorias visuales de modelos de mercancía para manufactura, recogida de lotes, pedidos premium, despacho, almacén del barco y puestos de las otras islas.
+- Se visualizan los ingredientes auténticos de cada receta; se eliminó el efecto anterior que mostraba manzanas sin importar el producto elaborado.
+- El trigo cosechado se traslada visualmente hacia el protagonista y la confirmación aparece como rótulo flotante no modal.
+- La bonificación de cosecha doble ahora genera dos objetos en vuelo, no uno solo. Se corrigió la guía que aún mencionaba un círculo de entrega.
+- La caja local de cada pueblo muestra una pila de doce monedas que crece con la recaudación y desaparece al recogerla; la animación de cobro existente sigue usando el saldo único en tránsito.
+- Se limitan las partículas/modelos de cada traslado a ocho para evitar ráfagas descontroladas en móviles.
+- Nueva suite `tests/physical_flows_tests.gd` preparada para revisar saldos, existencia de modelos y ausencia de créditos dobles.
+- **No se ejecutaron Godot, importación, pruebas, capturas ni compilación APK**, conforme a la solicitud. El código requiere validación antes de considerarse funcional.
+- **Pendiente**: capturas auténticas y evaluación de continuidad origen-destino; verificar animaciones de todos los actos del personaje, defensa y recuperación del robo; medir rendimiento durante transporte masivo y descartar errores de importación, tipado o escenas. Sin validación no se da por finalizada la etapa 3.
+
 ## Etapa 4 — Mundo, pueblos, granjas e industria
 Perfeccionar el escenario *existente* por distritos con composición, vegetación,
 arquitectura diferenciada y oficios separados. Las granjas deben tener animales
