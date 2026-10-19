@@ -169,10 +169,15 @@ func _find_mesh(node: Node) -> MeshInstance3D:
 	return null
 
 func set_carry(amount: int) -> void:
-	carrying=amount
-	if goods_root!=null:goods_root.visible=amount>0 and character_role!="thief" and not is_money_courier
-	if stolen_bundle!=null:stolen_bundle.visible=amount>0 and character_role=="thief"
-	if money_bag!=null:money_bag.visible=amount>0 and is_money_courier
+	carrying=maxi(0,amount)
+	# A helper with one real parcel must not look like it transports four,
+	# and a thief cannot show stolen produce before the robbery succeeds.
+	if character_role!="player" and not is_money_courier and PRODUCE_KEYS.has(cargo_kind):
+		var recipient:Node3D=stolen_bundle if character_role=="thief" else goods_root
+		_fill_visual_basket(recipient,{cargo_kind:mini(carrying,4)},4)
+	if goods_root!=null:goods_root.visible=carrying>0 and character_role!="thief" and not is_money_courier
+	if stolen_bundle!=null:stolen_bundle.visible=carrying>0 and character_role=="thief"
+	if money_bag!=null:money_bag.visible=carrying>0 and is_money_courier
 
 func set_money_carry(amount: int) -> void:
 	is_money_courier=true
@@ -185,6 +190,11 @@ func _cargo_asset(kind: String) -> String:
 func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -> void:
 	if destination==null:return
 	var prior_nodes:Array=destination.get_children()
+	var reusable:Dictionary={}
+	for previous in prior_nodes:
+		var asset_path:String=previous.scene_file_path
+		if not reusable.has(asset_path):reusable[asset_path]=[]
+		reusable[asset_path].append(previous)
 	var kinds: Array=amounts.keys()
 	kinds.sort()
 	var remaining:Dictionary={}
@@ -204,22 +214,21 @@ func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -
 	for i in range(visible.size()):
 		var asset:String=_cargo_asset(visible[i])
 		var expected:String="res://assets/models/"+asset+".glb"
-		var item:Node3D=prior_nodes[i] if i<prior_nodes.size() else null
-		# Preserve imported mesh + rig instances when the same product still
-		# occupies this slot; repeated farming should not cause GLB churn.
-		if item!=null and item.scene_file_path!=expected:
-			item.free()
-			item=null
+		# Match by actual asset rather than old slot. A change in one product
+		# cannot unnecessarily discard unrelated, already-imported meshes.
+		var available:Array=reusable.get(expected,[])
+		var item:Node3D=available.pop_back() if not available.is_empty() else null
 		if item==null:
 			item=model(asset)
 			destination.add_child(item)
-			destination.move_child(item,i)
+		destination.move_child(item,i)
 		var x:float=(float(i%3)-1.0)*.22
 		var z:float=float(i/3)*.21
 		item.position=Vector3(x,z,0)
 		item.scale=Vector3.ONE*.53
-	for i in range(visible.size(),prior_nodes.size()):
-		if is_instance_valid(prior_nodes[i]):prior_nodes[i].free()
+	for remaining_group in reusable.values():
+		for old_item in remaining_group:
+			if is_instance_valid(old_item):old_item.free()
 
 func set_visible_cargo(contents: Dictionary) -> void:
 	# Cosmetics only. The caller owns the real item counts; we never change
@@ -241,13 +250,16 @@ func set_visible_cargo(contents: Dictionary) -> void:
 	_fill_visual_basket(goods_root,normalized,6)
 
 func set_cargo_kind(kind: String) -> void:
-	# Workers and raiders transport a single actual product. Keep the legacy
-	# entry point but render only that species of cargo on its first use.
+	# Keep inventory ownership in the worker/robbery systems; product type
+	# alone does not imply four units have been collected.
 	if not PRODUCE_KEYS.has(kind) or kind==cargo_kind:return
 	cargo_kind=kind
-	var destination:Node3D=stolen_bundle if character_role=="thief" else goods_root
-	_fill_visual_basket(destination,{kind:4},4)
-	visual_cargo_signature=""  # Player mixed cargo is rebuilt when requested.
+	if goods_root==null:return
+	if character_role!="player":
+		var destination:Node3D=stolen_bundle if character_role=="thief" else goods_root
+		_fill_visual_basket(destination,{kind:mini(carrying,4)},4)
+	else:
+		visual_cargo_signature=""
 
 func act(kind: String) -> void:
 	if action==kind and action_left>.12:return
