@@ -44,6 +44,9 @@ func run_tests() -> void:
 		check(reeds!=null and reeds.multimesh.instance_count==90,"Area %d batches its coastline vegetation" % area)
 		check(game.world.navigation.is_walkable(game.player.position,.25),"Area %d restores a walkable arrival" % area)
 		check(game.coins==money and game.route.inventory==original_inventory,"Area %d scenery does not touch balances or cargo" % area)
+		check(game.route.regional_sale_bonus("milk")== (1.15 if area==2 else 1.0),"Region %d recognizes its local dairy demand" % area)
+		var advertised:int=game.route.sale_value("milk")
+		check(advertised>0 and advertised==game.route.sale_value("milk"),"Regional sale prices are deterministic before a transaction")
 		if area==1:
 			check(game.route.processing_visuals.has("flour") and game.route.processing_visuals.has("feed"),"Grainmill uses distinct flour and feed manufacturing props")
 			game.route.jobs["flour"]={"remaining":4.0,"ready":0}
@@ -51,7 +54,15 @@ func run_tests() -> void:
 			check(game.route.processing_visuals["flour"]["node"].visible,"Running flour batch is depicted on its conveyor")
 			check(not game.route.processing_visuals["feed"]["node"].visible,"Inactive feed recipe is not falsely shown as active")
 			game.route.jobs.clear()
+			check(game.route.regional_sale_bonus("flour")==1.15,"Grain has a commercial premium in farming village")
+			game.route.jobs["flour"]={"remaining":.05,"ready":0,"automatic":true}
+			var before_events:float=game.event_fade
+			game.route.tick(.2)
+			check(game.route.jobs["flour"]["ready"]==2,"Automated flour production still generates finished units")
+			check(game.event_fade<=before_events,"Automatic workshop completion does not interrupt play with recurring notices")
+			game.route.jobs.clear()
 		if area==2:
+			check(game.route.regional_sale_bonus("cheese")==1.15 and game.route.regional_sale_bonus("wheat")==1.0,"Livestock town rewards dairy and not unrelated grain")
 			check(game.route.animals.size()==2,"Livestock is introduced only by the purchased barn")
 			check(game.route.processing_visuals.has("cheese"),"Dairy has an active production representation")
 			var creature:Node3D=game.route.animals[0]["node"]
@@ -60,6 +71,20 @@ func run_tests() -> void:
 			check(creature.position.distance_to(before)>0.0,"Livestock motion includes walking, not only rigid rotation")
 		if area==3:
 			check(game.route.processing_visuals.has("provisions"),"Bay cannery has a physical production process")
+			var cargo=game.route.region_identity.storage_props
+			check(cargo.size()==6,"Farol port models six real-stock display slots")
+			var empty:=true
+			for crate in cargo:empty=empty and not crate.visible
+			check(empty,"The harbor does not invent cargo while the warehouse is empty")
+			game.route.inventory["provisions"]=13
+			game.route._update_cargo()
+			check(cargo[0].visible and cargo[1].visible and cargo[2].visible and not cargo[3].visible,"Thirteen stored units display three cargo containers")
+			game.route.inventory["provisions"]=0
+			game.route._update_cargo()
+			var cleared:=true
+			for crate in cargo:cleared=cleared and not crate.visible
+			check(cleared,"Removing real stock hides the previously displayed crates")
+			check(game.coins==money,"Display updates have no effects on available cash")
 	# Return to the original map and ensure decorative nodes are discarded.
 	game.route._arrive(0)
 	check(game.route.region_identity==null and game.route.processing_visuals.is_empty(),"Return home disposes of off-island scenery and process props")
