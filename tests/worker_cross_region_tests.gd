@@ -96,6 +96,15 @@ func run_tests() -> void:
 	verify(route.pickup("flour") and route.bag["flour"]==6,"Physically visiting the mill transfers finished stock into backpack")
 	verify(route.jobs["flour"]["ready"]==0 and g.player.carrying==11,"Pickup removes the finite output exactly once and updates the visible player load")
 	verify(not route.pickup("flour"),"Picking the same finished output a second time gives nothing")
+	# A manually started batch must take inputs from the carried pouch first.
+	# This previously left the 3D backpack stale until the next route tick.
+	var wheat_before:int=route.inventory["wheat"]
+	var avatar_before:int=g.player.carrying
+	g.save_timer=8.0
+	verify(route.start_batch("flour",false),"Manual flour production can start after collecting a completed automated batch")
+	verify(route.bag["wheat"]==2 and route.inventory["wheat"]==wheat_before,"Manual batch consumes the player's three wheat before taking warehouse stock")
+	verify(g.player.carrying==avatar_before-3 and g.player.goods_root.get_child_count()==6,"Manual ingredient consumption refreshes the real 3D backpack immediately")
+	verify(route.jobs["flour"]["remaining"]>0,"Manual workshop uses the same non-instant production timer as workers")
 	var inventory:Dictionary=route.inventory.duplicate()
 	var bag:Dictionary=route.bag.duplicate()
 	await sail(0)
