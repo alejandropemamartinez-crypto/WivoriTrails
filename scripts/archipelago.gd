@@ -514,6 +514,18 @@ func _update_cargo() -> void:
 	# One exact shared player loadout: don't draw a guessed first ingredient
 	# in front of the hero while hiding everything actually in the bag.
 	g._sync_visible_cargo()
+func _job_status(key: String) -> String:
+	# "0 s" used to appear on finished, idle or paused machines alike.
+	# Report the actual state without a full-screen interruption.
+	if not RECIPES.has(key):return ""
+	var job:Dictionary=jobs.get(key,{"remaining":0.0,"ready":0})
+	if int(job.get("ready",0))>0:return "¡LISTO! ×%d" % int(job["ready"])
+	if float(job.get("remaining",0.0))>0:return "EN PROCESO · %d s" % ceili(float(job["remaining"]))
+	if employees.has(key) and not employees[key]:return "OPERARIO PAUSADO"
+	if not has_needs(RECIPES[key]["needs"],employees.get(key,false)):
+		return "SIN INSUMOS"
+	return "PREPARAR LOTE" if not employees.get(key,false) else "OPERARIO DISPONIBLE"
+
 func tick(delta: float) -> void:
 	clock+=delta
 	for animal in animals:
@@ -593,7 +605,7 @@ func tick(delta: float) -> void:
 			var operator: MarketActor=root.get_node_or_null("Operator_"+key)
 			if operator!=null and employees.get(key,false) and jobs.get(key,{}).get("remaining",0.0)>0 and operator.action_left<=0:operator.act("build")
 			root.get_node("Output_"+key).visible=int(jobs.get(key,{}).get("ready",0))>0
-			root.get_node("Job_"+key).text=("¡LISTO! ×%d" % jobs[key]["ready"] if jobs[key]["ready"]>0 else "%ds" % ceili(jobs[key]["remaining"])) if jobs.has(key) else ""
+			root.get_node("Job_"+key).text=_job_status(key)
 	
 func objective() -> Dictionary:
 	var result: Dictionary={"tag":"RUTA AL FARO · %d / %d" % [stage,PROJECTS.size()],"title":"Reconstruí la ruta entre pueblos","detail":"Wivori → Villa Miga → Puerto Nata → Bahía Farol","goal":float(PROJECTS.size()),"value":float(stage),"button":"VER RUTA","action":"route:board"}
