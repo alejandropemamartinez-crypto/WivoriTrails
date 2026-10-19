@@ -34,7 +34,10 @@ var motion_phase:=0.0
 var motion_bones: Dictionary={}
 var is_money_courier := false
 var cargo_kind := ""
+var visual_cargo_signature:=""
 static var scenes := {}
+const PRODUCE_KEYS=["tomato","carrot","berry","apple"]
+const CARGO_MODEL_OVERRIDES={"packaging":"goods_parcel","preserves":"goods_provisions","kits":"goods_crate"}
 
 func setup(role: String, color: Color, species_: String="human") -> void:
 	character_role=role
@@ -78,20 +81,13 @@ func _ready() -> void:
 	goods_root.name="Productos visibles en la mochila"
 	goods_root.position=Vector3(0,1.40,-.42)
 	add_child(goods_root)
-	for i in range(5):
-		var fruit:=model("produce_"+["tomato","carrot","berry","apple","tomato"][i])
-		fruit.position=Vector3((float(i%3)-1)*.15,float(i/3)*.18,0)
-		fruit.scale=Vector3.ONE*.52
-		goods_root.add_child(fruit)
+	# Actors start with empty hands. Instantiating five assorted fruits for
+	# every idle customer created inaccurate cargo and needless 3D nodes.
 	stolen_bundle=Node3D.new()
 	stolen_bundle.name="Mercancía sustraída"
 	stolen_bundle.position=Vector3(0,.86,.56)
 	add_child(stolen_bundle)
-	for i in range(4):
-		var fruit:=model("produce_tomato")
-		fruit.position=Vector3((float(i%2)-.5)*.23,float(i/2)*.17,0)
-		fruit.scale=Vector3.ONE*.65
-		stolen_bundle.add_child(fruit)
+	# Stolen produce becomes visible only after the raider actually takes it.
 	money_bag=model("money_bag")
 	money_bag.name="Bolsa de recaudación real"
 	money_bag.scale=Vector3.ONE*.60
@@ -182,19 +178,64 @@ func set_money_carry(amount: int) -> void:
 	is_money_courier=true
 	set_carry(amount)
 
+func _cargo_asset(kind: String) -> String:
+	if PRODUCE_KEYS.has(kind):return "produce_"+kind
+	return CARGO_MODEL_OVERRIDES.get(kind,"goods_"+kind)
+
+func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -> void:
+	if destination==null:return
+	for child in destination.get_children():child.free()
+	var kinds: Array=amounts.keys()
+	kinds.sort()
+	var remaining:Dictionary={}
+	for key in kinds:remaining[key]=maxi(0,int(amounts[key]))
+	# Round-robin respects individual quantities and displays up to six real
+	# items. A one-unit harvest is never represented by five random fruits.
+	var visible: Array[String]=[]
+	while visible.size()<limit:
+		var added:=false
+		for key in kinds:
+			if int(remaining[key])<=0:continue
+			visible.append(str(key))
+			remaining[key]=int(remaining[key])-1
+			added=true
+			if visible.size()==limit:break
+		if not added:break
+	for i in range(visible.size()):
+		var item:=model(_cargo_asset(visible[i]))
+		var x:float=(float(i%3)-1.0)*.22
+		var z:float=(float(i/3))*.21
+		item.position=Vector3(x,z,0)
+		item.scale=Vector3.ONE*.53
+		destination.add_child(item)
+
+func set_visible_cargo(contents: Dictionary) -> void:
+	# Cosmetics only. The caller owns the real item counts; we never change
+	# inventory or money here. Input order cannot affect our visual layout.
+	if character_role=="thief" or is_money_courier:return
+	var keys: Array=contents.keys()
+	keys.sort()
+	var normalized:Dictionary={}
+	var signature:PackedStringArray=[]
+	for key in keys:
+		if not (PRODUCE_KEYS.has(str(key)) or CARGO_MODEL_OVERRIDES.has(str(key)) or str(key) in ["wheat","flour","feed","bread","egg","milk","cheese","meat","provisions"]):continue
+		var qty:int=maxi(0,int(contents[key]))
+		if qty<=0:continue
+		normalized[key]=qty
+		signature.append("%s:%d" % [key,qty])
+	var proposed:String="|".join(signature)
+	if proposed==visual_cargo_signature:return
+	visual_cargo_signature=proposed
+	_fill_visual_basket(goods_root,normalized,6)
+
 func set_cargo_kind(kind: String) -> void:
-	if kind not in ["tomato","carrot","berry","apple"] or kind==cargo_kind:return
+	# Workers and raiders transport a single actual product. Keep the legacy
+	# entry point but render only that species of cargo on its first use.
+	if not PRODUCE_KEYS.has(kind) or kind==cargo_kind:return
 	cargo_kind=kind
-	var root: Node3D=stolen_bundle if character_role=="thief" else goods_root
-	if root==null:return
-	for child in root.get_children():
-		root.remove_child(child)
-		child.queue_free()
-	for i in range(4):
-		var item:=model("produce_"+kind)
-		item.position=Vector3((float(i%2)-.5)*.23,float(i/2)*.17,0)
-		item.scale=Vector3.ONE*.65
-		root.add_child(item)
+	var destination:Node3D=stolen_bundle if character_role=="thief" else goods_root
+	_fill_visual_basket(destination,{kind:4},4)
+	visual_cargo_signature=""  # Player mixed cargo is rebuilt when requested.
 
 func act(kind: String) -> void:
 	if action==kind and action_left>.12:return
