@@ -213,6 +213,19 @@ Rama: `feat/v018-stage5b-transport-cash-qa-no-build`, derivada de la auditoría 
 - Se preparó `tests/village_facade_tests.gd` (no ejecutada) para revisar las doce identidades, tres destinos, cambios visibles al construir, animación, permanencia de los puntos de producción, llegada al muelle, conservación de inventario/monedas y regreso a Wivori.
 - **Sin evaluación visual real**: el trabajo sigue siendo arte de apoyo generado dentro del motor y modelos preexistentes, no nuevos assets GLB esculpidos por artistas. Está por comprobarse proporción, accesibilidad, superposición con modelos originales, lectura en móviles, FPS y recepción de animaciones. No se corrió Godot, pruebas funcionales, capturas ni APK.
 
+### Etapa 5E — protagonista y movimiento de NPC (fuente, sin compilar)
+Rama: `feat/v018-stage5e-character-motion-no-build`, basada en 5D y sin fusionar a `main`.
+
+- Nuevo módulo `scripts/character_motion.gd`: política de presentación de movimientos por especie — amplitud de atención al mirar, ritmo de pasos de conejos/patos/cerdos/zorros/mapaches, balanceo de cola, seguimiento de orejas y giros suavizados; **no cambia** aceleración de joystick, velocidad máxima, economía, navegación ni el esquema de guardado.
+- `scripts/actor.gd`: reutiliza los esqueletos importados y clips GLB originales. Resuelve y **almacena** los índices de huesos de cabeza, orejas, ojos, cola y brazos una vez al crear cada actor, evitando búsquedas repetidas durante el fotograma.
+- La cara reacciona ligeramente mientras el personaje está quieto; su torso respira en un rango mínimo sin modificar los pies ni la sombra de contacto. Las animaciones de carrera, marcha, giro y mochila transicionan según velocidad realmente observada, y se ignoran saltos de posición causados por viajes o restauraciones.
+- Durante la marcha, los ojos usan **huesos reales del rig** para parpadear sin piezas flotantes. El parpadeo ya animado del clip `idle` se conserva y no recibe un segundo parpadeo superpuesto.
+- Los operarios de taller reciben `face_direction_yaw(PI)`; antes se fijaba `rotation.y` pero su orientación preferida quedaba en cero y en el siguiente fotograma podían girar incorrectamente.
+- **Escultura fuente** `art/source/build_hero.py`: ajustes del hocico, mejillas, iris y orejas erguidas; tonos gris atigrado y manchas suaves pintadas en la malla, sin bigote claro excesivo ni barba de schnauzer. Se conserva el modelo original de perrito sin nombre, pañuelo, rig y 14 clips.
+- **Advertencia importante:** la escultura se modificó únicamente en el **script fuente de Blender**, todavía **no** en `assets/models/hero.glb`, porque en esta etapa el autor indicó no generar compilaciones ni exportaciones. El cambio de anatomía se verá en el juego **solo después de una futura exportación del arte**, que deberá inspeccionarse visualmente antes de integrarla.
+- Añadida `tests/character_motion_tests.gd` para verificar decisiones de clips, 5 especies diferenciadas, giro de operarios, ojos/orejas y carga visible. Preparada pero **sin ejecutar**. Es necesario observar 30+ minutos de navegación, idle/caminata y animación en Godot/Android para aprobar el acabado.
+- **Estado real:** cambios de fuente guardados en GitHub; sin importación de Godot, pruebas ejecutadas, render del personaje actualizado, exportación del modelo, APK ni modificación de `main`.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
