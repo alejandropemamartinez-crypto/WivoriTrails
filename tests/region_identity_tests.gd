@@ -40,6 +40,7 @@ func run_tests() -> void:
 		var dressing=game.route.region_identity
 		check(dressing!=null and dressing.region_index==area,"Area %d has its own authored district identity" % area)
 		check(dressing.name==themes[area] and dressing.landmark_count>0,"Area %d contains distinguishing physical props" % area)
+		check(game.route.residents.size()==3 and game.route.residents[0]["actor"].ground_sampler.is_valid(),"Village %d residents sample their own island ground elevation" % area)
 		var reeds=dressing.get_node_or_null("Juncos costeros · instanciados") as MultiMeshInstance3D
 		check(reeds!=null and reeds.multimesh.instance_count==90,"Area %d batches its coastline vegetation" % area)
 		check(game.world.navigation.is_walkable(game.player.position,.25),"Area %d restores a walkable arrival" % area)
@@ -65,6 +66,12 @@ func run_tests() -> void:
 			check(game.route.regional_sale_bonus("cheese")==1.15 and game.route.regional_sale_bonus("wheat")==1.0,"Livestock town rewards dairy and not unrelated grain")
 			check(game.route.animals.size()==2,"Livestock is introduced only by the purchased barn")
 			check(game.route.processing_visuals.has("cheese"),"Dairy has an active production representation")
+			game.route.employees["cheese"]=true
+			game.route._spawn_operator("cheese")
+			var dairy_root:Node3D=game.route.station_nodes["dairy"]
+			var dairy_operator:MarketActor=dairy_root.get_node("Operator_cheese")
+			check(dairy_operator.ground_sampler.is_valid(),"Dairy worker gets a correctly bound ground sampler")
+			check(absf(float(dairy_operator.ground_sampler.call(dairy_operator.position))-game.route.ground_height(dairy_root.to_global(dairy_operator.position)))<.001,"Translated workshop workers use island-world coordinates for feet")
 			var creature:Node3D=game.route.animals[0]["node"]
 			var before:Vector3=creature.position
 			game.route.tick(.25)
