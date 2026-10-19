@@ -308,6 +308,17 @@ Rama `feat/v018-stage5l-script-type-and-test-qa-no-build`, continuación de 5K. 
 
 **Siguiente prioridad:** validación con parser/importador Godot 4.4.1 y prueba real de las 19 baterías de regresión del proyecto (cuando se autorice ejecutar), después revisión visual de escenas y rendimiento Android. El código fuente no equivale todavía a un APK aprobado.
 
+### Etapa 5M — integración real entre retrato 3D, viewport y materiales de NPC (solo fuente)
+
+Rama `feat/v018-stage5m-cross-script-qa-no-build`, derivada de la 5L. Ninguna compilación, importación de Godot, prueba ejecutada, publicación o alteración de `main`.
+
+1. **Error de tipos heredado de la etapa 5L:** `RabbitWarningBanner._ready()` llamaba `Art.place(portrait_view,"rabbit")`, pero `Art.place(parent: Node3D)` no admite `SubViewport`, que es un `Viewport`/contenedor 3D y **no** hereda de `Node3D`. Eso podía impedir el análisis de GDScript aunque el modelo y su ruta existieran. Se reemplazó por el cargador comprobado `MarketActor.model("rabbit")` y `portrait_view.add_child(actor)`. Con ello se conserva la malla importada y su `Skeleton3D`/`AnimationPlayer`, sin reutilizar equivocadamente un constructor de objetos de escenario.
+2. **Prueba específica del retrato:** añadido `tests/rabbit_portrait_tests.gd`, aún sin ejecutar. Comprueba el árbol de nodos (el modelo es hijo del `SubViewport`), la ruta real de `rabbit.glb`, la textura y el render transparente, las fases de alerta/aproximación, la recuperación de mercancía, la flecha textual de peligro, la ausencia de diálogo modal y la suspensión del viewport invisible para ahorrar batería.
+3. **Superficies y uniformes de NPC:** `MarketActor._find_mesh()` elegía la primera malla cuya **superficie 0** tenía una textura. El GLB puede contener ojos/metales antes que el tejido texturizado y más de una superficie. Ahora busca entre **todas las superficies** de cada malla importada, memoriza `head_surface_index` y aplica el shader de ropa únicamente a la superficie de atlas identificada. Conserva las demás superficies y el aspecto original del protagonista. Se añadieron comprobaciones a `tests/resource_startup_tests.gd` para confirmar la existencia de atlas real en las seis especies y que los cinco NPC pinten la superficie elegida con `ShaderMaterial`.
+4. **Auditoría estática complementaria:** se examinaron las llamadas `Art.place()` y las creaciones dinámicas de los 29 scripts del juego; el antiguo uso del retrato con `SubViewport` se corrigió. También se confrontaron los clips `alert`, `surprise` y `relief` con los nombres presentes en `art/source/build_assets.py`, sin confundir esa correspondencia textual con una prueba de importación GLB.
+
+**Pendiente y riesgo:** la selección de materiales está definida en el código, pero su validez visual solo se confirma con las texturas de los GLB ya importados. Las baterías de pruebas y el parser Godot 4.4.1 no se ejecutaron; falta renderizar capturas, comprobar animaciones y medir FPS y temperatura en Android. El modelo fuente Scottish Terrier actualizado sigue sin reexportarse.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
