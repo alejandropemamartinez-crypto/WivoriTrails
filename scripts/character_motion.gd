@@ -47,6 +47,12 @@ static func head_scan(time_seconds: float,phase: float,walking: float) -> float:
 	var attention:float=1.0-clampf(walking*.82,0.0,.82)
 	return .085*sin(time_seconds*.71+phase)*attention
 
+static func blink_factor(time_seconds: float,phase: float) -> float:
+	# The Blender-authored idle clip already closes the eyes. Moving clips
+	# do not, so a sparse, brief paired blink prevents staring during travel.
+	var moment:float=fposmod(time_seconds+phase*.7,4.7)
+	return 1.0-.86*exp(-pow((moment-3.35)/.065,2.0))
+
 static func tail_response(time_seconds: float,phase: float,walking: float,role: String) -> float:
 	# A recovering parcel thief wags differently from the happy player.
 	var amplitude:float=.14 if role=="player" else .09 if role=="helper" else .11
