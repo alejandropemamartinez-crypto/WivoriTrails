@@ -129,6 +129,11 @@ func run_tests() -> void:
 		root.add_child(actor)
 		check(actor.body_root!=null and actor.body_root.name!="ERROR · Falta "+species,"Original imported rig is preserved for "+species)
 		check(actor.skeleton!=null and actor.animator!=null,"Species "+species+" contains a real skeleton and AnimationPlayer")
+		check(actor.head_mesh!=null and actor.head_surface_index>=0,
+			"Species "+species+" has an identifiable real fur-atlas surface")
+		if species!="hero" and actor.head_mesh!=null and actor.head_surface_index>=0:
+			var tint:Material=actor.head_mesh.get_surface_override_material(actor.head_surface_index)
+			check(tint is ShaderMaterial,"NPC "+species+" recolors the actual coat surface, not a random eye or metal slot")
 		actor.free()
 	# All actual regional projects reference one of the curated imported
 	# building families; source-only props never substitute fake cubes.
