@@ -202,6 +202,17 @@ Rama: `feat/v018-stage5b-transport-cash-qa-no-build`, derivada de la auditoría 
 - **Limitación de calidad**: son diseños 3D estilizados añadidos por código a los modelos GLB existentes; no equivalen por sí solos a arte comercial de nivel Township, ni fueron vistos en capturas de Godot. Falta revisar proporciones, sombras, materiales, interferencias con edificios y fluidez en Android.
 - **No se importó Godot, ejecutaron pruebas, generaron capturas ni compiló APK**. Próxima fase: auditoría visual verdadera, rediseño de elementos que continúen pareciendo bloques y pruebas de extremo a extremo antes de fusionar.
 
+### Etapa 5D — identidad arquitectónica de los pueblos originales (sin compilación)
+- Rama `feat/v018-stage5d-village-art-no-build`, nacida de la etapa 5C e independiente de `main`.
+- Se añadió `scripts/village_facade.gd`, un sistema que asigna elementos originales y específicos a **doce edificios ya existentes**, sin construir copias nuevas, gastar monedas ni modificar el inventario.
+- **Villa Miga**: espantapájaros y cestas del campo; zona de molienda y sacos en el molino; panadería con toldo de franjas y exposición de panes; gallinero con nidos, huevos y perchas.
+- **Puerto Nata**: lecheras y campana en el establo; quesería con toldo, piezas de queso y botellas; corral con comedero; carnicería como tienda de productos empacados sin imágenes violentas.
+- **Bahía Farol**: almacén con bolardos y tarima, cocina de provisiones, vigía con señales náuticas y base del faro con balizas. Se mantiene el haz luminoso y la animación originales del faro.
+- Los toldos, carteles físicos y banderines poseen materiales de colores diferenciados; banderines animados reciben tiempo delta y se reconstruyen al visitar cada isla. Las nuevas piezas se sitúan ante la fachada de cada modelo importado y aparecen con la compra del proyecto.
+- La vegetación cosechable y pacas de Villa Miga, la pradera de ganado y los barriles de quesería de Puerto Nata solo se muestran cuando el jugador construye efectivamente sus instalaciones. Cada proyecto adquirido refresca la identidad exterior, retirando antes las huellas de navegación anteriores para evitar obstáculos fantasma.
+- Se preparó `tests/village_facade_tests.gd` (no ejecutada) para revisar las doce identidades, tres destinos, cambios visibles al construir, animación, permanencia de los puntos de producción, llegada al muelle, conservación de inventario/monedas y regreso a Wivori.
+- **Sin evaluación visual real**: el trabajo sigue siendo arte de apoyo generado dentro del motor y modelos preexistentes, no nuevos assets GLB esculpidos por artistas. Está por comprobarse proporción, accesibilidad, superposición con modelos originales, lectura en móviles, FPS y recepción de animaciones. No se corrió Godot, pruebas funcionales, capturas ni APK.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
