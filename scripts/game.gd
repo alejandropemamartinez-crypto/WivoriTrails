@@ -674,14 +674,16 @@ func _process_player(delta: float) -> void:
 			var resource := world.harvest(crop)
 			if resource!="":
 				stash[resource]+=1
+				var harvested_units:=1
 				if town.bonus_harvest() and _total_bag()<max_capacity:
+					harvested_units=2
 					stash[resource]+=1
 					_float_activity(crop["node"].global_position,"¡DOBLE COSECHA!",Color("#58a67e"))
 				player.set_carry(_total_bag())
 				player.act("harvest")
 				harvest_wait=.23
 				if harvest_sfx.stream:harvest_sfx.play()
-				_spawn_pickup_fx(crop["node"].global_position,resource)
+				_spawn_pickup_fx(crop["node"].global_position,resource,harvested_units)
 
 	if drop_wait<=0 and run.deliver_contract()>0:drop_wait=.6
 	if drop_wait<=0 and _total_bag()>0 and player.position.distance_to(Vector3(4,0,2.5))<2.5:
@@ -698,7 +700,7 @@ func _process_player(delta: float) -> void:
 	if _total_bag()>=max_capacity:
 		hint_label.text="Bolsa llena · llevá tu cosecha al puesto"
 	elif player.position.distance_to(Vector3(4,0,2.5))<4:
-		hint_label.text="Círculo dorado · entrega automática"
+		hint_label.text="Acercate al puesto para entregar tu cosecha"
 	elif _total_stock()<3:
 		hint_label.text="Acercate a un cultivo para cosechar"
 	else:
@@ -744,9 +746,9 @@ func _float_activity(at: Vector3, message: String, tint: Color) -> void:
 	tween.tween_property(badge,"modulate:a",0.0,.9)
 	tween.chain().tween_callback(badge.queue_free)
 
-func _spawn_pickup_fx(at: Vector3, kind: String) -> void:
-	_fly_produce(kind,at+Vector3(0,.58,0),player.to_global(Vector3(0,1.4,-.36)),1,player)
-	_float_activity(at,"+1",Color("#e0b465"))
+func _spawn_pickup_fx(at: Vector3, kind: String, amount: int=1) -> void:
+	_fly_produce(kind,at+Vector3(0,.58,0),player.to_global(Vector3(0,1.4,-.36)),amount,player)
+	_float_activity(at,"+%d" % amount,Color("#e0b465"))
 
 func _update_camera(delta: float) -> void:
 	if town!=null and town.in_build_mode:
