@@ -49,14 +49,16 @@ static func optimize(root: Node) -> void:
 		if optimized.has(key):item.mesh=optimized[key];continue
 		var safe:=true
 		for surface in range(source.get_surface_count()):
-			var material: Material=source.surface_get_material(surface)
-			if not material is StandardMaterial3D or material.albedo_texture!=null or source.surface_get_primitive_type(surface)!=Mesh.PRIMITIVE_TRIANGLES:safe=false;break
+			var material:StandardMaterial3D=source.surface_get_material(surface) as StandardMaterial3D
+			if material==null or material.albedo_texture!=null or source.surface_get_primitive_type(surface)!=Mesh.PRIMITIVE_TRIANGLES:
+				safe=false
+				break
 		if not safe:optimized[key]=source;continue
 		# Original solid PBR colors become vertex colors. Matte, glossy and metallic
 		# finishes retain separate surfaces; authored geometry and normals stay intact.
 		var tools: Dictionary={}
 		for surface in range(source.get_surface_count()):
-			var material: StandardMaterial3D=source.surface_get_material(surface)
+			var material:StandardMaterial3D=source.surface_get_material(surface) as StandardMaterial3D
 			var group:=2 if material.metallic>.15 else 1 if material.roughness<.4 else 0
 			if not tools.has(group):
 				var builder:=SurfaceTool.new();builder.begin(Mesh.PRIMITIVE_TRIANGLES)
