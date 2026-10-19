@@ -47,8 +47,29 @@ func setup(role: String, color: Color, species_: String="human") -> void:
 	species=species_
 
 static func model(kind: String) -> Node3D:
-	if not scenes.has(kind):scenes[kind]=load("res://assets/models/"+kind+".glb")
-	return scenes[kind].instantiate()
+	# Actor resources are also dynamically selected by role and carried
+	# product. Keep a missing model diagnostic from crashing _ready().
+	var asset_path:String="res://assets/models/"+kind+".glb"
+	if not scenes.has(kind):
+		if not ResourceLoader.exists(asset_path):
+			push_error("Wivori Trails: falta modelo de personaje/mercancía "+asset_path)
+			var empty:=Node3D.new()
+			empty.name="ERROR · Falta "+kind
+			return empty
+		var resource:Resource=load(asset_path)
+		if not resource is PackedScene:
+			push_error("Wivori Trails: GLB inválido para actor "+asset_path)
+			var empty:=Node3D.new()
+			empty.name="ERROR · Recurso inválido "+kind
+			return empty
+		scenes[kind]=resource
+	var instance:Node3D=scenes[kind].instantiate() as Node3D
+	if instance==null:
+		push_error("Wivori Trails: raíz incompatible con Node3D en "+asset_path)
+		var empty:=Node3D.new()
+		empty.name="ERROR · Raíz incompatible "+kind
+		return empty
+	return instance
 
 func _ready() -> void:
 	var animal: String="hero" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
@@ -65,13 +86,21 @@ func _ready() -> void:
 	head_mesh=_find_mesh(body_root)
 	# A palette mask recolors canvas in the baked atlas while preserving fur,
 	# leather and facial detail. Guards remain distinguishable from the hero.
-	if head_mesh!=null and character_role!="player":
-		var base: StandardMaterial3D=head_mesh.mesh.surface_get_material(0)
-		var dye:=ShaderMaterial.new();dye.shader=OutfitShader
-		dye.set_shader_parameter("atlas",base.albedo_texture)
-		dye.set_shader_parameter("original_dye",Color("#318c88") if animal=="terrier" else Color("#d39a63") if animal=="rabbit" else Color("#63788a"))
-		dye.set_shader_parameter("new_dye",outfit)
-		head_mesh.set_surface_override_material(0,dye)
+	if head_mesh!=null and head_mesh.mesh!=null and character_role!="player":
+		var base:StandardMaterial3D=null
+		if head_mesh.mesh.get_surface_count()>0:
+			base=head_mesh.mesh.surface_get_material(0) as StandardMaterial3D
+		# Some GLB importers create an ArrayMesh with a ShaderMaterial,
+		# or no base-color texture. Applying a sampler shader to those
+		# surfaces turns the animal black or dereferences a null material.
+		# Preserve the authored coat as-is in that case.
+		if base!=null and base.albedo_texture!=null:
+			var dye:=ShaderMaterial.new()
+			dye.shader=OutfitShader
+			dye.set_shader_parameter("atlas",base.albedo_texture)
+			dye.set_shader_parameter("original_dye",Color("#318c88") if animal=="terrier" else Color("#d39a63") if animal=="rabbit" else Color("#63788a"))
+			dye.set_shader_parameter("new_dye",outfit)
+			head_mesh.set_surface_override_material(0,dye)
 	if character_role=="customer":body_root.scale*=.90
 	if character_role=="thief":body_root.scale*=.94
 	if animator!=null:
