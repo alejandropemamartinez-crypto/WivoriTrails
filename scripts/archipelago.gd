@@ -12,6 +12,13 @@ const MARKET=Vector3(12,0,6)
 const NAMES=["Wivori","Villa Miga","Puerto Nata","Bahía Farol"]
 const GOODS={"wheat":"Trigo","flour":"Harina","feed":"Alimento","bread":"Pan","egg":"Huevos","milk":"Leche","cheese":"Queso","meat":"Carne empaquetada","provisions":"Provisiones"}
 const VALUES={"wheat":8,"flour":20,"feed":16,"bread":55,"egg":24,"milk":30,"cheese":80,"meat":68,"provisions":160}
+# Distinct local buyer preferences reward moving real stock by ferry.
+# No new currencies, inventory classes or save-version changes.
+const SPECIALTIES={
+	1:["wheat","flour","feed","bread"],
+	2:["egg","milk","cheese","meat"],
+	3:["provisions","bread","cheese"]
+}
 const PROJECTS=[
 	{"region":1,"id":"grain","name":"Campos de Villa Miga","cost":380,"needs":{},"at":Vector3(-12,0,-16),"model":"greenhouse","why":"Abrí los campos de trigo. La harina alimentará a tres pueblos."},
 	{"region":1,"id":"grainmill","name":"Molino de grano","cost":600,"needs":{"wheat":8},"at":Vector3(-12,0,4),"model":"mill","why":"Convertí trigo en harina o alimento para animales."},
@@ -57,7 +64,7 @@ var contracts_done:=0
 var home_nav
 var home_position:=Vector3.ZERO
 var scenery: Node3D
-var region_identity: Node3D
+var region_identity: WivoriRegionIdentity
 var home_ferry: Node3D
 var home_harbor: Node3D
 const HOME_BERTH=Vector3(29,.16,19)
@@ -161,7 +168,10 @@ func start_batch(key: String,automatic: bool=false) -> bool:
 			var carried: int=mini(needed,int(bag[item]))
 			if carried>0:g._fly_model_goods("goods_"+item,g.player.position+Vector3(0,1.1,0),station(key)+Vector3(0,1.2,0),carried)
 			if needed>carried:g._fly_model_goods("goods_"+item,DOCK+Vector3(0,1.15,0),station(key)+Vector3(0,1.2,0),needed-carried)
-	consume(recipe["needs"],automatic);job["remaining"]=recipe["time"]*pow(.8,int(mastery.get(key,0)));jobs[key]=job
+	consume(recipe["needs"],automatic)
+	job["remaining"]=recipe["time"]*pow(.8,int(mastery.get(key,0)))
+	job["automatic"]=automatic
+	jobs[key]=job
 	if not automatic:g.player.act("deliver");g._notice("Preparando "+GOODS[key]+" · Podés hacer otra tarea",2)
 	g._save_progress();return true
 func pickup(key: String) -> bool:
@@ -276,6 +286,7 @@ func _build_region() -> void:
 	region_identity=RegionIdentity.new()
 	region_identity.configure(g.world,region)
 	scenery.add_child(region_identity)
+	region_identity.set_warehouse_stock(_total_warehouse_stock())
 	g.world.navigation.build();_update_project_marker()
 	var accents:=PackedVector3Array()
 	for i in range(100):
@@ -347,7 +358,14 @@ func _update_project_marker() -> void:
 	for x in [-.95,.95]:
 		g.world.shape(marker,"box",Vector3(x,1.08,0),Vector3(.15,1.86,.15),Color("#8c6548"),"Postes del proyecto")
 	g.world.make_label(marker,"CONSTRUIR",Vector3(0,2.22,.38),52,true)
+func _total_warehouse_stock() -> int:
+	var total:=0
+	for amount in inventory.values():total+=maxi(0,int(amount))
+	return total
+
 func _update_cargo() -> void:
+	if is_instance_valid(region_identity):
+		region_identity.set_warehouse_stock(_total_warehouse_stock())
 	g.player.set_carry(g._total_bag())
 	var key:=""
 	for item in bag:
@@ -388,7 +406,11 @@ func tick(delta: float) -> void:
 		jobs[key]["remaining"]=maxf(0,jobs[key]["remaining"]-delta)
 		if jobs[key]["remaining"]<=0:
 			jobs[key]["ready"]+=RECIPES[key]["count"];total_produced[key]=int(total_produced.get(key,0))+RECIPES[key]["count"]
-			g._notice("¡"+GOODS[key].to_upper()+" LISTO! · Recogelo en su taller",2)
+			# Automatic employees produce repeatedly; constant popups every few
+			# seconds make the game intrusive. A manual batch uses a small
+			# local floating reward while the workshop label stores readiness.
+			if not jobs[key].get("automatic",false) and region==RECIPES[key]["region"]:
+				g._float_activity(station(key),"¡"+GOODS[key].to_upper()+" LISTO!",Color("#f1cb79"))
 	for key in employees:
 		if employees[key]:start_batch(key,true)
 	_update_cargo()
@@ -556,7 +578,11 @@ func refresh_board() -> void:
 			else:_button("PAUSAR OPERARIO" if employees[key] else "REANUDAR OPERARIO",func():employees[key]=not employees[key];g._save_progress();refresh_board())
 			var tier:=int(mastery.get(key,0));_button("TALLER AL MÁXIMO" if tier>=3 else "MEJORAR TIEMPO · %d · NIVEL %d/3" % [450+tier*350,tier+1],Callable(self,"improve").bind(key),tier>=3 or g.coins<450+tier*350)
 		if away():
-			_text("PEDIDOS DEL MERCADO LOCAL",23);_text("Elegí qué vender. Guardá ingredientes para tu proyecto. Cobrás al acercarte a CAJA.",18)
+			_text("PEDIDOS DEL MERCADO LOCAL",23)
+			_text("Las especialidades de cada pueblo pagan un 15 % adicional. La vigía de Bahía Farol conserva su bonificación de 25 %. Cobrás al acercarte a CAJA.",18)
+			var top_goods: PackedStringArray=[]
+			for specialty in SPECIALTIES[region]:top_goods.append(GOODS[specialty])
+			_text("Más demandados aquí: "+", ".join(top_goods),18)
 			for key in GOODS:
 				if amount(key)>=3:_button("VENDER 3 %s · +%d" % [GOODS[key].to_upper(),sale_value(key)],Callable(self,"_guide_sale").bind(key))
 func save_state() -> Dictionary:
@@ -573,7 +599,8 @@ func load_state(data: Dictionary) -> void:
 		bag[key]=int(Store.number(data.get("bag",{}) if data.get("bag") is Dictionary else {},key,0,0,maxi(0,g.max_capacity-g._total_bag())))
 	for key in RECIPES:
 		var saved: Dictionary=data.get("jobs",{}) if data.get("jobs") is Dictionary else {}
-		if saved.get(key) is Dictionary and built.has(RECIPES[key]["building"]):jobs[key]={"remaining":Store.number(saved[key],"remaining",0,0,25),"ready":int(Store.number(saved[key],"ready",0,0,9))}
+		if saved.get(key) is Dictionary and built.has(RECIPES[key]["building"]):
+			jobs[key]={"remaining":Store.number(saved[key],"remaining",0,0,25),"ready":int(Store.number(saved[key],"ready",0,0,9)),"automatic":saved[key].get("automatic",false)==true}
 		if data.get("employees") is Dictionary and data["employees"].get(key) is bool and built.has(RECIPES[key]["building"]):employees[key]=data["employees"][key]
 		mastery[key]=int(Store.number(data.get("mastery",{}) if data.get("mastery") is Dictionary else {},key,0,0,3))
 		if data.get("produced") is Dictionary:total_produced[key]=int(Store.number(data["produced"],key,0,0,1000000))
@@ -593,8 +620,14 @@ func _guide_sale(key: String) -> void:
 	close_board()
 	if not sell_bundle(key):focused_sale=key;pinned=true;g._set_world_goal(MARKET);g._refresh_ui()
 
+func regional_sale_bonus(key: String) -> float:
+	# A 15% local demand premium; the watchtower's old bonus stacks only
+	# once in Bahía Farol, on top of the advertised base value.
+	return 1.15 if key in SPECIALTIES.get(region,[]) else 1.0
+
 func sale_value(key: String) -> int:
-	return int((VALUES[key]*3+30)*(1.25 if region==3 and built.has("route_watch") else 1.0))
+	var watch_bonus:float=1.25 if region==3 and built.has("route_watch") else 1.0
+	return int(round(float(VALUES[key]*3+30)*regional_sale_bonus(key)*watch_bonus))
 func ground_height(at: Vector3) -> float:
 	if absf(at.x)<2.6 and at.z>16:return .44
 	if absf(at.x)<2.3 or absf(at.z+9)<1.6 and absf(at.x)<15 or absf(at.z-7.2)<1.6 and absf(at.x)<15:return .25
