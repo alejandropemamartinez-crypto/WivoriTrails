@@ -72,9 +72,11 @@ func start_batch(kind: String) -> bool:
 	for item in RECIPES[kind]["ingredients"]:
 		var needed: int=RECIPES[kind]["ingredients"][item]
 		var carried: int=mini(needed,g.stash[item]);g.stash[item]-=carried;g.counter[item]-=needed-carried
+		# Use the recipe's real ingredients, not decorative apples for every batch.
+		if carried>0:g._fly_produce(item,g.player.position+Vector3(0,1.2,0),station(kind)+Vector3(0,1.2,0),carried)
+		if needed>carried:g._fly_produce(item,g.run.STOCK+Vector3(0,1.2,0),station(kind)+Vector3(0,1.2,0),needed-carried)
 	jobs[kind]={"remaining":RECIPES[kind]["seconds"]*pow(.8,production_level),"ready":false}
 	g.player.set_carry(g._total_bag());g.player.act("build")
-	g._animate_goods(g.run.STOCK,station(kind),5,Color("#daa35b"),"apple")
 	g._notice("EN PREPARACIÓN\n"+RECIPES[kind]["name"],1.5);g._save_progress();g._refresh_ui();return true
 func pickup(kind: String) -> bool:
 	if not jobs.has(kind) or not jobs[kind]["ready"] or cargo_total()>=3 or g.player.position.distance_to(station(kind))>2.4:return false
