@@ -57,14 +57,19 @@ func run_tests() -> void:
 	var reachable:=true
 	for at in targets:reachable=reachable and not game.world.navigation.find_path(Vector3.ZERO,at).is_empty()
 	check(reachable,"Separated upgrade destinations retain a navigable entrance")
-	game.milestone.tick(2);await process_frame;await process_frame;await process_frame
-	check(game.milestone.is_open(),"A new mission opens an explicit large introduction")
+	game.milestone.announce("test:journal","Tu siguiente aventura","El jugador decide cuándo leerla.")
+	game.milestone.tick(2)
+	check(not game.milestone.is_open(),"New missions never interrupt play automatically")
+	game.milestone.show_next();await process_frame;await process_frame;await process_frame
+	check(game.milestone.is_open(),"The optional journal opens only on request")
 	var rect: Rect2=game.milestone.card.get_global_rect();var screen: Vector2=game.get_viewport().get_visible_rect().size
 	check(rect.get_area()/screen.x/screen.y>=.75,"The mission card covers at least three quarters of the screen")
 	game.input_stick.axis=Vector2.RIGHT;var at: Vector3=game.player.position;var raid: float=game.run.next_raid;game._process(.5)
 	check(game.player.position==at and game.run.next_raid==raid,"Reading a major alert pauses movement and danger")
 	game.milestone.dismiss();check(game.input_stick.axis==Vector2.ZERO,"Dismissing a mission clears held movement")
 	game.run.level=6;game.coins=100000;game.pier_owned=true;game.world.open_pier();game.player.position=Vector3.ZERO
+	game.worker_count=4;game.checkout_level=3;game.orchard_owned=true;game.world.open_orchard()
+	game.cash.collector_hired=true;game.run.lock_level=3;game.run.alarm_level=3;game.run.guard_level=3
 	check(not game.route.repair_ferry(),"Ferry repair requires physically reaching the port")
 	game.player.position=game.route.HOME_DOCK;price=game.coins
 	check(game.route.repair_ferry() and game.coins==price-900,"Ferry repair spends the displayed amount exactly once")
@@ -78,6 +83,15 @@ func run_tests() -> void:
 			if game.route.has_needs(p["needs"]):break
 			for key in p["needs"]:await ensure(key,p["needs"][key])
 		await go(p["region"])
+		if p["id"] in game.route.campaign.EXIT_PROJECTS:
+			for key in game.route.RECIPES:
+				if game.route.RECIPES[key]["region"]!=p["region"]:continue
+				game.player.position=game.route.station(key)
+				if not game.route.employees.has(key):check(game.route.hire(key),"Map completion pays for its local operator")
+				game.route.employees[key]=false
+				for tier in range(3):
+					if int(game.route.mastery.get(key,0))>=3:break
+					check(game.route.improve(key),"Map completion pays for each local speed tier")
 		game.player.position=p["at"]+(Vector3(0,0,3.2) if not p["model"].is_empty() else Vector3.ZERO)
 		var spent: int=game.coins
 		check(game.route.build_project() and game.route.stage==stage+1 and game.coins==spent-p["cost"],"Sequential project %d consumes its price and real supplies" % (stage+1))
@@ -87,6 +101,8 @@ func run_tests() -> void:
 			check(game.route.stage==stage+1 and game.route.region==region and game.route.inventory==stock,"Reload preserves current town, projects and warehouse")
 			check(game.player.position.distance_to(position)<.8,"Reload restores The protagonist near his saved position in the active town")
 	check(game.route.unlocked()==4 and game.route.project().is_empty() and game.route.industry_stage==0 and game.route.built.has("beacon"),"Fifteen historical lighthouse chapters remain complete and open the optional industrial destination")
+	# Isolate the hiring transaction from the fully upgraded campaign fixture.
+	game.route.employees.erase("flour");game.route.mastery["flour"]=0
 	await go(1);await ensure("wheat",12);game.player.position=game.route.DOCK;game.route.deposit();game.player.position=game.route.station("flour");price=game.coins
 	check(game.route.hire("flour") and game.coins==price-650,"A station operator is an explicit paid automation upgrade")
 	game.route.employees["flour"]=false;price=game.coins

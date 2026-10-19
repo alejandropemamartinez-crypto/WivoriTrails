@@ -52,10 +52,13 @@ func tick(delta: float) -> void:
 	if g.event_fade>0:return
 	announced[token]=true
 	announcement_count+=1
-	offer_cooldown=7.0
-	g._notice("YA PODÉS: %s\nSeguí las flechas hasta la mejora." % upgrade["name"],3.3)
+	offer_cooldown=20.0
+	# Affordability is already legible in the mission and purchase badge.
+	# A local marker replaces another global toast over the play area.
+	if g.player.position.distance_to(upgrade["target"])<8.0:
+		g._float_activity(upgrade["target"],"MEJORA DISPONIBLE",Color("#f1cb79"))
 	# Purchasable upgrades are everyday events, not story milestones:
-	# show the existing short HUD notice once, never an interrupting modal.
+	# mark the world once, never open an interrupting modal.
 
 func alert() -> Dictionary:
 	var security: Dictionary=g.run.alert()

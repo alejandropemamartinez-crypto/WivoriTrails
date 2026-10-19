@@ -35,6 +35,9 @@ func _ready() -> void:
 		"preserves_line":_preserves_and_steam()
 		"shipping_hub":_freight_and_loading()
 		"trade_center":_trade_hall_and_clock()
+		"aurora_dock":_crane_and_harbor()
+		"aurora_shipyard":_shipwright_roof()
+		"aurora_chart_house":_navigation_house()
 	_add_window_batch()
 	set_process(not moving_parts.is_empty() or not illumination.is_empty())
 
@@ -192,3 +195,29 @@ func _process(delta: float) -> void:
 				node.scale=Vector3.ONE*(.9+.13*sin(clock*.8+phase))
 			"pallet":node.position=original+Vector3(2.7*(.5+.5*sin(clock*.42)),0,0)
 			"clock":node.rotation.z=-clock*.12
+
+func _shipwright_roof() -> void:
+	# Curved timber ribs and a suspended lifting beam give the shipyard a
+	# different silhouette from the sawtooth packaging line.
+	for x in [-1.8,-.6,.6,1.8]:
+		for side in [-1.0,1.0]:
+			var rib:=_part(self,"box",Vector3(x,3.25,side*.75),Vector3(.15,.22,2.05),COPPER,"Costilla del astillero")
+			rib.rotation.x=side*.34
+	_part(self,"box",Vector3(0,3.72,0),Vector3(4.5,.22,.25),INK,"Cumbrera naval")
+	for x in [-1.9,1.9]:
+		_part(self,"cylinder",Vector3(x,1.1,1.6),Vector3(.9,.7,.9),Color("#d3b286"),"Bobina de cabo")
+	var lift:=_new_pivot("Grúa de carpintería naval",Vector3(0,3.3,1.0))
+	_part(lift,"box",Vector3.ZERO,Vector3(2.6,.16,.3),BRASS,"Balancín de carga")
+	_part(lift,"cylinder",Vector3(0,-.7,0),Vector3(.08,1.3,.08),METAL,"Cable del astillero")
+	moving_parts.append({"node":lift,"type":"crane","at":lift.position})
+
+func _navigation_house() -> void:
+	# A large compass dial reads as navigation at the same camera distance
+	# where the factory's commercial clock reads as civic architecture.
+	var dial:=_part(self,"cylinder",Vector3(0,3.8,1.8),Vector3(1.6,.2,1.6),BRASS,"Brújula de la casa de navegación")
+	dial.rotation.x=PI*.5
+	var rose:=_new_pivot("Rosa de navegación",Vector3(0,3.8,1.96))
+	for i in range(4):
+		var needle:=_part(rose,"cone",Vector3(sin(float(i)*PI*.5)*.29,cos(float(i)*PI*.5)*.29,0),Vector3(.2,.62,.12),INK if i%2==0 else IVORY,"Punta de brújula")
+		needle.rotation.z=-float(i)*PI*.5
+	moving_parts.append({"node":rose,"type":"clock","at":rose.position})

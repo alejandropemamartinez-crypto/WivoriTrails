@@ -32,9 +32,13 @@ func _update_plate() -> void:
 	old_text=text;old_pixel=pixel_size;old_font=font_size
 	if plate==null:return
 	plate.visible=not text.is_empty();pictogram.visible=plate.visible
-	var width:=maxf(2.8,font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x*pixel_size+1.3)
+	var line_width:=0.0
+	var lines: PackedStringArray=text.split("\n")
+	for line in lines:line_width=maxf(line_width,font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x*pixel_size)
+	var width:=maxf(2.8,line_width+1.3)
 	plate.pixel_size=width/512.0
-	plate.scale.y=maxf(1.0,.95/(160*plate.pixel_size))
+	var required_height: float=maxf(.95,float(lines.size())*float(font_size)*pixel_size*1.25+.30)
+	plate.scale.y=maxf(1.0,required_height/(160*plate.pixel_size))
 	pictogram.pixel_size=.0072
 	pictogram.position.x=-width*.5+.50
 	# The text remains centred in the area to the right of the pictogram.

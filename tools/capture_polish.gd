@@ -16,7 +16,7 @@ func capture() -> void:
 	if args.is_empty() or DisplayServer.get_name()=="headless":quit(1);return
 	output=args[0];DirAccess.make_dir_recursive_absolute(output)
 	game=load("res://Main.tscn").instantiate();game.save_path=save_path;root.add_child(game);game.set_process(false);game.world.set_process(false)
-	camera(Vector3(0,0,4));game.milestone.tick(2);await shot("01_mision_grande")
+	camera(Vector3(0,0,4));game.milestone.announce("review:journal","Tu red de pueblos","Las novedades se abren solamente cuando tocás NOVEDADES en el mapa.");game.milestone.show_next();await shot("01_diario_voluntario")
 	game.milestone.dismiss();game.milestone.pending.clear();await shot("02_mercado_carteles")
 	game.cash.pending[0]=180;game.cash._refresh_register(0);camera(Vector3(5,0,3));await shot("03_caja_entregar")
 	camera(Vector3(-3,0,10));await shot("04_tesoreria_avenida")
@@ -49,7 +49,7 @@ func capture() -> void:
 	for i in range(14):game.route.built.append(game.route.PROJECTS[i]["id"])
 	game.route._arrive(3);camera(Vector3(1,0,11));await shot("14_faro_final")
 	game.route.stage=15;game.route.built.append("festival");game.milestone.pending.clear()
-	game.milestone.announce("capture:finish","¡La Ruta del Faro está completa!","Wivori, Villa Miga, Puerto Nata y Bahía Farol vuelven a estar conectados. Tus pueblos quedan abiertos para mejorar talleres y comerciar.","boat","","¡LO LOGRASTE!");game.milestone.tick(2);await shot("15_ruta_completada")
+	game.milestone.announce("capture:finish","¡La Ruta del Faro está completa!","Wivori, Villa Miga, Puerto Nata y Bahía Farol vuelven a estar conectados. Tus pueblos quedan abiertos para mejorar talleres y comerciar.","boat","","¡LO LOGRASTE!");game.milestone.show_next();await shot("15_ruta_completada")
 	game.queue_free();await frames(2)
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path+suffix))
 	quit()

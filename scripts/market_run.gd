@@ -295,43 +295,43 @@ func load_state(data: Dictionary) -> void:
 
 func lesson() -> String:
 	var lessons: Array[String]=[
-		"Movete con el joystick.
+		"""Movete con el joystick.
 
 1. Cosechá 6 productos.
 2. Lleválos a ENTREGAR.
-3. Recogé tus monedas en CAJA y contratá un ayudante.",
-		"Tu equipo cosecha mientras vos atendés las entregas.
+3. Recogé tus monedas en CAJA y contratá un ayudante.""",
+		"""Tu equipo cosecha mientras vos atendés las entregas.
 
-Contratá un segundo ayudante y completá las ventas. Las flechas te muestran dónde invertir.",
-		"¡Llegan mapaches!
+Contratá un segundo ayudante y completá las ventas. Las flechas te muestran dónde invertir.""",
+		"""¡Llegan mapaches!
 
-Comprá un cerrojo. Acercate al ladrón y tocá AHUYENTAR. El guardia ayuda, pero vos también defendés el mercado.",
-		"Abrí el huerto de manzanas.
+Comprá un cerrojo. Acercate al ladrón y tocá AHUYENTAR. El guardia ayuda, pero vos también defendés el mercado.""",
+		"""Abrí el huerto de manzanas.
 
-El carro premium paga más por un pedido concreto. Llevá los ingredientes con el joystick.",
-		"Construí el muelle.
+El carro premium paga más por un pedido concreto. Llevá los ingredientes con el joystick.""",
+		"""Construí el muelle.
 
-Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.",
-		"Protegé tus ventas con alarma y guardia.
+Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.""",
+		"""Protegé tus ventas con alarma y guardia.
 
-También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.",
-		"Construí una panadería y prepará tu primera compota.
+También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.""",
+		"""Construí una panadería y prepará tu primera compota.
 
-Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.",
-		"El café prepara meriendas.
+Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.""",
+		"""El café prepara meriendas.
 
-Podés elegir un extra por rapidez; el pago base se conserva aunque se termine el tiempo.",
-		"Construí una torre vigía e iniciá una ronda.
+Podés elegir un extra por rapidez; el pago base se conserva aunque se termine el tiempo.""",
+		"""Construí una torre vigía e iniciá una ronda.
 
-Defendé el stock antes de que escapen los mapaches.",
-		"Probá dos recetas y mejorá tus talleres.
+Defendé el stock antes de que escapen los mapaches.""",
+		"""Probá dos recetas y mejorá tus talleres.
 
-Decidí qué ingredientes vendés y cuáles transformás.",
-		"Construí el molino y combiná encargos con exportaciones.
+Decidí qué ingredientes vendés y cuáles transformás.""",
+		"""Construí el molino y combiná encargos con exportaciones.
 
-La ruta al Faro abre granjas y más cadenas de producción.",
-		"Prepará tres puestos para la feria y defendé una ronda.
+La ruta al Faro abre granjas y más cadenas de producción.""",
+		"""Prepará tres puestos para la feria y defendé una ronda.
 
-Después seguí construyendo los pueblos de la ruta marítima."
+Después seguí construyendo los pueblos de la ruta marítima."""
 	]
 	return lessons[mini(level-1,11)]

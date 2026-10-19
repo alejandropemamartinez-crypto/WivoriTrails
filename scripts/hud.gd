@@ -599,12 +599,12 @@ func refresh() -> void:
 	team_label.text="Equipo  %d" % g.worker_count
 	queue_label.text="Fila  %d/6" % g._waiting_count()
 	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
-	level_caption.text="ETAPA" if g.route.away() else "NIVEL"
-	level_label.text="%02d" % (mini(15,g.route.stage+1) if g.route.away() else g.run.level)
-	level_progress.max_value=1.0; level_progress.value=g.run.progress()
+	level_caption.text="MAPA" if g.route.away() else "NIVEL"
+	level_label.text="%02d" % (g.route.region+1 if g.route.away() else g.run.level)
+	level_progress.max_value=1.0; level_progress.value=g.route.campaign.progress(g.route.region) if g.route.away() else g.run.progress()
 	if g.route.route_button!=null:
 		g.route.route_button.visible=not city_mode
-		g.route.route_button.text="RUTA %d/15" % g.route.stage if g.route.ferry else "RUTA AL FARO"
+		g.route.route_button.text=g.route.route_caption()
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	var mission_width: float=maxf(195.0,root.size.x-252.0)
@@ -615,9 +615,9 @@ func refresh() -> void:
 	guide_button.text=objective["button"]
 	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
 	wayfinder.objective=objective
-	var alert: Dictionary=g.director.alert()
+	var alert: Dictionary={} if g.route.away() else g.director.alert()
 	var raid_phase: String=""
-	if not city_mode and not g.shop_panel.visible:
+	if not city_mode and not g.shop_panel.visible and not g.route.away():
 		if g.run.warning>0:raid_phase="warning"
 		if not g.run.threat().is_empty():
 			raid_phase="escape" if g.run.threat()["state"]=="escape" else "approach"
@@ -635,7 +635,7 @@ func refresh() -> void:
 		pad_button.text="COMPRAR\n%d monedas" % upgrade["price"]
 		pad_button.disabled=g.coins<upgrade["price"] or upgrade["locked"]
 		if pad_button.disabled and g.coins<upgrade["price"]:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
-	var raiding: bool=not g.run.threat().is_empty()
+	var raiding: bool=not g.route.away() and not g.run.threat().is_empty()
 	intercept_button.visible=raiding and not g.shop_panel.visible and not city_mode
 	intercept_button.disabled=not g.run.can_intercept()
 	intercept_button.text="AHUYENTAR" if not intercept_button.disabled else "ACERCATE AL MAPACHE"

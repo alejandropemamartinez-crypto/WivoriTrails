@@ -8,7 +8,8 @@ const REGION_THEMES={
 	1:{"name":"Villa Miga · campos dorados","primary":"#bb965a","leaf":"#9caa70"},
 	2:{"name":"Puerto Nata · pastos y quesería","primary":"#729985","leaf":"#79a88c"},
 	3:{"name":"Bahía Farol · muelles marineros","primary":"#507f94","leaf":"#88b5aa"},
-	4:{"name":"Distrito Forja · ingeniería e industria","primary":"#71858b","leaf":"#a0b0a0"}
+	4:{"name":"Distrito Forja · ingeniería e industria","primary":"#71858b","leaf":"#a0b0a0"},
+	5:{"name":"Puerto Aurora · astillero y expediciones","primary":"#477d98","leaf":"#81b8b0"}
 }
 var world: MarketWorld
 var region_index:=0
@@ -20,6 +21,8 @@ var machine_rotors: Array[Node3D]=[]
 var storage_props: Array[Node3D]=[]
 var last_stock_count:=-1
 var landmark_count:=0
+var expedition_boat: Node3D
+var expedition_berth:=Vector3(27,.15,12)
 
 func configure(source: MarketWorld, selected: int, completed: Array[String]=[]) -> void:
 	world=source
@@ -35,6 +38,7 @@ func _ready() -> void:
 		2:_pasture_and_dairy()
 		3:_maritime_quarter()
 		4:_industrial_quarter()
+		5:_shipyard_quarter()
 	set_process(not pennants.is_empty() or not machine_rotors.is_empty())
 
 func _solid(kind: String, at: Vector3, size_: Vector3, color_: Color, title: String="") -> MeshInstance3D:
@@ -216,6 +220,42 @@ func _banner(at: Vector3, color_: Color, phase: float) -> void:
 	world.shape(pennant,"box",Vector3(.36,0,0),Vector3(.72,.48,.08),color_)
 	pennants.append({"node":pennant,"phase":phase})
 	landmark_count+=1
+
+func _shipyard_quarter() -> void:
+	# A coastal construction yard instead of a sixth farming reskin. The
+	# freight vessel is separate from the player's always-available ferry.
+	for i in range(6):
+		var at:=Vector3(19.0,.32,3.0+float(i)*2.0)
+		_solid("box",at,Vector3(6.0,.35,1.7),Color("#bd996e"),"Pasarela del astillero")
+	for at in [Vector3(21,0,4),Vector3(21,0,13)]:
+		_solid("cylinder",at+Vector3(0,.9,0),Vector3(.35,1.7,.35),Color("#3b6173"),"Bolardo de expediciones")
+		_register_collision(Rect2(at.x-.22,at.z-.22,.44,.44))
+	if completed_projects.has("aurora_dock"):
+		for i in range(4):
+			var x: float=-17.0+float(i)*2.2
+			_solid("box",Vector3(x,.2,15),Vector3(1.75,.3,2.4),Color("#698f99"),"Puesto de carga naval")
+			var crate:=_asset("goods_crate",Vector3(x,.55,15),.7)
+			crate.visible=false;storage_props.append(crate)
+			_register_collision(Rect2(x-.85,13.8,1.7,2.4))
+	if completed_projects.has("aurora_shipyard"):
+		expedition_boat=_asset("route_ferry",expedition_berth,.76)
+		expedition_boat.name="Barco mercante de expediciones"
+		expedition_boat.rotation.y=PI*.5
+	if completed_projects.has("aurora_chart_house"):
+		for at in [Vector3(-19,0,18),Vector3(19,0,18)]:
+			_solid("cylinder",at+Vector3(0,1.4,0),Vector3(.16,2.8,.16),Color("#426c80"),"Baliza de regreso")
+			_solid("sphere",at+Vector3(0,2.9,0),Vector3(.6,.6,.6),Color("#ffe6a0"),"Luz de navegación")
+	for i in range(5):
+		_banner(Vector3(-8+float(i)*4,2.7,-24),Color("#e9ad65") if i%2==0 else Color("#6ca9b9"),float(i))
+	landmark_count+=1
+
+func set_expedition_progress(active: bool,progress_: float) -> void:
+	if not is_instance_valid(expedition_boat):return
+	# The route timer owns arrival/payment. This merely depicts departure
+	# and return; no balance or inventory is changed by boat animation.
+	var offset: float=sin(clampf(progress_,0.0,1.0)*PI)*13.0 if active else 0.0
+	expedition_boat.position=expedition_berth+Vector3(offset,0,-offset*.35)
+	expedition_boat.visible=not active or progress_<.16 or progress_>.84
 
 func set_warehouse_stock(amount: int) -> void:
 	# A cosmetic representation only; we never own or change actual goods.

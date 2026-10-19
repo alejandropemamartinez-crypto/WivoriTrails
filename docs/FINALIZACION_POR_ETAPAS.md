@@ -319,6 +319,40 @@ Rama `feat/v018-stage5m-cross-script-qa-no-build`, derivada de la 5L. Ninguna co
 
 **Pendiente y riesgo:** la selección de materiales está definida en el código, pero su validez visual solo se confirma con las texturas de los GLB ya importados. Las baterías de pruebas y el parser Godot 4.4.1 no se ejecutaron; falta renderizar capturas, comprobar animaciones y medir FPS y temperatura en Android. El modelo fuente Scottish Terrier actualizado sigue sin reexportarse.
 
+## Etapa 6 — cierre de campaña, orientación y avisos voluntarios
+
+Rama `feat/v018-stage6-campaign-closure-no-build`, basada directamente en la
+etapa 5N. Conserva la cadena completa de cambios anteriores sin modificar
+`main`, activar workflows ni generar APK.
+
+- Se cerraron los requisitos de avance: operarios y tres mejoras locales antes
+  de salir de cada pueblo. Wivori usa su equipo base y mejoras comerciales;
+  mochila, velocidad y ayudantes extra son ampliaciones opcionales.
+- Se añadió **Puerto Aurora**, sexto escenario: cuatro proyectos, astillero,
+  casa de navegación, barco mercante y tres expediciones elegibles. La meta
+  global requiere completar las tres rutas diferentes, no repetir una sola.
+- Se suprimió la apertura automática de las tarjetas, incluso por construir
+  o llegar a una isla. Las novedades se leen por decisión del jugador en el mapa.
+- Se rediseñó el tablero de pedidos con SVG propio y espacio fijo para título,
+  producto y progreso; se corrigió la medida de carteles multilínea.
+- El HUD usa destino y avance actuales en lugar de quedarse en «15/15»;
+  el mapa distingue pendientes y separa la flota en su propia pestaña.
+- La guía considera falta de dinero, almacén, fabricación, contratación,
+  ingredientes y carga de frutas al viajar. Las compras de talleres exigen
+  acudir al lugar. Se conserva el control manual.
+- El guardado v8 añade los datos de Aurora y su transacción en viaje; conserva
+  el acceso a destinos de partidas anteriores. El pago llega a la caja física.
+- Revisiones ejecutadas exclusivamente sobre fuente: gramática externa,
+  referencias literales, SVG, grafo de 24 proyectos y 11 recetas, pagos de
+  expediciones comparados con venta directa, diferencias y ascendencia Git.
+- Se prepararon y actualizaron escenarios de regresión **sin ejecutarlos**.
+  No se ha evaluado en pantalla la calidad artística ni se ha probado Android.
+
+El detalle de requisitos, economía y verificaciones que faltan está en
+[`CAMPANA-SECUENCIAL.md`](CAMPANA-SECUENCIAL.md). La validación con el motor,
+exportación del personaje y alineación del paquete de publicación permanecen
+pendientes; no se presentan como trabajo ya realizado.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y

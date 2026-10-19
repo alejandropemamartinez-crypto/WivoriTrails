@@ -39,7 +39,7 @@ func run_tests() -> void:
 	await start()
 	var route=game.route
 	check(route.stage==0 and route.industry_stage==0 and route.industry_orders_done==0,"Old-game route starts without fabricated industrial progress")
-	check(route.market_money.size()==5 and route.NAMES.size()==5,"The fifth market has its own cashbox and destination slot")
+	check(route.market_money.size()==6 and route.NAMES.size()==6,"All six maps have their own cashbox and destination slot")
 	check(route.industry_project().is_empty() and route.unlocked()<4,"New region remains locked before all fifteen original projects")
 	check(route.goods_model("kits")=="goods_crate" and route.goods_model("packaging")=="goods_parcel","New recipes always resolve to bundled GLB models")
 	route.ferry=true
@@ -108,6 +108,7 @@ func run_tests() -> void:
 	check(route.industry_project().is_empty() and route.industry_order().size()>0,"Completing five factories opens industrial trade contracts")
 	check(route.built.has("trade_center") and route.stage==15,"Industry final building does not overwrite the lighthouse campaign")
 	var order: Dictionary=route.industry_order()
+	route.focused_industry_order=true
 	for kind in order["needs"]:route.inventory[kind]=0
 	var shortage:Dictionary=route.objective()
 	check(shortage.get("target",route.MARKET)!=route.MARKET,"Missing industrial contract supplies do not direct the player to an empty checkout")

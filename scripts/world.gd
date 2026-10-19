@@ -27,6 +27,7 @@ var locked_sites := {}
 var hero_ring: MeshInstance3D
 var premium_root: Node3D
 var premium_label: Label3D
+var premium_board: WivoriPremiumSign
 var security_root: Node3D
 var lock_root: Node3D
 var alarm_root: Node3D
@@ -530,8 +531,10 @@ func build_security() -> void:
 	navigation.add_obstacle(Rect2(-2.15,-15.6,4.3,2.8))
 	premium_root=Node3D.new(); premium_root.position=Vector3(0,0,-14.2); add_child(premium_root)
 	Art.place(premium_root,"premium",Vector3.ZERO,Vector3(.78,.82,.75))
-	premium_label=make_label(premium_root,"PEDIDO PREMIUM ×2",Vector3(0,4.2,.6),43)
-	premium_label.pixel_size=.010
+	premium_board=preload("res://scripts/premium_sign.gd").new()
+	premium_board.position=Vector3(0,4.2,.6)
+	premium_root.add_child(premium_board)
+	premium_label=premium_board.heading
 	premium_root.visible=false
 	security_root=Node3D.new(); add_child(security_root)
 	lock_root=Node3D.new(); security_root.add_child(lock_root)
@@ -549,7 +552,8 @@ func build_security() -> void:
 
 func update_security(run) -> void:
 	premium_root.visible=true
-	premium_label.text=("PEDIDO PREMIUM ×2\n%d/%d %s" % [run.contract_done,run.contract_goal(),run.g.CROP_NAMES[run.contract_kind()].to_upper()]) if run.level>=4 else "PEDIDOS PREMIUM\nNIVEL 4"
+	premium_board.update_order(run)
+	premium_board.visible=run.g.player.position.distance_to(premium_root.position)<18.0
 	lock_root.visible=run.lock_level>0
 	alarm_root.visible=run.alarm_level>0
 	security_active=not run.raiders.is_empty() or run.warning>0

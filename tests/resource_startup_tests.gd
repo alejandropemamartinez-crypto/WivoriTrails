@@ -80,6 +80,7 @@ const SUPPORT_ASSETS=[
 	"scripts/contact_shadow.gdshader",
 	"scripts/water.gdshader",
 	"assets/ui/signs/plaque.svg",
+	"assets/ui/signs/order_board.svg",
 	"assets/ui/signs/boat.svg",
 	"assets/ui/signs/crew.svg",
 	"assets/ui/signs/defense.svg",
@@ -143,7 +144,7 @@ func run_tests() -> void:
 		check(REQUIRED_MODELS.has(model),"Physical trade goods have a source GLB: "+model)
 	# Read the actual recipe/project registries, not a separate handwritten
 	# subset. This catches newly added typos before a specific island loads.
-	for project in Route.PROJECTS+Route.INDUSTRY_PROJECTS:
+	for project in Route.PROJECTS+Route.INDUSTRY_PROJECTS+Route.AURORA_PROJECTS:
 		var model_name:String=project["model"]
 		if model_name.is_empty():continue
 		check(REQUIRED_MODELS.has(model_name),"Project "+project["id"]+" references an actual imported building: "+model_name)

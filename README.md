@@ -1,4 +1,16 @@
-# Wivori Trails · 0.16.0
+# Wivori Trails · campaña en desarrollo
+
+Esta rama contiene los avances hasta la etapa 5N y el cierre de campaña de la
+etapa 6: seis escenarios, mejoras locales para avanzar, diario voluntario,
+tablero de pedidos rediseñado y expediciones desde Puerto Aurora.
+[Diseño, alcance y comprobaciones pendientes](docs/CAMPANA-SECUENCIAL.md).
+
+**Estado: código sin ejecutar en Godot ni compilar.** No se fusionó con `main`
+ni se publicó un APK de estos cambios. La revisión estática no acredita calidad
+visual ni ausencia de bugs. El protagonista sigue sin nombre; su escultura
+actualizada aún necesita exportación y revisión, como consta en la hoja de etapas.
+
+## Base publicada: 0.16.0
 
 Protagonista sin nombre, nuevo rostro original, granjas con arquitectura propia,
 agua animada y revisión de errores de viaje, carga y controles.

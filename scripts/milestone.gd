@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-# Important lessons and level rewards occupy >=75% of the full viewport.
-# Dismissal is explicit; income, movement and danger pause while reading.
+# News is read only when the player opens it from the map.
+# Routine goals, upgrades, queues and raids never open blocking screens.
 var g
 var cover: ColorRect
 var card: PanelContainer
@@ -34,6 +34,8 @@ func announce(id: String,heading: String,message: String,symbol: String="star",a
 	for item in pending:
 		if item["id"]==id:return
 	pending.append({"id":id,"title":heading,"detail":message,"symbol":symbol,"action":action,"tag":tag})
+	# Only a few map milestones are queued; bound old/future callers safely.
+	if pending.size()>24:pending.pop_front()
 func dismiss() -> void:
 	if not is_open():return
 	seen[current["id"]]=true
@@ -46,39 +48,14 @@ func dismiss() -> void:
 	g._save_progress()
 func tick(delta: float) -> void:
 	pulse+=delta
-	if is_open():
-		emblem.modulate=Color(1,1,1,.91+.09*sin(pulse*3))
-		return
-	check_wait-=delta
-	if check_wait>0:return
-	check_wait=.35
-	if g.shop_panel.visible or g.town.in_build_mode or g.work.board_visible() or g.route.board_visible():return
-	if not g.route.away() and g.run.complete():announce("complete:%d" % g.run.level,"¡Nivel %d superado!" % g.run.level,"%s\n\nRecompensa: %d monedas\n\nLa siguiente etapa trae una meta nueva." % [g.run.title(),g.run.reward()],"star","level","¡LO LOGRASTE!")
-	elif not g.route.away():announce("chapter:%d" % g.run.level,g.run.title(),g.run.lesson(),"harvest","","NIVEL %02d · TU MISIÓN" % g.run.level)
-	if g.run.level>=6 and not g.route.ferry:announce("route:discovery","¡Hay pueblos al otro lado!","Restaurá el barco para abrir Villa Miga. Trigo, granjas y nuevos edificios esperan en la ruta al Faro.","boat","route","UN OBJETIVO MÁS GRANDE")
-	if g.route.away() and not g.route.project().is_empty():
-		var p: Dictionary=g.route.project()
-		announce("route:stage:%d" % g.route.stage,p["name"],p["why"]+"\n\n%d monedas\n%s" % [p["cost"],g.route.need_text(p["needs"])],"harvest","","PROYECTO %d / 15" % (g.route.stage+1))
-	# Only the FIRST raid needs a full-screen tutorial. Every later attack is
-	# reported by the animated rabbit messenger, without blocking gameplay.
-	if not g.route.away() and g.run.level>=3 and (g.run.warning>0 or not g.run.threat().is_empty()):
-		announce("tutorial:primer_robo","¡Hay mapaches en camino!","Protegé tu mercancía: acercate al mapache y tocá AHUYENTAR. Después, la coneja mensajera te avisará de nuevos ataques sin detener el juego.","defense","","APRENDÉ A DEFENDER TU MERCADO")
-	elif not g.run.complete():
-		var objective: Dictionary=g._current_objective()
-		var action: String=objective.get("action","")
-		var task_title: String=objective.get("title","")
-		var id:=""
-		# Sailing arrivals and construction milestones already use one large
-		# acknowledged card. Everyday crafting, sale and pickup actions must
-		# NOT create further blocking popups for each product or contract.
-		# Their next step remains visible in the objective panel.
-		if not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:
-			id="tutorial:mercado:%s" % task_title
-		if not id.is_empty():announce(id,task_title,objective.get("detail","")+"\n\nTocá SEÑALAR y seguí las flechas con el joystick.","deliver","","TU SIGUIENTE TAREA")
-	# A long customer queue is operational information, not a screen-blocking
-	# milestone. Existing objective/alert indicators remain available in HUD.
-	# Do not enqueue repeated modal popups during normal play.
-	if pending.is_empty():return
+	if is_open():emblem.modulate=Color(1,1,1,.91+.09*sin(pulse*3))
+	# No automatic popups. The mission panel always carries the next action;
+	# level rewards are claimed through its CONTINUAR button.
+
+func show_next() -> void:
+	if is_open() or pending.is_empty() or g.route.sailing>0:return
+	g.route.close_board();g.work.close_board();g.shop_panel.visible=false
+	if g.town.in_build_mode:g.town.toggle_mode()
 	current=pending.pop_front()
 	title.text=current["title"];detail.text=current["detail"];kicker.text=current["tag"]
 	var emblem_path:String="res://assets/ui/signs/"+str(current["symbol"])+".svg"
@@ -91,7 +68,10 @@ func tick(delta: float) -> void:
 	g.player.act("celebrate" if current["symbol"]=="star" else "alert")
 	card.pivot_offset=card.size*.5;card.scale=Vector2.ONE*.985
 	create_tween().tween_property(card,"scale",Vector2.ONE,.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-func save_state() -> Array:return seen.keys()
+func save_state() -> Array:
+	# Read history persists; unread cards are optional session news.
+	# Gameplay progress is owned by the campaign, never by opening a card.
+	return seen.keys()
 func load_state(data: Variant) -> void:
 	if data is Array:
 		for id in data.slice(0,1000):
