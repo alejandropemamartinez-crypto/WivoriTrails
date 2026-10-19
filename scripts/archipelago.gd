@@ -757,9 +757,17 @@ func load_state(data: Dictionary) -> void:
 	industry_stage=int(Store.number(data,"industry_stage",0,0,INDUSTRY_PROJECTS.size())) if stage==PROJECTS.size() else 0
 	industry_orders_done=int(Store.number(data,"industry_orders_done",0,0,1000000)) if industry_stage==INDUSTRY_PROJECTS.size() else 0
 	for i in range(industry_stage):built.append(INDUSTRY_PROJECTS[i]["id"])
+	var old_inventory:Dictionary=data.get("inventory",{}) if data.get("inventory") is Dictionary else {}
+	var old_bag:Dictionary=data.get("bag",{}) if data.get("bag") is Dictionary else {}
 	for key in GOODS:
-		inventory[key]=int(Store.number(data.get("inventory",{}) if data.get("inventory") is Dictionary else {},key,0,0,100000))
-		bag[key]=int(Store.number(data.get("bag",{}) if data.get("bag") is Dictionary else {},key,0,0,maxi(0,g.max_capacity-g._total_bag())))
+		inventory[key]=int(Store.number(old_inventory,key,0,0,100000))
+		# Capacity is checked when harvesting, not while restoring a trusted
+		# v8 save. The former clamp used _total_bag() while iterating,
+		# silently losing legitimate cargo if other island goods had already
+		# filled the pouch (including mainland stash on migration).
+		# Even an overfilled old save keeps every real item and simply cannot
+		# collect more until the player deposits or sells the excess.
+		bag[key]=int(Store.number(old_bag,key,0,0,100000))
 	for key in RECIPES:
 		var saved: Dictionary=data.get("jobs",{}) if data.get("jobs") is Dictionary else {}
 		if saved.get(key) is Dictionary and built.has(RECIPES[key]["building"]):
