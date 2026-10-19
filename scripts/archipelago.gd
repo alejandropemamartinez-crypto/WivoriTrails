@@ -183,6 +183,7 @@ func build_project() -> bool:
 	focused_recipe=""
 	if not p["model"].is_empty():_place_project(p,true)
 	if p["id"]=="grain":_make_wheat()
+	if industrial and region==4:_refresh_region_identity()
 	_update_project_marker()
 	var next:=active_project()
 	var new_forja:bool=not industrial and stage==PROJECTS.size()
@@ -348,27 +349,37 @@ func _build_region() -> void:
 	for p in PROJECTS+INDUSTRY_PROJECTS:
 		if p["region"]==region and built.has(p["id"]) and not p["model"].is_empty():_place_project(p,false)
 	if region==1 and built.has("grain"):_make_wheat()
-	for i in range(10):
-		var x: float=(-23 if i%2==0 else 23);var z: float=-22+float(i/2)*9
-		Art.place(scenery,"tree",Vector3(x,0,z),Vector3.ONE*.78);g.world.navigation.add_obstacle(Rect2(x-.55,z-.55,1.1,1.1))
+	# An industrial silo and an imported tree must not occupy the same space.
+	# Villages keep their original coast trees; Forja has a cleared shoreline.
+	if region!=4:
+		for i in range(10):
+			var x: float=(-23 if i%2==0 else 23);var z: float=-22+float(i/2)*9
+			Art.place(scenery,"tree",Vector3(x,0,z),Vector3.ONE*.78)
+			g.world.navigation.add_obstacle(Rect2(x-.55,z-.55,1.1,1.1))
 	for i in range(3):
 		var a: MarketActor=g.ActorScript.new();a.setup("resident",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][i],["duck","pig","fox"][i]);scenery.add_child(a);a.position=Vector3(-2+i*3,0,11)
 		residents.append({"actor":a,"index":i,"wait":float(i),"route":[Vector3(-5,0,12),Vector3(5,0,13),Vector3(8,0,7)]})
 	for at in [Vector3(-21,0,-17),Vector3(21,0,-17),Vector3(-21,0,10),Vector3(21,0,12)]:
-		Art.place(scenery,"house",at,Vector3.ONE*.72);g.world.navigation.add_obstacle(Rect2(at.x-1.8,at.z-1.7,3.6,3.4))
+		Art.place(scenery,("depot" if at.z<0 else "workshop") if region==4 else "house",at,Vector3.ONE*.72)
+		g.world.navigation.add_obstacle(Rect2(at.x-1.8,at.z-1.7,3.6,3.4))
 	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:Art.place(scenery,"oak_bench",at)
 	for at in [Vector3(7,0,10),Vector3(-7,0,-20)]:Art.place(scenery,"flower_cart",at,Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(at.x-.8,at.z-.5,1.6,1))
-	# Scenic identity is created anew when sailing; it never enters the save file.
-	region_identity=RegionIdentity.new()
-	region_identity.configure(g.world,region)
-	scenery.add_child(region_identity)
-	region_identity.set_warehouse_stock(_total_warehouse_stock() if region!=4 or built.has("dockworks") else 0)
+	# Decorative scene state is derived from the actually completed projects.
+	_refresh_region_identity()
 	g.world.navigation.build();_update_project_marker()
 	var accents:=PackedVector3Array()
 	for i in range(100):
 		var at:=Vector3((-1 if i%2==0 else 1)*(3.4+sin(float(i)*7.3)*.45),.04,-22+float(i/2)*.88+sin(float(i)*4.7)*.24)
 		if g.world.navigation.is_walkable(at,.5) and absf(at.z+9)>2 and absf(at.z-7.2)>2:accents.append(at)
 	Finish.meadow(scenery,accents)
+func _refresh_region_identity() -> void:
+	if scenery==null or region<=0:return
+	if is_instance_valid(region_identity):region_identity.free()
+	region_identity=RegionIdentity.new()
+	region_identity.configure(g.world,region,built)
+	scenery.add_child(region_identity)
+	region_identity.set_warehouse_stock(_total_warehouse_stock() if region!=4 or built.has("dockworks") else 0)
+
 func _place_project(p: Dictionary,animated: bool) -> void:
 	if scenery==null or station_nodes.has(p["id"]):return
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
