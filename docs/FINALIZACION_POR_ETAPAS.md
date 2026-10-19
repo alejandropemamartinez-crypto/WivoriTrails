@@ -160,6 +160,21 @@ construcciones o trabajadores.
 - Auditar licencias y permisos de terceros.
 - No pasar a `main` ni distribuir como versión final sin aprobar cada etapa.
 
+### Primera auditoría estática de integración — rama sin compilar
+Rama: `feat/v018-stage5-integration-audit-no-build`, basada en la expansión Forja.
+**No se ejecutó Godot, pruebas, importación, captura ni APK**.
+
+Correcciones incorporadas:
+- El objetivo industrial ya no dirige a una caja sin los productos necesarios. Se guía al jugador hacia la receta del ingrediente faltante, su producción o el transbordador hacia otra isla. La entrega sigue siendo manual.
+- Los tutoriales cotidianos de compraventa, fabricación y recogida ya no abren un diálogo modal distinto por cada producto. Tampoco lo hace cada mejora que se vuelve asequible; conserva el aviso HUD una sola vez por precio. Las presentaciones de capítulos, destinos y construcción importante continúan con confirmación.
+- El botón principal `RUTA AL FARO` pasa a `DISTRITO FORJA` tras completar quince proyectos y conserva ese nombre cuando se vuelve a cargar el juego.
+- Se evitó fijar automáticamente la guía de la Ruta del Faro cada vez que se carga una partida ya completada; el usuario sigue pudiendo elegir los objetivos del mercado principal.
+- Los árboles de la plantilla de isla no se colocan sobre los silos industriales, y los edificios decorativos de Forja emplean modelos de depósitos y talleres en lugar de cuatro casas rurales.
+- La maquinaria decorativa de Distrito Forja se desbloquea visualmente con los proyectos pagados: plataforma del muelle, silos de empaquetado, ventiladores de la conservera, contenedores logísticos y remate del centro comercial. Rehacer el entorno decorativo **no** reinicia fábricas ni inventarios.
+- Preparadas pruebas adicionales `tests/stage5_integration_tests.gd` y ampliada `tests/industrial_expansion_tests.gd` para rutas de abastecimiento, disponibilidad de fábrica, progresión visible, guardado y ausencia de modales cotidianos.
+
+**Pendientes antes de dar aprobación**: parseo e importación Godot 4.4.1, ejecutar todas las suites, revisar en capturas del motor solapes reales, rutas de navegación y colocación de objetos, probar a dos tamaños de pantalla, mirar animaciones del protagonista/NPC, FPS y persistencia en Android físico, auditoría de licencias. Los cambios descritos son una implementación sin prueba funcional.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
