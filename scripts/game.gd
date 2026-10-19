@@ -136,6 +136,7 @@ func _ready() -> void:
 	for i in range(worker_count):
 		_spawn_worker(i, saved_helpers[i] if i < saved_helpers.size() and saved_helpers[i] is Dictionary else {})
 	if route.restore_region>0:route._arrive(route.restore_region,true)
+	_sync_visible_cargo()
 	_refresh_ui()
 
 func _engine_world() -> void:
@@ -223,6 +224,17 @@ func _total_stock() -> int:
 	var sum := 0
 	for v in counter.values(): sum += int(v)
 	return sum
+
+func _sync_visible_cargo() -> void:
+	# The avatar carries real contents from Wivori and/or the islands.
+	# No item count is changed while refreshing this cosmetic display.
+	if player==null:return
+	var contents:Dictionary=stash.duplicate()
+	if route!=null:
+		for key in route.bag:
+			contents[key]=int(contents.get(key,0))+int(route.bag[key])
+	player.set_visible_cargo(contents)
+	player.set_carry(_total_bag())
 
 func _refresh_ui() -> void:
 	if hud == null: return
@@ -679,7 +691,7 @@ func _process_player(delta: float) -> void:
 					harvested_units=2
 					stash[resource]+=1
 					_float_activity(crop["node"].global_position,"¡DOBLE COSECHA!",Color("#58a67e"))
-				player.set_carry(_total_bag())
+				_sync_visible_cargo()
 				player.act("harvest")
 				harvest_wait=.23
 				if harvest_sfx.stream:harvest_sfx.play()
@@ -693,7 +705,7 @@ func _process_player(delta: float) -> void:
 			delivered+=stash[resource]
 			counter[resource]+=stash[resource]
 			stash[resource]=0
-		player.set_carry(0)
+		_sync_visible_cargo()
 		player.act("deliver")
 		_notice("¡PUESTO ABASTECIDO!",1.1)
 		drop_wait=.6
@@ -964,7 +976,7 @@ func _load_progress() -> void:
 	milestone_history=data["milestones"] if data.get("milestones") is Array else []
 	player.position=world.navigation.nearest_free(player.position)
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
-	player.set_carry(_total_bag())
+	_sync_visible_cargo()
 
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT] and player != null:
