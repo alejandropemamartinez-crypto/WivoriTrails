@@ -1,6 +1,6 @@
 extends PanelContainer
 class_name RabbitWarningBanner
-const Art=preload("res://scripts/art_library.gd")
+const Actor=preload("res://scripts/actor.gd")
 
 # A live rigged 3D messenger in a transparent portrait viewport. The entire
 # notification ignores input, leaving direct movement and defense available.
@@ -40,8 +40,11 @@ func _ready() -> void:
 	atmosphere.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;atmosphere.ambient_light_color=Color("#fff2d8");atmosphere.ambient_light_energy=.65
 	env.environment=atmosphere;portrait_view.add_child(env)
 	var light:=DirectionalLight3D.new();light.rotation_degrees=Vector3(-32,-26,0);light.light_energy=.85;portrait_view.add_child(light)
-	# Share the validated PackedScene loader with the rest of the game.
-	actor=Art.place(portrait_view,"rabbit")
+	# SubViewport is a Viewport, not a Node3D: the regional Art.place
+	# helper requires Node3D and would fail GDScript type checking here.
+	# Reuse the verified actor model loader and parent it directly to the viewport.
+	actor=Actor.model("rabbit")
+	portrait_view.add_child(actor)
 	animator=_find_animator(actor)
 	face_rig=_find_skeleton(actor)
 	if animator!=null:
