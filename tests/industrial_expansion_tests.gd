@@ -55,6 +55,8 @@ func run_tests() -> void:
 	check(route.travel(4),"Unlocked ferry offers physical travel to the fifth destination")
 	route.tick(1.4)
 	check(route.region==4 and route.region_identity!=null and game.world.navigation.is_walkable(game.player.position,.25),"Industrial arrival restores navigable, visually distinct scenery")
+	check(route.region_identity.machine_rotors.is_empty() and route.region_identity.storage_props.is_empty(),"New industrial island cannot display factories or stored cargo before construction")
+	check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).is_empty(),"Unbuilt factory silos are absent from the initial landscape")
 
 	for stage_index in range(route.INDUSTRY_PROJECTS.size()):
 		var project: Dictionary=route.industry_project()
@@ -64,15 +66,31 @@ func run_tests() -> void:
 		game.player.position=project["at"]+Vector3(0,0,3.2)
 		check(route.build_project() and game.coins==price-int(project["cost"]) and route.industry_stage==stage_index+1,"Construction consumes exact materials, cost and one industrial milestone")
 		check(route.stage==15,"The legacy Faro milestone count never changes")
+		if stage_index==2:
+			check(route.region_identity.machine_rotors.size()==2,"Preserves plant actually reveals two animated industrial rotors")
+		if stage_index==3:
+			check(route.region_identity.storage_props.size()==6,"Logistics hub unlocks six stock-dependent cargo props")
 		if stage_index==0:
 			await reload()
 			route=game.route
 			check(route.region==4 and route.industry_stage==1 and route.built.has("dockworks"),"First industrial project and fifth town survive reload")
+			check(route.region_identity.storage_props.is_empty() and route.region_identity.machine_rotors.is_empty(),"Reload preserves the staged appearance of unfinished plants")
+			check(not route.pinned,"Reload does not forcibly hijack the player's market objective")
 		if stage_index==1:
 			check(route.RECIPES.has("packaging") and route.processing_visuals.has("packaging"),"Packaging plant actually unlocks physical production")
+			check(route.region_identity.find_children("Silo industrial","MeshInstance3D",true,false).size()==2,"Purchased packaging plant reveals its two silos")
+			check(route.region_identity.machine_rotors.is_empty(),"Unbuilt preserves line cannot run ventilation machinery")
 			route.inventory["wheat"]=8
 			route.inventory["flour"]=4
 			game.player.position=route.station("packaging")
+			route.focused_recipe="packaging"
+			game.milestone.pending.clear()
+			game.milestone.current={}
+			game.milestone.cover.visible=false
+			game.milestone.check_wait=0.0
+			game.milestone.tick(.4)
+			check(not game.milestone.is_open() and game.milestone.pending.is_empty(),"Routine manufacturing prompts do not spawn blocking tutorials")
+			route.focused_recipe=""
 			check(route.start_batch("packaging") and not route.start_batch("packaging"),"A running factory batch cannot consume ingredients twice")
 			route.tick(18.2)
 			check(route.jobs["packaging"]["ready"]==3,"Real wheat and flour yield three visible packages")
@@ -83,7 +101,11 @@ func run_tests() -> void:
 	check(route.industry_project().is_empty() and route.industry_order().size()>0,"Completing five factories opens industrial trade contracts")
 	check(route.built.has("trade_center") and route.stage==15,"Industry final building does not overwrite the lighthouse campaign")
 	var order: Dictionary=route.industry_order()
+	for kind in order["needs"]:route.inventory[kind]=0
+	var shortage:Dictionary=route.objective()
+	check(shortage.get("target",route.MARKET)!=route.MARKET,"Missing industrial contract supplies do not direct the player to an empty checkout")
 	for kind in order["needs"]:route.inventory[kind]=int(order["needs"][kind])
+	check(route.objective().get("action","")=="route:order","A ready contract directs the player to an actual physical delivery")
 	game.player.position=route.MARKET
 	var before_coins:int=game.coins
 	var reward:int=order["reward"]
