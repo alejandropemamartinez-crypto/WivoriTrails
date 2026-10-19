@@ -4,9 +4,37 @@ class_name WivoriArt
 static var packed := {}
 static var optimized := {}
 
+static func _missing_model(parent: Node3D, asset: String, at: Vector3, size_: Vector3) -> Node3D:
+	# Leave an actionable engine error, not a fatal null.instantiate(). A
+	# missing authored model is never replaced with a generic fake building.
+	var replacement:=Node3D.new()
+	replacement.name="ERROR · Falta modelo 3D "+asset
+	replacement.position=at
+	replacement.scale=size_
+	parent.add_child(replacement)
+	return replacement
+
 static func place(parent: Node3D, asset: String, at: Vector3=Vector3.ZERO, size_: Vector3=Vector3.ONE) -> Node3D:
-	if not packed.has(asset):packed[asset]=load("res://assets/models/"+asset+".glb")
-	var node: Node3D=packed[asset].instantiate()
+	var path:String="res://assets/models/"+asset+".glb"
+	if not packed.has(asset):
+		if not ResourceLoader.exists(path):
+			push_error("Wivori Trails: falta el modelo importado "+path)
+			return _missing_model(parent,asset,at,size_)
+		var resource:PackedScene=load(path) as PackedScene
+		if resource==null:
+			push_error("Wivori Trails: el modelo 3D no es una escena válida: "+path)
+			return _missing_model(parent,asset,at,size_)
+		packed[asset]=resource
+	var scene:PackedScene=packed[asset] as PackedScene
+	if scene==null:
+		push_error("Wivori Trails: cache GLB inválida "+path)
+		return _missing_model(parent,asset,at,size_)
+	var instance:Node=scene.instantiate()
+	var node:Node3D=instance as Node3D
+	if node==null:
+		if instance!=null:instance.free()
+		push_error("Wivori Trails: escena 3D sin raíz Node3D: "+path)
+		return _missing_model(parent,asset,at,size_)
 	optimize(node)
 	node.position=at
 	node.scale=size_
@@ -21,14 +49,16 @@ static func optimize(root: Node) -> void:
 		if optimized.has(key):item.mesh=optimized[key];continue
 		var safe:=true
 		for surface in range(source.get_surface_count()):
-			var material: Material=source.surface_get_material(surface)
-			if not material is StandardMaterial3D or material.albedo_texture!=null or source.surface_get_primitive_type(surface)!=Mesh.PRIMITIVE_TRIANGLES:safe=false;break
+			var material:StandardMaterial3D=source.surface_get_material(surface) as StandardMaterial3D
+			if material==null or material.albedo_texture!=null or source.surface_get_primitive_type(surface)!=Mesh.PRIMITIVE_TRIANGLES:
+				safe=false
+				break
 		if not safe:optimized[key]=source;continue
 		# Original solid PBR colors become vertex colors. Matte, glossy and metallic
 		# finishes retain separate surfaces; authored geometry and normals stay intact.
 		var tools: Dictionary={}
 		for surface in range(source.get_surface_count()):
-			var material: StandardMaterial3D=source.surface_get_material(surface)
+			var material:StandardMaterial3D=source.surface_get_material(surface) as StandardMaterial3D
 			var group:=2 if material.metallic>.15 else 1 if material.roughness<.4 else 0
 			if not tools.has(group):
 				var builder:=SurfaceTool.new();builder.begin(Mesh.PRIMITIVE_TRIANGLES)

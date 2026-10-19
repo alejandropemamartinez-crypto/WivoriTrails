@@ -1,0 +1,19 @@
+{
+  "asset": "assets/models/hero.glb",
+  "sha256": "43b5a272a4126bd27d4fe3247825aa6e259cb02a3bb44565e8fb0ea829ecf75e",
+  "renderer": "Blender 4.0.2 / Cycles CPU, imported exported GLB",
+  "views_reviewed": [
+    "front",
+    "three_quarter",
+    "profile",
+    "back",
+    "run",
+    "carry",
+    "harvest",
+    "blink"
+  ],
+  "game_executed": false,
+  "godot_imported": false,
+  "android_built": false,
+  "note": "Images were inspected before automated scratch cleanup; regenerate with review_hero.py."
+}

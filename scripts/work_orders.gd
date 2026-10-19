@@ -36,7 +36,7 @@ func _ready() -> void:
 	name="Encargos del valle"
 	Art.place(self,"premium",DISPATCH+Vector3(0,0,-2.6),Vector3.ONE*.68)
 	g.world.navigation.add_obstacle(Rect2(DISPATCH.x-1.7,DISPATCH.z-3.9,3.4,2.0))
-	g.world.make_label(self,"ENCARGOS DEL VALLE",DISPATCH+Vector3(0,2.6,-2.6),31)
+	g.world.make_label(self,"ENCARGOS DEL VALLE",DISPATCH+Vector3(0,4.04,-2.6),52)
 	for key in RECIPES:
 		var output:=Node3D.new();add_child(output)
 		Art.place(output,RECIPES[key]["model"],Vector3.ZERO,Vector3.ONE*.8)
@@ -72,13 +72,16 @@ func start_batch(kind: String) -> bool:
 	for item in RECIPES[kind]["ingredients"]:
 		var needed: int=RECIPES[kind]["ingredients"][item]
 		var carried: int=mini(needed,g.stash[item]);g.stash[item]-=carried;g.counter[item]-=needed-carried
+		# Use the recipe's real ingredients, not decorative apples for every batch.
+		if carried>0:g._fly_produce(item,g.player.position+Vector3(0,1.2,0),station(kind)+Vector3(0,1.2,0),carried)
+		if needed>carried:g._fly_produce(item,g.run.STOCK+Vector3(0,1.2,0),station(kind)+Vector3(0,1.2,0),needed-carried)
 	jobs[kind]={"remaining":RECIPES[kind]["seconds"]*pow(.8,production_level),"ready":false}
 	g.player.set_carry(g._total_bag());g.player.act("build")
-	g._animate_goods(g.run.STOCK,station(kind),5,Color("#daa35b"),"apple")
 	g._notice("EN PREPARACIÓN\n"+RECIPES[kind]["name"],1.5);g._save_progress();g._refresh_ui();return true
 func pickup(kind: String) -> bool:
 	if not jobs.has(kind) or not jobs[kind]["ready"] or cargo_total()>=3 or g.player.position.distance_to(station(kind))>2.4:return false
 	jobs.erase(kind);cargo[kind]=int(cargo.get(kind,0))+1;g.player.act("collect");_update_visuals()
+	g._fly_model_goods(RECIPES[kind]["model"],station(kind)+Vector3(0,1.15,0),g.player.position+Vector3(0,1.3,0),1,g.player)
 	g._notice("LOTE RECOGIDO\nLlevalo al despacho del valle.",2);g._save_progress();g._refresh_ui();return true
 func deliver() -> bool:
 	if active.is_empty() or g.player.position.distance_to(DISPATCH)>2.6:return false
@@ -90,7 +93,8 @@ func deliver() -> bool:
 	if fast:rush_done+=1
 	if g.run.level>=12:festival_done+=1
 	if not recipes_seen.has(kind):recipes_seen.append(kind)
-	active={};g._record_sale(1,income);g.player.act("celebrate");_update_visuals()
+	active={};g._fly_model_goods(RECIPES[kind]["model"],g.player.position+Vector3(0,1.1,0),DISPATCH+Vector3(0,1.2,0),1)
+	g._record_sale(1,income,DISPATCH+Vector3(0,1.4,0));g.player.act("deliver");_update_visuals()
 	g.world.sale_receipt(DISPATCH,income)
 	g._notice("¡ENCARGO ENTREGADO!\n+%d en caja%s" % [income," · extra de rapidez" if fast else ""],2.2)
 	g._save_progress();g._refresh_ui();return true
@@ -183,9 +187,18 @@ func close_board() -> void:
 	if board_scrim!=null:board_scrim.visible=false
 func toggle_board() -> void:
 	if board_scrim==null or g.run.level<7:return
-	if g.shop_panel.visible:g._toggle_shop()
+	if g.route.sailing>0 or g.milestone!=null and g.milestone.is_open():return
+	var opening:bool=not board_scrim.visible
+	if opening:
+		g.route.close_board()
+		if g.town.in_build_mode:g.town.toggle_mode()
+		if g.shop_panel.visible:g._toggle_shop()
+		g.has_tap_destination=false
+		g.destination_marker.visible=false
 	g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
-	board_scrim.visible=not board_scrim.visible;refresh_board();g._refresh_ui()
+	board_scrim.visible=opening
+	refresh_board()
+	g._refresh_ui()
 func build_board() -> void:
 	board_scrim=ColorRect.new();board_scrim.color=Color(.04,.14,.16,.60);board_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.hud.root.add_child(board_scrim);board_scrim.visible=false
 	board=g.hud.panel();board_scrim.add_child(board);board.set_anchors_and_offsets_preset(Control.PRESET_CENTER);board.offset_left=-326;board.offset_right=326;board.offset_top=-466;board.offset_bottom=466
@@ -217,7 +230,7 @@ func refresh_board() -> void:
 	patrol_button.disabled=g.run.level<9 or not patrol.is_empty() or not g.run.raiders.is_empty() or g.run.warning>0 or g._total_stock()<4
 	patrol_button.text="RONDA · NIVEL 9" if g.run.level<9 else "RONDA · FRENÁ 2 · +160 EN CAJA"
 	improve_button.disabled=g.run.level<10 or production_level>=2 or g.coins<360+production_level*300
-	improve_button.text="TALLERES · NIVEL 10" if g.run.level<10 else "TALLERES AL MÁXIMO" if production_level>=2 else "TALLERES · -20 % TIEMPO · %d" % (360+production_level*300)
+	improve_button.text="TALLERES · NIVEL 10" if g.run.level<10 else "TALLERES AL MÁXIMO" if production_level>=2 else "TALLERES · -20 %% TIEMPO · %d" % (360+production_level*300)
 func save_state() -> Dictionary:
 	return {"active":active.duplicate(true),"jobs":jobs.duplicate(true),"cargo":cargo.duplicate(),"orders":orders_done,"rush":rush_done,"festival":festival_done,"patrol_wins":patrol_wins,"recipes":recipes_seen.duplicate(),"patrol":patrol.duplicate(),"production_level":production_level}
 func load_state(data: Dictionary) -> void:

@@ -73,3 +73,32 @@ y las cercas de madera abiertas. Los shaders de agua, suelo y contacto son
 originales del proyecto y funcionan con el renderizador Compatibility.
 Los modelos antiguos se conservan como fuentes históricas; el juego carga
 `hero.glb` exclusivamente para el jugador.
+
+## Etapa 7: exportación e inspección del protagonista
+
+El GLB ya corresponde a la escultura actual: cuencas en la cabeza, párpados del
+color del pelaje, ojos de una sola superficie con iris y pupila pintados y orejas
+más cortas. Se conservan 17 huesos, 14 clips, tres superficies y el nombre del
+recurso. El protagonista sigue sin nombre; los NPC no cambian.
+
+Se importó y revisó el GLB en Blender 4.0.2: frente, tres cuartos, perfil,
+espalda, carrera, carga, cosecha y parpadeo. Son vistas de autoría, no capturas
+del juego. Los registros están en `source/hero.export.json` y `source/hero.review.json`.
+
+El archivo ocupa 3 221 704 bytes y contiene 54 140 triángulos. Esto no acredita
+FPS en Android. `source/validate_hero_export.py` inspecciona el archivo y sincroniza
+el atlas incrustado con `assets/models/hero_hero_albedo.png`.
+El atlas de color incorpora la oclusión ya horneada; el AO independiente de
+0.16 se conserva como `textures/hero_contact_shadows_v016.png`, fuente histórica
+que no utiliza el GLB nuevo. El generador vuelve a producir el AO intermedio
+si se reconstruye el personaje.
+
+```sh
+blender --background --factory-startup --python art/source/build_hero.py
+python3 art/source/validate_hero_export.py
+blender --background --factory-startup --python art/source/review_hero.py -- /tmp/hero-review
+```
+
+Quedan pendientes la importación Godot, las transiciones y el contacto de patas
+dentro del juego, la carga visible y las mediciones en Android. No se ejecutó
+Godot ni se compiló un APK en esta etapa.

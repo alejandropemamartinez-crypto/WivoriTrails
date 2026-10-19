@@ -61,7 +61,7 @@ jobs:
           godot --headless --path . --import 2>&1 | tee godot-import.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-import.log; then exit 1; fi
           godot --headless --path . --quit-after 120 2>&1 | tee godot-runtime.log
-          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-runtime.log; then exit 1; fi
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script|^ERROR:' godot-runtime.log; then exit 1; fi
 
       - name: Run gameplay regression checks
         shell: bash
@@ -70,7 +70,7 @@ jobs:
           for suite in tests/*_tests.gd; do
             timeout 120 godot --headless --path . --script "res://$suite"
           done 2>&1 | tee godot-tests.log
-          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-tests.log; then exit 1; fi
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script|^ERROR:' godot-tests.log; then exit 1; fi
 
       - name: Export Android APK (debug)
         shell: bash
@@ -123,16 +123,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr release/Wivori_Trails_Art_Source_v0.16.0.zip art assets/fonts assets/models assets/ui -x '*.import' '*.blend[0-9]'
+          zip -qr release/Wivori_Trails_Art_Source_v0.18.0.zip art assets/fonts assets/models assets/ui -x '*.import' '*.blend[0-9]'
       - name: Publish verified Android preview
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view v0.16.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v0.16.0 release/*.apk release/Wivori_Trails_Art_Source_v0.16.0.zip \
+          if ! gh release view v0.18.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.18.0 release/*.apk release/Wivori_Trails_Art_Source_v0.18.0.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "Wivori Trails 0.16.0 — nuevo protagonista y revisión visual" \
-              --notes-file docs/release-v0.16.md
+              --title "Wivori Trails 0.18.0 — seis mapas y expediciones" \
+              --notes-file docs/release-v0.18.md
           fi

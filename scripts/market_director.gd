@@ -52,9 +52,13 @@ func tick(delta: float) -> void:
 	if g.event_fade>0:return
 	announced[token]=true
 	announcement_count+=1
-	offer_cooldown=7.0
-	g._notice("YA PODÉS: %s\nSeguí las flechas hasta la mejora." % upgrade["name"],3.3)
-	if g.milestone!=null:g.milestone.announce("investment:"+token,"¡Ya podés mejorar!",upgrade["name"]+"\n\n"+upgrade["benefit"]+"\n\n%d monedas. Seguí las flechas con el joystick." % upgrade["price"],"crew" if kind in ["helper","collector"] else "star","guide","UNA NUEVA INVERSIÓN")
+	offer_cooldown=20.0
+	# Affordability is already legible in the mission and purchase badge.
+	# A local marker replaces another global toast over the play area.
+	if g.player.position.distance_to(upgrade["target"])<8.0:
+		g._float_activity(upgrade["target"],"MEJORA DISPONIBLE",Color("#f1cb79"))
+	# Purchasable upgrades are everyday events, not story milestones:
+	# mark the world once, never open an interrupting modal.
 
 func alert() -> Dictionary:
 	var security: Dictionary=g.run.alert()
@@ -64,7 +68,7 @@ func alert() -> Dictionary:
 	if g._total_stock()==0:
 		var loaded: bool=g._total_bag()>0
 		return {"id":"empty","title":"Puesto vacío · %d esperando" % waiting,
-			"detail":"Entregá tu mochila para que vuelvan las ventas." if loaded else "Recolectá productos y abastecé el círculo dorado.",
+			"detail":"Entregá tu mochila para que vuelvan las ventas." if loaded else "Cosechá productos y acercate al puesto para entregarlos.",
 			"button":"SEÑALAR","target":Vector3(4,0,2.5) if loaded else g._harvest_target(),"color":Color("#c46c39")}
 	if waiting>=4:
 		var upgrade: Dictionary=g._upgrade("checkout")

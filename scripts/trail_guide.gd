@@ -32,6 +32,7 @@ func _ready() -> void:
 	pointer=Node3D.new(); add_child(pointer)
 	var head := CylinderMesh.new(); head.top_radius=.43; head.bottom_radius=0; head.height=.65; head.radial_segments=3
 	var head_node := MeshInstance3D.new(); head_node.mesh=head; head_node.material_override=mat
+	head_node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	pointer.add_child(head_node)
 	visible=false
 

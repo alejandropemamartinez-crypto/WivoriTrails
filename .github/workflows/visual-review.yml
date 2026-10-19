@@ -44,12 +44,25 @@ jobs:
           test -s previews/rabbit_robbery_alert.png
           test -s previews/cash_collection_flight.png
           test -s previews/town_overview.png
-          ls -lh previews
+          for suite in mobile_ui_tests factory_facade_tests campaign_touch_tests; do
+            timeout 120 xvfb-run -a -s "-screen 0 720x1280x24" \
+              godot --path . --audio-driver Dummy --resolution 720x1280 \
+              --script "res://tests/$suite.gd" 2>&1 | tee "previews/$suite.log"
+          done
+          for resolution in 720x1280 720x1600; do
+            mkdir -p "previews/$resolution"
+            timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
+              godot --path . --audio-driver Dummy --resolution "$resolution" \
+              --script res://tools/capture_campaign.gd -- "$PWD/previews/$resolution" \
+              2>&1 | tee "previews/campaign-$resolution.log"
+            test -s "previews/$resolution/07_puerto_aurora.png"
+          done
+          if grep -RE 'SCRIPT ERROR:|Parse Error|FAIL:' previews/*.log; then exit 1; fi
       - name: Publish visual screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: WivoriTrails_Visual_Snapshots
-          path: previews/*.png
+          path: previews/
           if-no-files-found: warn
           retention-days: 14

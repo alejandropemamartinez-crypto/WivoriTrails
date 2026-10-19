@@ -136,6 +136,7 @@ func _ready() -> void:
 	for i in range(worker_count):
 		_spawn_worker(i, saved_helpers[i] if i < saved_helpers.size() and saved_helpers[i] is Dictionary else {})
 	if route.restore_region>0:route._arrive(route.restore_region,true)
+	_sync_visible_cargo()
 	_refresh_ui()
 
 func _engine_world() -> void:
@@ -204,13 +205,19 @@ func _setup_hud() -> void:
 	hud.build(self)
 
 func _toggle_shop() -> void:
+	if route!=null and route.sailing>0:return
+	if milestone!=null and milestone.is_open():return
 	if route!=null:route.close_board()
 	work.close_board()
-	shop_panel.visible = not shop_panel.visible
-	if shop_panel.visible:
-		has_tap_destination = false
-		destination_marker.visible = false
-		boost_active = false
+	var opening:bool=not shop_panel.visible
+	if opening and town!=null and town.in_build_mode:
+		town.toggle_mode()
+	shop_panel.visible=opening
+	if opening:
+		has_tap_destination=false
+		destination_marker.visible=false
+		boost_active=false
+		move_velocity=Vector3.ZERO
 		input_stick._clear()
 	_refresh_ui()
 
@@ -223,6 +230,17 @@ func _total_stock() -> int:
 	var sum := 0
 	for v in counter.values(): sum += int(v)
 	return sum
+
+func _sync_visible_cargo() -> void:
+	# The avatar carries real contents from Wivori and/or the islands.
+	# No item count is changed while refreshing this cosmetic display.
+	if player==null:return
+	var contents:Dictionary=stash.duplicate()
+	if route!=null:
+		for key in route.bag:
+			contents[key]=int(contents.get(key,0))+int(route.bag[key])
+	player.set_visible_cargo(contents)
+	player.set_carry(_total_bag())
 
 func _refresh_ui() -> void:
 	if hud == null: return
@@ -331,9 +349,12 @@ func _harvest_kind(kind: String) -> Vector3:
 	return target
 
 func _toggle_build_mode() -> void:
+	if route.sailing>0 or milestone!=null and milestone.is_open():return
 	if route.away():route.open_board();return
+	route.close_board()
 	work.close_board()
 	if shop_panel.visible:_toggle_shop()
+	move_velocity=Vector3.ZERO
 	town.toggle_mode()
 
 func _build_town(kind: String) -> void:
@@ -581,7 +602,7 @@ func _process_customers(delta: float) -> void:
 		var count := mini(3,int(counter[kind]))
 		counter[kind]-=count
 		var income: int=int(SELL_VALUE[kind])*count
-		_record_sale(count,income)
+		_record_sale(count,income,a.position+Vector3(0,1.1,0))
 		total_buyers+=1
 		a.set_cargo_kind(kind)
 		a.set_carry(count)
@@ -599,9 +620,9 @@ func _first_stocked() -> String:
 		if counter[kind] > 0:return kind
 	return ""
 
-func _record_sale(amount: int, income: int) -> void:
+func _record_sale(amount: int, income: int, origin: Vector3=Vector3.ZERO) -> void:
 	income+=town.income_bonus(income) if town!=null else 0
-	cash.add_sale(income)
+	cash.add_sale(income,origin)
 	earned+=income
 	sold+=amount
 	quest_level=maxi(quest_level,int(sold/20)+1)
@@ -641,7 +662,13 @@ func _movement_input_allowed() -> bool:
 	return not (milestone!=null and milestone.is_open()) and not (route!=null and (route.sailing>0 or route.board_visible())) and not (town!=null and town.in_build_mode) and not (shop_panel!=null and shop_panel.visible) and not (work!=null and work.board_visible())
 
 func _process_player(delta: float) -> void:
-	if town!=null and town.in_build_mode:return
+	# _process_player also harvests and delivers, not only walks. A menu
+	# must block all proximity-based transactions, even when the last held
+	# keyboard/joystick direction or prior inertial velocity is nonzero.
+	if not _movement_input_allowed():
+		move_velocity=Vector3.ZERO
+		if player!=null:player.walk_amount=0.0
+		return
 	var pad := input_stick.axis
 	var keyboard := Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): keyboard.x-=1
@@ -651,7 +678,6 @@ func _process_player(delta: float) -> void:
 	var joy := (pad+keyboard).limit_length(1.0)
 	# Player travel is exclusively manual. Guides and terrain taps only mark.
 	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
-	if shop_panel.visible or work.board_visible() or route.board_visible():world_motion=Vector3.ZERO
 	var velocity := world_motion * minf(9.6,player_speed * town.player_speed_factor() * (1.16 if boost_active else 1.0))
 	# Turbo upgrades provide controllable acceleration, not runaway speed.
 	# When joystick is released, the protagonist stops instead of sliding past a target.
@@ -674,14 +700,16 @@ func _process_player(delta: float) -> void:
 			var resource := world.harvest(crop)
 			if resource!="":
 				stash[resource]+=1
+				var harvested_units:=1
 				if town.bonus_harvest() and _total_bag()<max_capacity:
+					harvested_units=2
 					stash[resource]+=1
 					_float_activity(crop["node"].global_position,"¡DOBLE COSECHA!",Color("#58a67e"))
-				player.set_carry(_total_bag())
+				_sync_visible_cargo()
 				player.act("harvest")
 				harvest_wait=.23
 				if harvest_sfx.stream:harvest_sfx.play()
-				_spawn_pickup_fx(crop["node"].global_position,resource)
+				_spawn_pickup_fx(crop["node"].global_position,resource,harvested_units)
 
 	if drop_wait<=0 and run.deliver_contract()>0:drop_wait=.6
 	if drop_wait<=0 and _total_bag()>0 and player.position.distance_to(Vector3(4,0,2.5))<2.5:
@@ -691,14 +719,14 @@ func _process_player(delta: float) -> void:
 			delivered+=stash[resource]
 			counter[resource]+=stash[resource]
 			stash[resource]=0
-		player.set_carry(0)
+		_sync_visible_cargo()
 		player.act("deliver")
 		_notice("¡PUESTO ABASTECIDO!",1.1)
 		drop_wait=.6
 	if _total_bag()>=max_capacity:
 		hint_label.text="Bolsa llena · llevá tu cosecha al puesto"
 	elif player.position.distance_to(Vector3(4,0,2.5))<4:
-		hint_label.text="Círculo dorado · entrega automática"
+		hint_label.text="Acercate al puesto para entregar tu cosecha"
 	elif _total_stock()<3:
 		hint_label.text="Acercate a un cultivo para cosechar"
 	else:
@@ -711,13 +739,18 @@ func _produce_at(t: float, item: Node3D, start: Vector3, finish: Vector3, recipi
 	item.rotation=Vector3(t*1.3,t*2.4,t*.5)
 	item.scale=Vector3.ONE*lerpf(.68,.30,t)
 
-func _fly_produce(kind: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+func _fly_model_goods(model_name: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+	# Display-only cargo: all inventory and wallet changes happen at the source action.
+	# Capping each burst to eight meshes avoids mobile overdraw during bulk transfers.
 	for i in range(mini(8,amount)):
-		var item:=Art.place(self,"produce_"+kind,from+Vector3((float(i%3)-1)*.16,0,float(i/3)*.12),Vector3.ONE*.68)
+		var item:=Art.place(self,model_name,from+Vector3((float(i%3)-1)*.16,0,float(i/3)*.12),Vector3.ONE*.68)
 		var tween:=create_tween()
 		tween.tween_interval(float(i)*.025)
 		tween.tween_method(Callable(self,"_produce_at").bind(item,item.position,to,recipient),0.0,1.0,.48+float(i%3)*.05).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_callback(item.queue_free)
+
+func _fly_produce(kind: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+	_fly_model_goods("produce_"+kind,from,to,amount,recipient)
 
 func _animate_goods(from: Vector3, to: Vector3, amount: int, tint: Color, kind: String="tomato") -> void:
 	_fly_produce(kind,from+Vector3(0,1.1,0),to+Vector3(0,1.3,0),amount)
@@ -739,9 +772,9 @@ func _float_activity(at: Vector3, message: String, tint: Color) -> void:
 	tween.tween_property(badge,"modulate:a",0.0,.9)
 	tween.chain().tween_callback(badge.queue_free)
 
-func _spawn_pickup_fx(at: Vector3, kind: String) -> void:
-	_fly_produce(kind,at+Vector3(0,.58,0),player.to_global(Vector3(0,1.4,-.36)),1,player)
-	_float_activity(at,"+1",Color("#e0b465"))
+func _spawn_pickup_fx(at: Vector3, kind: String, amount: int=1) -> void:
+	_fly_produce(kind,at+Vector3(0,.58,0),player.to_global(Vector3(0,1.4,-.36)),amount,player)
+	_float_activity(at,"+%d" % amount,Color("#e0b465"))
 
 func _update_camera(delta: float) -> void:
 	if town!=null and town.in_build_mode:
@@ -807,6 +840,11 @@ func _cash_sound() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if milestone!=null and milestone.is_open() or route!=null and route.sailing>0:return
+	if route!=null and route.board_visible():
+		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+			route.close_board()
+			_refresh_ui()
+		return
 	if work.board_visible():
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:work.close_board();_refresh_ui()
 		return
@@ -925,10 +963,12 @@ func _load_progress() -> void:
 	pier_owned=data.get("pier_owned",false)==true
 	var bag_data: Dictionary=data["stash"] if data.get("stash") is Dictionary else {}
 	var stock_data: Dictionary=data["counter"] if data.get("counter") is Dictionary else {}
-	var available := max_capacity
+	# Loading is not a new harvest. Preserve every previously saved item,
+	# even if a legacy version or cross-island journey left the pouch above
+	# its current carrying capacity. New pickups still enforce that limit,
+	# while the player can freely deliver the valid excess.
 	for key in stash.keys():
-		stash[key]=int(SaveStore.number(bag_data,key,0,0,available))
-		available-=int(stash[key])
+		stash[key]=int(SaveStore.number(bag_data,key,0,0,100000))
 		counter[key]=int(SaveStore.number(stock_data,key,0,0,1000000))
 	player.position=world.navigation.nearest_free(SaveStore.position(data.get("player_pos"),player.position))
 	if orchard_owned:world.open_orchard()
@@ -952,12 +992,14 @@ func _load_progress() -> void:
 	work.load_state(data["work"] if data.get("work") is Dictionary else {})
 	run.load_state(data["run"] if data.get("run") is Dictionary else {})
 	town.load_state(data["town"] if data.get("town") is Dictionary else {})
-	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})
+	# Restore the selected island before reconstructing any saved money
+	# flight. Otherwise a Forja pickup is briefly created as Wivori effects.
 	route.load_state(data["route"] if data.get("route") is Dictionary else {})
+	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})
 	milestone_history=data["milestones"] if data.get("milestones") is Array else []
 	player.position=world.navigation.nearest_free(player.position)
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
-	player.set_carry(_total_bag())
+	_sync_visible_cargo()
 
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT] and player != null:
@@ -965,5 +1007,6 @@ func _notification(what: int) -> void:
 		has_tap_destination=false
 		if destination_marker != null: destination_marker.visible=false
 		if input_stick != null: input_stick._clear()
+		move_velocity=Vector3.ZERO
 	if what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED] and player != null:
 		_save_progress()

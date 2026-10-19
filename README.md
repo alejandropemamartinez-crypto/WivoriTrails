@@ -1,54 +1,35 @@
-# Wivori Trails · 0.16.0
+# Wivori Trails · 0.18.0
 
-Protagonista sin nombre, nuevo rostro original, granjas con arquitectura propia,
-agua animada y revisión de errores de viaje, carga y controles.
-[Cambios y validación](docs/release-v0.16.md).
+Juego 3D de aventura, comercio y construcción para Android, en Godot **4.4.1**.
+Controlás un perrito sin nombre; contratás trabajadores, defendés el mercado y
+conectás seis pueblos con producción y objetivos propios.
 
-Juego 3D de aventura, comercio y construcción para Android, en Godot 4.4.1.
-El jugador controla un perrito aventurero sin nombre: cara redondeada, pelaje
-carbón, hocico corto, ojos ámbar y pañuelo mostaza. Los NPC conservan sus cinco
-especies y modelos distintos. **Wivori Trails** sigue siendo el nombre del juego.
+## Campaña
 
-## Esta versión
+Mercado de Wivori → campos de Villa Miga → granjas de Puerto Nata →
+Bahía Farol → Distrito Forja → astillero de Puerto Aurora.
 
-- Modelo original `hero.glb`: malla ponderada, 17 huesos, 14 clips, atlas PBR de
-  1024 px y fuente editable. Sustituye al antiguo personaje barbudo.
-- Establo, gallinero y corral propios; cercas de madera abiertas con colisión.
-- Sombras de contacto, luz equilibrada, caminos con relieve visual, agua con
-  ondas y espuma de costa, vegetación ligera agrupada y molino animado.
-- Operarios trabajan visualmente durante sus lotes. Movimiento del jugador
-  siempre manual, con inclinación suave al girar y animaciones por actividad.
-- Corregidos límites de islas, amarre del ferry, puerto visible en otra isla,
-  altura del muelle, regeneración del trigo, carga visual y desbordes del almacén.
-- El joystick ya no captura toques a través de menús o avisos abiertos.
-- Se conservan doce capítulos del mercado, defensas, encargos, quince proyectos
-  marítimos y los pueblos persistentes. Guardado v8 compatible con versiones v1–v8.
-
-## Jugar
-
-Abrí `project.godot` con Godot **4.4.1** y ejecutá `Main.tscn`.
+Hay 24 proyectos marítimos, 11 recetas, mejoras locales, seis contratos mixtos
+de industria y tres rutas de expedición. Para pasar al siguiente escenario hay
+que desarrollar las instalaciones del anterior. Las partidas antiguas conservan
+sus destinos, inventario y edificios. [Diseño de la campaña](docs/CAMPANA-SECUENCIAL.md).
 
 - Joystick o WASD/flechas para caminar; mantener **Correr** para acelerar.
-- Acercarse a los cultivos cosecha; llevar la mochila a **Entregar** repone stock.
-- Las monedas de las ventas quedan en las **cajas**: acercate a recogerlas.
-- **Mejoras** permite contratar empleados y comprar herramientas o defensas.
-- **Pueblo** eleva la cámara. Arrastrá para explorar y tocá un solar para construir.
-  Seleccioná un edificio y **Mover edificio** para elegir un solar de destino.
-- Desde el nivel 3, protegé los productos: acercate al mapache y tocá **Ahuyentar**.
-- Desde el nivel 4 hay pedidos premium ×2; el muelle exporta excedentes.
-- Las metas requieren entregas tuyas, pedidos y defensa. Los empleados no
-  completan automáticamente el trabajo personal. **Continuar** cobra el premio
-  del nivel una sola vez. Desde el nivel 7, **Pedidos** permite fabricar, recoger y entregar encargos.
-  Después de doce capítulos alternan rutas de producción, rapidez y defensa.
+- Acercarse a cultivos cosecha. Llevar la mochila a **Entregar** repone el puesto.
+- Las ventas dejan monedas en cajas físicas: acercate para cobrarlas.
+- **Mejoras** muestra trabajadores, herramientas y defensas. Las flechas guían;
+  el protagonista siempre se mueve bajo tu control.
+- Desde nivel 3 podés acercarte a un mapache y **Ahuyentarlo**.
+- **Pueblo** permite construir y mover edificios entre solares.
+- **Continuar** cobra el premio del nivel una sola vez.
+- **Mapas** muestra destinos, metas y mejoras pendientes; **Granja y carga**
+  permite gestionar recetas y operarios. En Aurora, **Flota** prepara expediciones.
+- Las novedades se abren voluntariamente desde el mapa. Las colas, cosechas y
+  tareas repetidas no abren tarjetas que congelen la partida.
 
-## Arte editable y procedencia
+## Ejecutar y verificar
 
-[Inventario, licencias y reproducción del arte](art/ASSETS.md).
-Los `.blend`, atlas y generador están en `art/source/`. Los GLB de ejecución
-están en `assets/models/`. No hace falta instalar Blender para jugar o compilar.
-El ZIP histórico `wivori_bundle.zip` no se extrae ni se incluye en el APK.
-
-## Comprobación
+Abrí `project.godot` con Godot 4.4.1 y ejecutá `Main.tscn`.
 
 ```sh
 godot --headless --path . --import
@@ -57,41 +38,35 @@ for suite in tests/*_tests.gd; do
 done
 ```
 
-Las suites comprueban economía, entrada táctil simultánea, rutas, niveles,
-compras, robos/recuperación, guardias, pedidos, exportaciones, migración,
-recaudador, dinero en tránsito, traslado de edificios y animaciones esqueléticas.
+Para las comprobaciones con gráficos activos:
 
 ```sh
 godot --path . --resolution 720x1280 --audio-driver Dummy \
-  --script res://tools/capture_preview.gd -- /tmp/wivori-capturas
+  --script res://tests/mobile_ui_tests.gd
+godot --path . --resolution 720x1280 --audio-driver Dummy \
+  --script res://tests/campaign_touch_tests.gd
+godot --path . --resolution 720x1600 --audio-driver Dummy \
+  --script res://tools/capture_campaign.gd -- /tmp/wivori-capturas
 ```
 
-Las capturas se producen con el motor real y una partida de prueba preparada;
-no son ilustraciones ni maquetas. Se revisan también a 720×1600.
-`tools/render_thumbnails.gd` regenera las miniaturas a partir de los modelos.
+Las capturas del motor usan estados preparados para inspección: seis mapas,
+tablero de pedidos, flota, héroe frontal/lateral/posterior y seis poses animadas.
+No representan una partida humana completa. CI ejecuta las suites, pruebas
+nativas de interfaz y capturas en 720×1280 y 720×1600.
 
-## Android
+## Android y arte
 
-GitHub Actions importa recursos, inicia el juego, ejecuta las suites, exporta y
-verifica el APK ARM64, el paquete `sv.apenalegaltech.wivoritrails`, su versión y
-el certificado de desarrollo estable. No se cambia la identidad de firma de
-las versiones anteriores. [Detalles de firma](tools/android/README.md).
+El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
+verifica paquete, versión y certificado. 0.18.0 usa código 19, el paquete
+`sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
+actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
-Es una versión de prueba. La revisión de escritorio y las comprobaciones
-programáticas no sustituyen las pruebas de manejo, temperatura, memoria y FPS
-en un teléfono Android. El acabado y el balance necesitan validación con
-jugadores; no se presenta como un juego comercial terminado ni como equivalente
-a una producción de Playrix. Todos los recursos nuevos tienen identidad propia.
+[Licencias y fuentes editables](art/ASSETS.md). Los GLB están en `assets/models/`;
+los generadores, atlas y archivos Blender en `art/source/`. Blender no es
+necesario para ejecutar o compilar el juego.
 
-## 0.15.0 — Ruta del Faro
-
-El protagonista es exclusivo; los NPC tienen cinco siluetas distintas. Los oficios
-separados, carteles opacos y avisos grandes enseñan la siguiente tarea.
-Desde nivel 6, muelle y 900 monedas, el transbordador conecta tres pueblos nuevos.
-Quince proyectos y doce construcciones conducen al Faro. Trigo, granjas de vacas,
-gallinas y cerdos, ocho recetas y operarios por estación mantienen la producción
-conectada entre destinos. El guardado v8 conserva el progreso anterior.
-
-La comparación con Township, Hay Day y My Mini Mart y las decisiones están en
-[docs/PROGRESION-v015.md](docs/PROGRESION-v015.md). Esta versión es un prototipo;
-retención y rendimiento en teléfonos físicos todavía requieren pruebas.
+[Correcciones y validación de 0.18.0](docs/release-v0.18.md).
+Las pruebas de escritorio y de exportación no miden FPS, calentamiento, batería
+ni sensación de control en un teléfono físico. El arte y el balance siguen
+siendo los de una versión de prueba; la comparación de diseño con otros juegos
+está en [PROGRESION-v015.md](docs/PROGRESION-v015.md).

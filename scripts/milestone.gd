@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-# Important lessons and level rewards occupy >=75% of the full viewport.
-# Dismissal is explicit; income, movement and danger pause while reading.
+# News is read only when the player opens it from the map.
+# Routine goals, upgrades, queues and raids never open blocking screens.
 var g
 var cover: ColorRect
 var card: PanelContainer
@@ -34,6 +34,8 @@ func announce(id: String,heading: String,message: String,symbol: String="star",a
 	for item in pending:
 		if item["id"]==id:return
 	pending.append({"id":id,"title":heading,"detail":message,"symbol":symbol,"action":action,"tag":tag})
+	# Only a few map milestones are queued; bound old/future callers safely.
+	if pending.size()>24:pending.pop_front()
 func dismiss() -> void:
 	if not is_open():return
 	seen[current["id"]]=true
@@ -46,41 +48,30 @@ func dismiss() -> void:
 	g._save_progress()
 func tick(delta: float) -> void:
 	pulse+=delta
-	if is_open():
-		emblem.modulate=Color(1,1,1,.91+.09*sin(pulse*3))
-		return
-	check_wait-=delta
-	if check_wait>0:return
-	check_wait=.35
-	if g.shop_panel.visible or g.town.in_build_mode or g.work.board_visible() or g.route.board_visible():return
-	if not g.route.away() and g.run.complete():announce("complete:%d" % g.run.level,"¡Nivel %d superado!" % g.run.level,"%s\n\nRecompensa: %d monedas\n\nLa siguiente etapa trae una meta nueva." % [g.run.title(),g.run.reward()],"star","level","¡LO LOGRASTE!")
-	elif not g.route.away():announce("chapter:%d" % g.run.level,g.run.title(),g.run.lesson(),"harvest","","NIVEL %02d · TU MISIÓN" % g.run.level)
-	if g.run.level>=6 and not g.route.ferry:announce("route:discovery","¡Hay pueblos al otro lado!","Restaurá el barco para abrir Villa Miga. Trigo, granjas y nuevos edificios esperan en la ruta al Faro.","boat","route","UN OBJETIVO MÁS GRANDE")
-	if g.route.away() and not g.route.project().is_empty():
-		var p: Dictionary=g.route.project()
-		announce("route:stage:%d" % g.route.stage,p["name"],p["why"]+"\n\n%d monedas\n%s" % [p["cost"],g.route.need_text(p["needs"])],"harvest","","PROYECTO %d / 15" % (g.route.stage+1))
-	if not g.route.away() and g.run.level>=3 and (g.run.warning>0 or not g.run.threat().is_empty()):
-		var wave: int=g.run.wave_index+(1 if g.run.warning>0 else 0)
-		announce("raid:%d" % wave,"¡Mapaches en camino!","Protegé tus productos.\n\nBuscá al mapache, acercate con el joystick y tocá AHUYENTAR. Los cerrojos y el guardia te dan tiempo para reaccionar.","defense","","¡CUIDADO CON EL MERCADO!")
-	elif not g.run.complete():
-		var objective: Dictionary=g._current_objective()
-		var action: String=objective.get("action","")
-		var task_title: String=objective.get("title","")
-		var id:=""
-		if g.route.away() and action.begins_with("route:") and action!="route:project" and action!="route:board":id="task:route:%d:%s" % [g.route.stage,action]
-		elif not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:id="task:home:%d:%s" % [g.run.level,task_title]
-		if not id.is_empty():announce(id,task_title,objective.get("detail","")+"\n\nTocá SEÑALAR y seguí las flechas con el joystick.","deliver","","TU SIGUIENTE TAREA")
-	if not g.route.away() and g._waiting_count()>=6:announce("queue:%d" % g.run.level,"¡La fila está llena!","Hay seis clientes esperando.\n\nReponé productos y mejorá la caja para atender más rápido. Las flechas te indican la tarea urgente.","crew","guide","¡EL MERCADO TE NECESITA!")
-	if pending.is_empty():return
+	if is_open():emblem.modulate=Color(1,1,1,.91+.09*sin(pulse*3))
+	# No automatic popups. The mission panel always carries the next action;
+	# level rewards are claimed through its CONTINUAR button.
+
+func show_next() -> void:
+	if is_open() or pending.is_empty() or g.route.sailing>0:return
+	g.route.close_board();g.work.close_board();g.shop_panel.visible=false
+	if g.town.in_build_mode:g.town.toggle_mode()
 	current=pending.pop_front()
 	title.text=current["title"];detail.text=current["detail"];kicker.text=current["tag"]
-	emblem.texture=load("res://assets/ui/signs/"+current["symbol"]+".svg")
+	var emblem_path:String="res://assets/ui/signs/"+str(current["symbol"])+".svg"
+	if not ResourceLoader.exists(emblem_path):
+		push_warning("Wivori Trails: pictograma de capítulo no disponible: "+emblem_path)
+		emblem_path="res://assets/ui/signs/star.svg"
+	emblem.texture=load(emblem_path)
 	action_button.text="SIGUIENTE NIVEL" if current["action"]=="level" else "VER LA RUTA" if current["action"]=="route" else "¡VAMOS!"
 	cover.visible=true;g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
 	g.player.act("celebrate" if current["symbol"]=="star" else "alert")
 	card.pivot_offset=card.size*.5;card.scale=Vector2.ONE*.985
 	create_tween().tween_property(card,"scale",Vector2.ONE,.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-func save_state() -> Array:return seen.keys()
+func save_state() -> Array:
+	# Read history persists; unread cards are optional session news.
+	# Gameplay progress is owned by the campaign, never by opening a card.
+	return seen.keys()
 func load_state(data: Variant) -> void:
 	if data is Array:
 		for id in data.slice(0,1000):

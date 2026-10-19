@@ -1,5 +1,6 @@
 extends PanelContainer
 class_name RabbitWarningBanner
+const Actor=preload("res://scripts/actor.gd")
 
 # A live rigged 3D messenger in a transparent portrait viewport. The entire
 # notification ignores input, leaving direct movement and defense available.
@@ -39,13 +40,20 @@ func _ready() -> void:
 	atmosphere.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;atmosphere.ambient_light_color=Color("#fff2d8");atmosphere.ambient_light_energy=.65
 	env.environment=atmosphere;portrait_view.add_child(env)
 	var light:=DirectionalLight3D.new();light.rotation_degrees=Vector3(-32,-26,0);light.light_energy=.85;portrait_view.add_child(light)
-	actor=load("res://assets/models/rabbit.glb").instantiate();portrait_view.add_child(actor)
+	# SubViewport is a Viewport, not a Node3D: the regional Art.place
+	# helper requires Node3D and would fail GDScript type checking here.
+	# Reuse the verified actor model loader and parent it directly to the viewport.
+	actor=Actor.model("rabbit")
+	portrait_view.add_child(actor)
 	animator=_find_animator(actor)
 	face_rig=_find_skeleton(actor)
 	if animator!=null:
 		animator.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
-		animator.get_animation("alert").loop_mode=Animation.LOOP_LINEAR
-		animator.get_animation("surprise").loop_mode=Animation.LOOP_LINEAR
+		for clip in ["alert","surprise"]:
+			if animator.has_animation(clip):
+				animator.get_animation(clip).loop_mode=Animation.LOOP_LINEAR
+			else:
+				push_warning("Wivori Trails: la mensajera no tiene animación "+clip)
 	var camera:=Camera3D.new();portrait_view.add_child(camera)
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.85;camera.position=Vector3(.15,1.95,6.5);camera.look_at(Vector3(0,1.92,0));camera.current=true
 	portrait=TextureRect.new();portrait.texture=portrait_view.get_texture()
@@ -109,7 +117,9 @@ func _announce(title: String, explanation: String, clip: String) -> void:
 	headline.add_theme_color_override("font_color",Color("#a65247"))
 	lifetime=2.8;phase_time=0;hiding=false;visible=true;set_process(true)
 	portrait_view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
-	if animator!=null:animator.play(clip,.15)
+	if animator!=null:
+		if animator.has_animation(clip):animator.play(clip,.15)
+		elif animator.has_animation("idle"):animator.play("idle",.15)
 	if active_tween!=null:active_tween.kill()
 	modulate.a=0;slide_offset=-760
 	active_tween=create_tween().set_parallel(true)

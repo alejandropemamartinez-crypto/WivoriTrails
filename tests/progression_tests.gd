@@ -114,4 +114,4 @@ func run_tests() -> void:
 	check(game.run.level==4 and game.helpers.size()==2 and is_equal_approx(game.player_speed,7.72),"v3 migration preserves purchases and starts at the matching new chapter")
 	check(game.manual_delivered==0 and game.run.contract_done==0,"Old automatic delivery totals cannot pre-complete new manual goals")
 	await stop(); clean()
-	print("RESULT: %d progression and defense checks, %d failures" % [checks,failures]); quit(1 if failures else 0)
+	print("RESULT: %d progression and defense checks, %d failures" % [checks,failures]); await create_timer(.08).timeout;quit(1 if failures else 0)

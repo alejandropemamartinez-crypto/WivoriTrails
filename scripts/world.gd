@@ -27,6 +27,7 @@ var locked_sites := {}
 var hero_ring: MeshInstance3D
 var premium_root: Node3D
 var premium_label: Label3D
+var premium_board: WivoriPremiumSign
 var security_root: Node3D
 var lock_root: Node3D
 var alarm_root: Node3D
@@ -173,8 +174,10 @@ func build_market() -> void:
 	shape(self,"box",Vector3(4,.10,2.5),Vector3(3.7,.12,2.7),Color("#aa8967"),"Terraza de entregas")
 	var rug:=shape(self,"box",Vector3(4,.18,2.5),Vector3(3.30,.08,2.34),Color("#d6ba84"),"Alfombra de entregas")
 	var paint:=ShaderMaterial.new();paint.shader=preload("res://scripts/ground.gdshader");paint.set_shader_parameter("cobbled",true);paint.set_shader_parameter("base_color",Color("#e0c89a"));rug.material_override=paint
-	var sign:=make_label(self,"ENTREGAR",Vector3(1.25,1.7,3.5),48)
-	sign.pixel_size=.011
+	# Keep the manual delivery point readable without covering the hero on
+	# the central approach. The rug remains the actual interaction target.
+	var sign:=make_label(self,"ENTREGAR",Vector3(4,2.7,2.5),46)
+	sign.pixel_size=.008
 
 func build_farms() -> void:
 	farm_root = Node3D.new(); farm_root.name = "Huertos"; add_child(farm_root)
@@ -363,14 +366,30 @@ func build_upgrade_pads() -> void:
 		var stall:=Node3D.new();stall.position=locations[kind];stall.name="Oficio: "+kind;add_child(stall)
 		Art.place(stall,"booth_"+kind,Vector3(0,0,-1.15))
 		navigation.add_obstacle(Rect2(stall.position.x-1.08,stall.position.z-2.02,2.16,1.48))
-		var badge:=Sprite3D.new();badge.texture=_sign_texture(colors[kind]);badge.pixel_size=.007
+		var badge:=Sprite3D.new();badge.texture=_sign_texture(colors[kind]);badge.pixel_size=.009
 		badge.billboard=BaseMaterial3D.BILLBOARD_ENABLED;badge.position=Vector3(0,3.55,-1.15);badge.no_depth_test=true;stall.add_child(badge)
-		var label:=make_label(stall,names[kind],Vector3(0,3.76,-.96),44)
-		label.pixel_size=.0063;label.modulate=Color("#314c4c");label.outline_size=0;label.no_depth_test=true;label.render_priority=6
-		var price:=make_label(stall,"",Vector3(0,3.37,-.92),39)
-		price.pixel_size=.007;price.modulate=Color("#765c3a");price.outline_size=0;price.no_depth_test=true;price.render_priority=7
+		var label:=make_label(stall,names[kind],Vector3(.31,3.77,-.85),50)
+		label.pixel_size=.0066;label.modulate=Color("#24454c");label.outline_size=3;label.outline_modulate=Color("#fff3d8");label.no_depth_test=true;label.render_priority=6
+		# Each raised sign has a species-neutral pictogram; it remains readable
+		# from a distance without relying on the tiny floor price.
+		var emblem:=Sprite3D.new()
+		emblem.name="Icono de mejora "+kind
+		var icon_path:String="res://assets/ui/icons/"+kind+".svg"
+		if not ResourceLoader.exists(icon_path):
+			push_warning("Wivori Trails: falta icono de mejora "+icon_path)
+			icon_path="res://assets/ui/icons/shop.svg"
+		emblem.texture=load(icon_path)
+		emblem.pixel_size=.012
+		emblem.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+		emblem.position=Vector3(-1.08,3.59,-.80)
+		emblem.no_depth_test=true
+		emblem.shaded=false
+		emblem.render_priority=8
+		stall.add_child(emblem)
+		var price:=make_label(stall,"",Vector3(.29,3.25,-.84),43)
+		price.pixel_size=.0071;price.modulate=Color("#7a5035");price.outline_size=3;price.outline_modulate=Color("#fff0d2");price.no_depth_test=true;price.render_priority=7
 		var face:=shape(stall,"box",Vector3(0,.09,.10),Vector3(1.65,.10,.65),Color("#dbceaa"),"Escalón de compra")
-		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"short":names[kind],"afford":false}
+		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"emblem":emblem,"short":names[kind],"afford":false}
 
 func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) -> void:
 	for kind in upgrade_pads:
@@ -385,16 +404,31 @@ func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) 
 		pad["price"].modulate=Color("#a57637") if afford else Color("#697c75")
 
 func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: String) -> void:
-	var nearest:=""
-	var best:=5.0
+	# The closest signs used to disappear when Scottie approached within 2.1 m.
+	# Keep two nearby raised plaques legible, plus the marked next investment.
+	# More than three at once would cover much of the village in portrait mode.
+	var distances: Array[Dictionary]=[]
 	for kind in upgrade_pads:
 		var distance: float=player_pos.distance_to(upgrade_pads[kind]["node"].position)
-		if distance<best:best=distance;nearest=kind
+		distances.append({"kind":kind,"distance":distance})
+	distances.sort_custom(func(a: Dictionary,b: Dictionary) -> bool:
+		return float(a["distance"])<float(b["distance"]))
+	var readable: Array[String]=[]
+	if not building:
+		for entry in distances:
+			if float(entry["distance"])<=11.0 and readable.size()<2:
+				readable.append(str(entry["kind"]))
+		if upgrade_pads.has(recommended):
+			var recommended_distance: float=player_pos.distance_to(upgrade_pads[recommended]["node"].position)
+			if recommended_distance<=15.0 and not readable.has(recommended):
+				readable.append(recommended)
 	for kind in upgrade_pads:
 		var pad: Dictionary=upgrade_pads[kind]
-		var distance: float=player_pos.distance_to(pad["node"].position)
-		var show_label: bool=not building and distance>2.1 and (kind==nearest or kind==recommended and distance<10)
-		pad["label"].visible=show_label;pad["price"].visible=show_label;pad["board"].visible=show_label
+		var show_label: bool=readable.has(kind)
+		pad["label"].visible=show_label
+		pad["price"].visible=show_label
+		pad["board"].visible=show_label
+		pad["emblem"].visible=show_label
 
 func celebrate_upgrade(kind: String) -> void:
 	if not upgrade_pads.has(kind):return
@@ -499,8 +533,10 @@ func build_security() -> void:
 	navigation.add_obstacle(Rect2(-2.15,-15.6,4.3,2.8))
 	premium_root=Node3D.new(); premium_root.position=Vector3(0,0,-14.2); add_child(premium_root)
 	Art.place(premium_root,"premium",Vector3.ZERO,Vector3(.78,.82,.75))
-	premium_label=make_label(premium_root,"PEDIDO PREMIUM ×2",Vector3(0,4.2,.6),43)
-	premium_label.pixel_size=.010
+	premium_board=preload("res://scripts/premium_sign.gd").new()
+	premium_board.position=Vector3(0,4.2,.6)
+	premium_root.add_child(premium_board)
+	premium_label=premium_board.heading
 	premium_root.visible=false
 	security_root=Node3D.new(); add_child(security_root)
 	lock_root=Node3D.new(); security_root.add_child(lock_root)
@@ -518,7 +554,8 @@ func build_security() -> void:
 
 func update_security(run) -> void:
 	premium_root.visible=true
-	premium_label.text=("PEDIDO PREMIUM ×2\n%d/%d %s" % [run.contract_done,run.contract_goal(),run.g.CROP_NAMES[run.contract_kind()].to_upper()]) if run.level>=4 else "PEDIDOS PREMIUM\nNIVEL 4"
+	premium_board.update_order(run)
+	premium_board.visible=run.g.player.position.distance_to(premium_root.position)<18.0
 	lock_root.visible=run.lock_level>0
 	alarm_root.visible=run.alarm_level>0
 	security_active=not run.raiders.is_empty() or run.warning>0

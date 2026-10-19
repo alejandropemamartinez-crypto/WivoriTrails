@@ -28,6 +28,7 @@ var labels: Array[Label3D]=[]
 var collector_bank: Node3D
 var treasury_label: Label3D
 var _last_displayed: Array[int]=[-1,-1]
+var fx_regions: Dictionary={}  # Visual-only coin flight parents; never money owners.
 
 func _ready() -> void:
 	name="Recaudación física"
@@ -40,8 +41,8 @@ func _make_register(index: int) -> void:
 	Art.place(node,"register")
 	# The second box is a real collision obstacle only after it is unlocked.
 	if index==0:_register_obstacle(index)
-	var txt: Label3D=g.world.make_label(node,"",Vector3(0,2.3,0),38)
-	txt.pixel_size=.010;labels.append(txt)
+	var txt: Label3D=g.world.make_label(node,"",Vector3(0,3.18,0),47)
+	txt.pixel_size=.009;labels.append(txt)
 	var pieces: Array=[]
 	for j in range(18):
 		var piece:=Art.place(node,"coin",Vector3(.12+float(j%3)*.23,1.10+float(j/9)*.13+float(j%3)*.04,float((j/3)%3-1)*.24),Vector3.ONE*.65)
@@ -56,8 +57,8 @@ func _register_obstacle(index: int) -> void:
 func _make_treasury() -> void:
 	collector_bank=Art.place(self,"treasury",BANK)
 	g.world.navigation.add_obstacle(Rect2(BANK.x-.82,BANK.z-.61,1.64,1.22))
-	treasury_label=g.world.make_label(collector_bank,"TESORERÍA",Vector3(0,2.1,0),36)
-	treasury_label.pixel_size=.010
+	treasury_label=g.world.make_label(collector_bank,"TESORERÍA",Vector3(0,3.36,.20),50)
+	treasury_label.pixel_size=.009
 
 func total_pending() -> int:return pending[0]+pending[1]
 func in_transit() -> int:return player_held+collector_held
@@ -98,12 +99,15 @@ func _refresh_register(index: int) -> void:
 		var piece: Node3D=coin_piles[index][j]
 		piece.visible=j<count;piece.scale=Vector3(.65,.65*growth,.65)
 
-func add_sale(amount: int) -> void:
+func add_sale(amount: int, origin: Vector3=Vector3.ZERO) -> void:
 	if amount<=0:return
 	var index:=sales_sequence%active_registers;sales_sequence+=1
 	pending[index]=mini(MAX_PENDING,pending[index]+amount)
 	_refresh_register(index)
-	_fly_money(REGISTERS[index]+Vector3(0,1,-1.25),REGISTERS[index]+Vector3(.35,1.22,0),mini(6,1+int(amount/12)),false)
+	# The coins now travel from the paying customer or delivery point to
+	# the register, instead of materializing immediately beside the register.
+	var source: Vector3=origin if origin!=Vector3.ZERO else REGISTERS[index]+Vector3(0,1,-1.25)
+	_fly_money(source,REGISTERS[index]+Vector3(.35,1.22,0),mini(6,1+int(amount/12)),false)
 
 func _coin_at(t: float, coin: Node3D, start: Vector3, finish: Vector3, follow_hero: bool) -> void:
 	if not is_instance_valid(coin):return
@@ -112,13 +116,40 @@ func _coin_at(t: float, coin: Node3D, start: Vector3, finish: Vector3, follow_he
 	coin.rotation=Vector3(t*TAU,t*PI,0)
 	coin.scale=Vector3.ONE*lerpf(.7,.15,t)
 
+func _fx_host() -> Node3D:
+	# Coin flights must never appear at the same map coordinates on a
+	# different island after a ferry journey. Each region gets an independent
+	# visual parent, while the actual money remains in pending/held balances.
+	if g.route==null or not is_instance_valid(g.route):return self
+	var region_code:int=g.route.region
+	# Save is loaded before the ferry world is reconstructed; the restored
+	# pickup is scoped to the saved destination rather than the empty home.
+	if region_code==0 and g.route.restore_region>0:
+		region_code=g.route.restore_region
+	if not fx_regions.has(region_code):
+		var host:=Node3D.new()
+		host.name="Monedas visuales · región %d" % region_code
+		g.route.add_child(host)
+		fx_regions[region_code]=host
+	display_fx_for_region(region_code if g.route.region==0 and g.route.restore_region>0 else g.route.region)
+	return fx_regions[region_code]
+
+func display_fx_for_region(region_code: int) -> void:
+	for area in fx_regions:
+		var host:Node3D=fx_regions[area]
+		if is_instance_valid(host):host.visible=int(area)==region_code
+
 func _fly_money(from: Vector3, target: Vector3, count: int, to_hero: bool) -> float:
-	var duration:=.0
+	# Visual parents belong to their source island, so departing mid-flight
+	# never makes the previous island's coins appear over the new town.
+	# Tweens finish while hidden; ledgers and timings are unaffected.
+	var fx_host:Node3D=_fx_host()
+	var duration:=0.0
 	for j in range(mini(12,count)):
 		var start:=from+Vector3(float(j%3-1)*.13,.06*float(j),0)
-		var piece:=Art.place(self,"coin",start,Vector3.ONE*.7)
+		var piece:=Art.place(fx_host,"coin",start,Vector3.ONE*.7)
 		var delay:=float(j)*.035
-		var tween:=create_tween()
+		var tween:=fx_host.create_tween()
 		tween.tween_interval(delay)
 		tween.tween_method(Callable(self,"_coin_at").bind(piece,start,target,to_hero),0.0,1.0,.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_callback(piece.queue_free)
@@ -148,7 +179,9 @@ func _complete_player_flight(delta: float) -> void:
 	g._cash_sound();g._refresh_ui();g._save_progress()
 
 func _process_collect_player() -> void:
-	if g.town.in_build_mode or g.shop_panel.visible:return
+	# The hired collector continues its own route, but pressing a purchase,
+	# map or contracts panel must not trigger proximity pickup by the hero.
+	if not g._movement_input_allowed():return
 	for i in range(active_registers):
 		if pending[i]>0 and g.player.position.distance_to(REGISTERS[i])<=COLLECTION_RADIUS:take_register(i,true)
 

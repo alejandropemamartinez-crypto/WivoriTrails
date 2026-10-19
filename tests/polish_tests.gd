@@ -45,4 +45,4 @@ func run() -> void:
 	check(r.home_ferry.position.distance_to(home_boat)<.01,"The home ferry returns to its berth")
 	game.queue_free();await process_frame;await process_frame
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
-	print("RESULT: %d polish regression checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
+	print("RESULT: %d polish regression checks, %d failures" % [checks,failures]);await create_timer(.08).timeout;quit(1 if failures else 0)

@@ -16,7 +16,11 @@ func _ready() -> void:
 	shaded=false;no_depth_test=true;render_priority=4
 	plate=Sprite3D.new();plate.texture=PLAQUE;plate.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	plate.shaded=false;plate.no_depth_test=true;plate.render_priority=1;plate.position=Vector3(0,0,-.035);add_child(plate)
-	pictogram=Sprite3D.new();pictogram.texture=load("res://assets/ui/signs/"+symbol+".svg");pictogram.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	var symbol_path:String="res://assets/ui/signs/"+symbol+".svg"
+	if not ResourceLoader.exists(symbol_path):
+		push_error("Wivori Trails: falta pictograma 3D de señal "+symbol_path)
+		symbol_path="res://assets/ui/signs/deliver.svg"
+	pictogram=Sprite3D.new();pictogram.texture=load(symbol_path);pictogram.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	pictogram.shaded=false;pictogram.no_depth_test=true;pictogram.render_priority=3;pictogram.position.z=.02;add_child(pictogram)
 	_update_plate()
 func _process(delta: float) -> void:
@@ -28,9 +32,13 @@ func _update_plate() -> void:
 	old_text=text;old_pixel=pixel_size;old_font=font_size
 	if plate==null:return
 	plate.visible=not text.is_empty();pictogram.visible=plate.visible
-	var width:=maxf(2.8,font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x*pixel_size+1.3)
+	var line_width:=0.0
+	var lines: PackedStringArray=text.split("\n")
+	for line in lines:line_width=maxf(line_width,font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x*pixel_size)
+	var width:=maxf(2.8,line_width+1.3)
 	plate.pixel_size=width/512.0
-	plate.scale.y=maxf(1.0,.95/(160*plate.pixel_size))
+	var required_height: float=maxf(.95,float(lines.size())*float(font_size)*pixel_size*1.25+.30)
+	plate.scale.y=maxf(1.0,required_height/(160*plate.pixel_size))
 	pictogram.pixel_size=.0072
 	pictogram.position.x=-width*.5+.50
 	# The text remains centred in the area to the right of the pictogram.

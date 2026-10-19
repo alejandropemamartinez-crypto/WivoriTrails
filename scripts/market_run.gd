@@ -127,7 +127,8 @@ func deliver_contract() -> int:
 	if amount<=0:return 0
 	g.stash[kind]-=amount; contract_done+=amount; g.manual_delivered+=amount
 	var income: int=amount*int(g.SELL_VALUE[kind])*2
-	g._record_sale(amount,income)
+	g._fly_produce(kind,g.player.position+Vector3(0,1.15,0),CART+Vector3(0,1.4,0),amount)
+	g._record_sale(amount,income,CART+Vector3(0,1.4,0))
 	g.player.set_carry(g._total_bag()); g.player.act("deliver")
 	g.world.sale_receipt(CART,income); g._cash_sound()
 	g._notice("PEDIDO PREMIUM: +%d\nVos entregaste %d %s." % [income,amount,g.CROP_NAMES[kind]],2.2)
@@ -294,43 +295,43 @@ func load_state(data: Dictionary) -> void:
 
 func lesson() -> String:
 	var lessons: Array[String]=[
-		"Movete con el joystick.
+		"""Movete con el joystick.
 
 1. Cosechá 6 productos.
 2. Lleválos a ENTREGAR.
-3. Recogé tus monedas en CAJA y contratá un ayudante.",
-		"Tu equipo cosecha mientras vos atendés las entregas.
+3. Recogé tus monedas en CAJA y contratá un ayudante.""",
+		"""Tu equipo cosecha mientras vos atendés las entregas.
 
-Contratá un segundo ayudante y completá las ventas. Las flechas te muestran dónde invertir.",
-		"¡Llegan mapaches!
+Contratá un segundo ayudante y completá las ventas. Las flechas te muestran dónde invertir.""",
+		"""¡Llegan mapaches!
 
-Comprá un cerrojo. Acercate al ladrón y tocá AHUYENTAR. El guardia ayuda, pero vos también defendés el mercado.",
-		"Abrí el huerto de manzanas.
+Comprá un cerrojo. Acercate al ladrón y tocá AHUYENTAR. El guardia ayuda, pero vos también defendés el mercado.""",
+		"""Abrí el huerto de manzanas.
 
-El carro premium paga más por un pedido concreto. Llevá los ingredientes con el joystick.",
-		"Construí el muelle.
+El carro premium paga más por un pedido concreto. Llevá los ingredientes con el joystick.""",
+		"""Construí el muelle.
 
-Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.",
-		"Protegé tus ventas con alarma y guardia.
+Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.""",
+		"""Protegé tus ventas con alarma y guardia.
 
-También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.",
-		"Construí una panadería y prepará tu primera compota.
+También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.""",
+		"""Construí una panadería y prepará tu primera compota.
 
-Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.",
-		"El café prepara meriendas.
+Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.""",
+		"""El café prepara meriendas.
 
-Podés elegir un extra por rapidez; el pago base se conserva aunque se termine el tiempo.",
-		"Construí una torre vigía e iniciá una ronda.
+Podés elegir un extra por rapidez; el pago base se conserva aunque se termine el tiempo.""",
+		"""Construí una torre vigía e iniciá una ronda.
 
-Defendé el stock antes de que escapen los mapaches.",
-		"Probá dos recetas y mejorá tus talleres.
+Defendé el stock antes de que escapen los mapaches.""",
+		"""Probá dos recetas y mejorá tus talleres.
 
-Decidí qué ingredientes vendés y cuáles transformás.",
-		"Construí el molino y combiná encargos con exportaciones.
+Decidí qué ingredientes vendés y cuáles transformás.""",
+		"""Construí el molino y combiná encargos con exportaciones.
 
-La ruta al Faro abre granjas y más cadenas de producción.",
-		"Prepará tres puestos para la feria y defendé una ronda.
+La ruta al Faro abre granjas y más cadenas de producción.""",
+		"""Prepará tres puestos para la feria y defendé una ronda.
 
-Después seguí construyendo los pueblos de la ruta marítima."
+Después seguí construyendo los pueblos de la ruta marítima."""
 	]
 	return lessons[mini(level-1,11)]

@@ -66,6 +66,7 @@ func run_tests() -> void:
 	check(game.work.patrol_wins==1 and game.run.manual_blocked>=2 and game.run.complete(),"The round requires actual interceptions and waits until the raiders retreat")
 	game.run.advance();build("depot",2);wallet=game.coins
 	check(game.work.upgrade_production() and game.coins==wallet-360,"Production efficiency is an explicit priced decision")
+	check(game.work.improve_button.text=="TALLERES · -20 % TIEMPO · 660","Workshop discount keeps its literal percent sign and the next upgrade price")
 	game.work.accept("jam");game.counter["berry"]=3;game.counter["apple"]=2;game.player.position=game.work.station("jam");game.work.start_batch("jam")
 	check(is_equal_approx(game.work.jobs["jam"]["remaining"],9.6),"Production upgrade gives the advertised 20 percent improvement")
 	game.work.tick(10);var old_station: Vector3=game.work.station("jam")
@@ -93,4 +94,4 @@ func run_tests() -> void:
 	await stop();clean();Store.write_data(save_path,{"version":6,"coins":321,"worker_count":2,"player_speed":8.0,"run":{"level":7}});await start()
 	check(game.coins==321 and game.worker_count==2 and is_equal_approx(game.player_speed,8) and game.run.level==7,"The previous version preserves currency, workers, speed and chapter")
 	check(game.work.orders_done==0 and game.work.active.is_empty(),"Migration unlocks activities without inventing completed orders")
-	await stop();clean();print("RESULT: %d work order checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
+	await stop();clean();print("RESULT: %d work order checks, %d failures" % [checks,failures]);await create_timer(.08).timeout;quit(1 if failures else 0)
