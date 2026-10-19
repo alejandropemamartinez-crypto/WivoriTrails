@@ -142,7 +142,7 @@ func display_fx_for_region(region_code: int) -> void:
 func _fly_money(from: Vector3, target: Vector3, count: int, to_hero: bool) -> float:
 	# Visual parents belong to their source island, so departing mid-flight
 	# never makes the previous island's coins appear over the new town.
-	# Tweets finish while hidden; ledgers and timings are unaffected.
+	# Tweens finish while hidden; ledgers and timings are unaffected.
 	var fx_host:Node3D=_fx_host()
 	var duration:=0.0
 	for j in range(mini(12,count)):
