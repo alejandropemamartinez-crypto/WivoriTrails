@@ -260,6 +260,17 @@ Rama `feat/v018-stage5h-money-navigation-audit-no-build`, derivada de la etapa 5
 - Se extendió `tests/cross_island_cash_tests.gd` (no ejecutado) con escenarios de dinero retenido al cargar una partida desde Forja, cambio de visibilidad de los efectos al navegar a Villa Miga, colisiones de las bancas, retorno a Wivori y ventas realizadas después del regreso.
 - **Estado:** revisión del código fuente y tests preparados exclusivamente. Godot 4.4.1 aún no ha parseado/importado estos cambios; no se ejecutaron suites, no se tomaron capturas y no se generó APK. Sigue pendiente comprobar que las animaciones de efectivo y la navegación coincidan visualmente con sus modelos en Android.
 
+### Etapa 5I — operarios, fabricación remota y frecuencia de guardados (sin ejecutar Godot)
+
+Rama `feat/v018-stage5i-worker-processing-no-build`, continuación directa de la etapa 5H y sin fusionar a `main`.
+
+- **Mochila visual actualizada solamente cuando hay cambios reales:** `scripts/archipelago.gd` regeneraba la representación de los productos transportados en cada `tick(delta)` (hasta 60 veces/segundo), incluso al caminar sin fabricar o recoger nada. Ahora se actualiza al construir (consumir materiales), fabricar (consumir ingredientes), recoger resultados, cosechar trigo, depositar mercancía, vender productos o entregar contratos; también se reconstruye al cargar la partida. Si la cantidad no cambió, la firma del cargamento reutiliza las escenas GLB ya presentes.
+- **Inicio automático sin un guardado completo por cada trabajador:** `start_batch(key,true)` podía escribir y respaldar el archivo v8 cada vez que alguno de los once tipos de talleres iniciaba trabajo, multiplicando las escrituras en Android. Los lotes automáticos ahora piden un autosave agrupado (plazo máximo de dos segundos mediante el temporizador ya existente `g.save_timer`), mientras que los lotes iniciados manualmente conservan su guardado inmediato.
+- **Fin de lote y trabajadores pausados:** al terminar un proceso, se agenda también un guardado próximo, incluso cuando el trabajador está pausado o ya no hay ingredientes para comenzar otro lote. Pausar impide empezar nuevos lotes, pero permite acabar el trabajo que ya consumió sus insumos; así no se pierden materiales.
+- **Ningún cambio de economía:** permanecen los tiempos de producción, la cantidad por receta, el coste de contratar, los almacenes, los límites de producto listo y el viaje físico para recoger los resultados. El operario remoto usa únicamente recursos del almacén del barco; no puede sustraer el trigo transportado en la mochila del jugador.
+- Se preparó `tests/worker_cross_region_tests.gd`, **sin ejecutar**: contrato de pruebas para producción fuera de la isla actual, inputs descontados una sola vez, pausas y reanudaciones, fin de lotes, recuperación v8 en Puerto Nata, movimiento al molino para recoger harina y actualización inmediata de la mochila al iniciar un lote manual.
+- **Pendiente:** probar el estado de los operarios al cambiar de isla, visualizar los indicadores de fábrica, medir cuánto ahorran realmente los guardados agrupados, vigilar los 8 segundos normales de autosave y examinar el rendimiento/consumo de batería en Android. Sin parser Godot, importación, ejecución, screenshots, APK ni modificación de `main`.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
