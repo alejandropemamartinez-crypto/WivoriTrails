@@ -39,6 +39,7 @@ func run_tests() -> void:
 		site.add_child(facade)
 		require(facade.name.contains(kind),"Factory %s has an authored recognizable identity" % kind)
 		require(facade.window_batches.size()==1 and facade.window_batches[0].multimesh.instance_count==6,"Factory %s uses one batched set of six glazed windows" % kind)
+		require(facade.window_batches[0].multimesh.get_instance_transform(0).origin.z>0.0,"Factory %s windows face the positive-Z player approach, not the back wall" % kind)
 		require(facade.moving_parts.size()>0 and facade.is_processing(),"Factory %s has local procedural animation" % kind)
 		var moving:Node3D=facade.moving_parts[0]["node"]
 		var first:Transform3D=moving.transform
