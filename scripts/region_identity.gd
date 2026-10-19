@@ -7,12 +7,14 @@ const Art=preload("res://scripts/art_library.gd")
 const REGION_THEMES={
 	1:{"name":"Villa Miga · campos dorados","primary":"#bb965a","leaf":"#9caa70"},
 	2:{"name":"Puerto Nata · pastos y quesería","primary":"#729985","leaf":"#79a88c"},
-	3:{"name":"Bahía Farol · muelles marineros","primary":"#507f94","leaf":"#88b5aa"}
+	3:{"name":"Bahía Farol · muelles marineros","primary":"#507f94","leaf":"#88b5aa"},
+	4:{"name":"Distrito Forja · ingeniería e industria","primary":"#71858b","leaf":"#a0b0a0"}
 }
 var world: MarketWorld
 var region_index:=0
 var pennants: Array[Dictionary]=[]
 var elapsed:=0.0
+var machine_rotors: Array[Node3D]=[]
 var storage_props: Array[Node3D]=[]
 var last_stock_count:=-1
 var landmark_count:=0
@@ -29,7 +31,8 @@ func _ready() -> void:
 		1:_fields_and_harvest()
 		2:_pasture_and_dairy()
 		3:_maritime_quarter()
-	set_process(not pennants.is_empty())
+		4:_industrial_quarter()
+	set_process(not pennants.is_empty() or not machine_rotors.is_empty())
 
 func _solid(kind: String, at: Vector3, size_: Vector3, color_: Color, title: String="") -> MeshInstance3D:
 	return world.shape(self,kind,at,size_,color_,title)
@@ -131,6 +134,43 @@ func _maritime_quarter() -> void:
 		_solid("sphere",at+Vector3(0,2.85,0),Vector3(.48,.48,.48),Color("#ffe6a0"),"Luz del muelle")
 		_solid("cone",at+Vector3(0,3.18,0),Vector3(.9,.38,.9),Color("#427b85"))
 
+func _industrial_quarter() -> void:
+	# Architectural language is different from the farm: steel, copper,
+	# warehouses, dry cargo lanes and clean-energy rotary ventilators.
+	# It stays near the coast; all commercial construction plots are clear.
+	var steel:=Color("#66808a")
+	var concrete:=Color("#9aa5a0")
+	var copper:=Color("#c68c61")
+	for at in [Vector3(-24,0,-22),Vector3(24,0,-22)]:
+		_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial")
+		_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial")
+		_solid("cylinder",at+Vector3(0,3.6,0),Vector3(1.62,.18,1.62),copper,"Coronación metálica")
+		_solid("box",at+Vector3(0,2.4,1.06),Vector3(.45,.20,1.35),Color("#e6d6b6"),"Canalización del silo")
+	for at in [Vector3(-25,0,-6),Vector3(25,0,11)]:
+		_solid("cylinder",at+Vector3(0,2.3,0),Vector3(.27,4.6,.27),steel,"Torre eólica")
+		var rotor:=Node3D.new()
+		rotor.name="Aspas de energía limpia"
+		rotor.position=at+Vector3(0,4.6,.12)
+		add_child(rotor)
+		for i in range(3):
+			var a:float=float(i)*TAU/3.0
+			var vane:=world.shape(rotor,"box",Vector3(sin(a)*.72,cos(a)*.72,0),Vector3(.22,1.34,.09),Color("#e7dfc8"),"Aspa")
+			vane.rotation.z=-a
+		machine_rotors.append(rotor)
+	for i in range(3):
+		var at:=Vector3(-16.5+float(i)*2.0,0,16.5)
+		_solid("box",at+Vector3(0,.12,0),Vector3(1.8,.23,2.35),Color("#c6b28e"),"Plataforma logística")
+		for j in range(2):
+			var crate:=_asset("goods_crate",at+Vector3(0,.40+float(j)*.7,0),.75)
+			crate.name="Stock de fábrica %d" % (i*2+j+1)
+			crate.visible=false
+			storage_props.append(crate)
+	for at in [Vector3(-22,0,15),Vector3(22,0,15)]:
+		_solid("box",at+Vector3(0,.55,0),Vector3(1.0,1.1,1.0),copper,"Señal industrial")
+		_solid("sphere",at+Vector3(0,1.33,0),Vector3(.28,.28,.28),Color("#ffe6a4"),"Lámpara de carga")
+	_banner(Vector3(-22,2.0,13),Color("#d4a36a"),.0)
+	_banner(Vector3(22,2.0,13),Color("#76b4b3"),1.3)
+
 func _banner(at: Vector3, color_: Color, phase: float) -> void:
 	var pennant:=Node3D.new()
 	pennant.position=at
@@ -151,6 +191,8 @@ func set_warehouse_stock(amount: int) -> void:
 
 func _process(delta: float) -> void:
 	elapsed+=delta
+	for rotor in machine_rotors:
+		if is_instance_valid(rotor):rotor.rotation.z+=delta*.85
 	for entry in pennants:
 		var node: Node3D=entry["node"]
 		if is_instance_valid(node):node.rotation.z=.07*sin(elapsed*1.5+entry["phase"])
