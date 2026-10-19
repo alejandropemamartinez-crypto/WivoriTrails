@@ -736,7 +736,6 @@ func load_state(data: Dictionary) -> void:
 	for i in range(stage):built.append(PROJECTS[i]["id"])
 	industry_stage=int(Store.number(data,"industry_stage",0,0,INDUSTRY_PROJECTS.size())) if stage==PROJECTS.size() else 0
 	industry_orders_done=int(Store.number(data,"industry_orders_done",0,0,1000000)) if industry_stage==INDUSTRY_PROJECTS.size() else 0
-	pinned=stage==PROJECTS.size()
 	for i in range(industry_stage):built.append(INDUSTRY_PROJECTS[i]["id"])
 	for key in GOODS:
 		inventory[key]=int(Store.number(data.get("inventory",{}) if data.get("inventory") is Dictionary else {},key,0,0,100000))
