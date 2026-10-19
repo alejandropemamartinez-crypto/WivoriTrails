@@ -971,8 +971,10 @@ func _load_progress() -> void:
 	work.load_state(data["work"] if data.get("work") is Dictionary else {})
 	run.load_state(data["run"] if data.get("run") is Dictionary else {})
 	town.load_state(data["town"] if data.get("town") is Dictionary else {})
-	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})
+	# Restore the selected island before reconstructing any saved money
+	# flight. Otherwise a Forja pickup is briefly created as Wivori effects.
 	route.load_state(data["route"] if data.get("route") is Dictionary else {})
+	cash.load_state(data["cash"] if data.get("cash") is Dictionary else {})
 	milestone_history=data["milestones"] if data.get("milestones") is Array else []
 	player.position=world.navigation.nearest_free(player.position)
 	world.update_pier_shipment(shipment["kind"],shipment["amount"],shipment["remaining"],SHIPMENT_DURATION)
