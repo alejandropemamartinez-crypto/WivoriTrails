@@ -363,14 +363,26 @@ func build_upgrade_pads() -> void:
 		var stall:=Node3D.new();stall.position=locations[kind];stall.name="Oficio: "+kind;add_child(stall)
 		Art.place(stall,"booth_"+kind,Vector3(0,0,-1.15))
 		navigation.add_obstacle(Rect2(stall.position.x-1.08,stall.position.z-2.02,2.16,1.48))
-		var badge:=Sprite3D.new();badge.texture=_sign_texture(colors[kind]);badge.pixel_size=.007
+		var badge:=Sprite3D.new();badge.texture=_sign_texture(colors[kind]);badge.pixel_size=.009
 		badge.billboard=BaseMaterial3D.BILLBOARD_ENABLED;badge.position=Vector3(0,3.55,-1.15);badge.no_depth_test=true;stall.add_child(badge)
-		var label:=make_label(stall,names[kind],Vector3(0,3.76,-.96),44)
-		label.pixel_size=.0063;label.modulate=Color("#314c4c");label.outline_size=0;label.no_depth_test=true;label.render_priority=6
-		var price:=make_label(stall,"",Vector3(0,3.37,-.92),39)
-		price.pixel_size=.007;price.modulate=Color("#765c3a");price.outline_size=0;price.no_depth_test=true;price.render_priority=7
+		var label:=make_label(stall,names[kind],Vector3(.31,3.77,-.85),50)
+		label.pixel_size=.0066;label.modulate=Color("#24454c");label.outline_size=3;label.outline_modulate=Color("#fff3d8");label.no_depth_test=true;label.render_priority=6
+		# Each raised sign has a species-neutral pictogram; it remains readable
+		# from a distance without relying on the tiny floor price.
+		var emblem:=Sprite3D.new()
+		emblem.name="Icono de mejora "+kind
+		emblem.texture=load("res://assets/ui/icons/"+kind+".svg")
+		emblem.pixel_size=.012
+		emblem.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+		emblem.position=Vector3(-1.08,3.59,-.80)
+		emblem.no_depth_test=true
+		emblem.shaded=false
+		emblem.render_priority=8
+		stall.add_child(emblem)
+		var price:=make_label(stall,"",Vector3(.29,3.25,-.84),43)
+		price.pixel_size=.0071;price.modulate=Color("#7a5035");price.outline_size=3;price.outline_modulate=Color("#fff0d2");price.no_depth_test=true;price.render_priority=7
 		var face:=shape(stall,"box",Vector3(0,.09,.10),Vector3(1.65,.10,.65),Color("#dbceaa"),"Escalón de compra")
-		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"short":names[kind],"afford":false}
+		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"emblem":emblem,"short":names[kind],"afford":false}
 
 func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) -> void:
 	for kind in upgrade_pads:
@@ -409,6 +421,7 @@ func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: Stri
 		pad["label"].visible=show_label
 		pad["price"].visible=show_label
 		pad["board"].visible=show_label
+		pad["emblem"].visible=show_label
 
 func celebrate_upgrade(kind: String) -> void:
 	if not upgrade_pads.has(kind):return
