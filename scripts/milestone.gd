@@ -59,18 +59,22 @@ func tick(delta: float) -> void:
 	if g.route.away() and not g.route.project().is_empty():
 		var p: Dictionary=g.route.project()
 		announce("route:stage:%d" % g.route.stage,p["name"],p["why"]+"\n\n%d monedas\n%s" % [p["cost"],g.route.need_text(p["needs"])],"harvest","","PROYECTO %d / 15" % (g.route.stage+1))
+	# Only the FIRST raid needs a full-screen tutorial. Every later attack is
+	# reported by the animated rabbit messenger, without blocking gameplay.
 	if not g.route.away() and g.run.level>=3 and (g.run.warning>0 or not g.run.threat().is_empty()):
-		var wave: int=g.run.wave_index+(1 if g.run.warning>0 else 0)
-		announce("raid:%d" % wave,"¡Mapaches en camino!","Protegé tus productos.\n\nBuscá al mapache, acercate con el joystick y tocá AHUYENTAR. Los cerrojos y el guardia te dan tiempo para reaccionar.","defense","","¡CUIDADO CON EL MERCADO!")
+		announce("tutorial:primer_robo","¡Hay mapaches en camino!","Protegé tu mercancía: acercate al mapache y tocá AHUYENTAR. Después, la coneja mensajera te avisará de nuevos ataques sin detener el juego.","defense","","APRENDÉ A DEFENDER TU MERCADO")
 	elif not g.run.complete():
 		var objective: Dictionary=g._current_objective()
 		var action: String=objective.get("action","")
 		var task_title: String=objective.get("title","")
 		var id:=""
-		if g.route.away() and action.begins_with("route:") and action!="route:project" and action!="route:board":id="task:route:%d:%s" % [g.route.stage,action]
-		elif not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:id="task:home:%d:%s" % [g.run.level,task_title]
+		# Explain a task once per DISTINCT action, not again each new chapter.
+		if g.route.away() and action.begins_with("route:") and action!="route:project" and action!="route:board":id="tutorial:route:%s" % action
+		elif not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:id="tutorial:mercado:%s" % task_title
 		if not id.is_empty():announce(id,task_title,objective.get("detail","")+"\n\nTocá SEÑALAR y seguí las flechas con el joystick.","deliver","","TU SIGUIENTE TAREA")
-	if not g.route.away() and g._waiting_count()>=6:announce("queue:%d" % g.run.level,"¡La fila está llena!","Hay seis clientes esperando.\n\nReponé productos y mejorá la caja para atender más rápido. Las flechas te indican la tarea urgente.","crew","guide","¡EL MERCADO TE NECESITA!")
+	# A long customer queue is operational information, not a screen-blocking
+	# milestone. Existing objective/alert indicators remain available in HUD.
+	# Do not enqueue repeated modal popups during normal play.
 	if pending.is_empty():return
 	current=pending.pop_front()
 	title.text=current["title"];detail.text=current["detail"];kicker.text=current["tag"]
