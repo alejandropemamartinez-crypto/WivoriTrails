@@ -545,6 +545,10 @@ func tick(delta: float) -> void:
 		jobs[key]["remaining"]=maxf(0,jobs[key]["remaining"]-delta)
 		if jobs[key]["remaining"]<=0:
 			jobs[key]["ready"]+=RECIPES[key]["count"];total_produced[key]=int(total_produced.get(key,0))+RECIPES[key]["count"]
+			# Completion also changes persistent output, even when a worker is
+			# paused or lacks supplies for its next batch. Save promptly
+			# without writing a separate backup for every finished workshop.
+			g.save_timer=minf(g.save_timer,2.0)
 			# Automatic employees produce repeatedly; constant popups every few
 			# seconds make the game intrusive. A manual batch uses a small
 			# local floating reward while the workshop label stores readiness.
