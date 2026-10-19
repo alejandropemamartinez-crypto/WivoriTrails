@@ -191,6 +191,7 @@ func build_project() -> bool:
 	if new_forja:
 		detail="La Ruta del Faro está completa. ¡Desbloqueaste Distrito Forja! Viajá para iniciar cinco proyectos industriales."
 		pinned=true
+		if route_button!=null:route_button.text="DISTRITO FORJA"
 	if finished_industry:detail="La industria ya conecta todas las islas. Los contratos comerciales mixtos están disponibles en el mercado de Forja."
 	g.milestone.announce(("industry:stage:%d" % industry_stage) if industrial else ("route:stage:%d" % stage),"¡"+p["name"]+"!",detail,"boat" if p["id"].ends_with("route") else "star","","INDUSTRIA COMPLETA" if finished_industry else "RUTA COMPLETA · FORJA ABIERTA" if new_forja else "INDUSTRIA %d / %d" % [industry_stage,INDUSTRY_PROJECTS.size()] if industrial else "PROYECTO %d / %d" % [stage,PROJECTS.size()])
 	g.player.act("build");g._save_progress();g._refresh_ui();refresh_board();return true
@@ -631,7 +632,7 @@ func open_board() -> void:
 	g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
 	board_scrim.visible=true;refresh_board()
 func build_board() -> void:
-	route_button=g.hud.button("RUTA AL FARO",Color("#3d88a6"),17);g.hud.root.add_child(route_button);route_button.offset_left=24;route_button.offset_right=242;route_button.offset_top=224;route_button.offset_bottom=288;route_button.pressed.connect(open_board)
+	route_button=g.hud.button("DISTRITO FORJA" if stage>=PROJECTS.size() else "RUTA AL FARO",Color("#3d88a6"),17);g.hud.root.add_child(route_button);route_button.offset_left=24;route_button.offset_right=242;route_button.offset_top=224;route_button.offset_bottom=288;route_button.pressed.connect(open_board)
 	board_scrim=ColorRect.new();board_scrim.color=Color(.04,.14,.22,.78);board_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.hud.root.add_child(board_scrim);board_scrim.visible=false
 	board=g.hud.panel(Color("#fff1d0"));board_scrim.add_child(board);board.anchor_left=.04;board.anchor_right=.96;board.anchor_top=.04;board.anchor_bottom=.96
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",12);board.add_child(column)
@@ -667,6 +668,7 @@ func _text(message: String,size_: int=20,color_: Color=Color("#285269")) -> Labe
 func _button(message: String,callback: Callable,disabled: bool=false) -> Button:
 	var b: Button=g.hud.button(message,Color("#388b98"),18);b.custom_minimum_size.y=76;b.disabled=disabled;listing.add_child(b);b.pressed.connect(callback);return b
 func refresh_board() -> void:
+	if route_button!=null:route_button.text="DISTRITO FORJA" if stage>=PROJECTS.size() else "RUTA AL FARO"
 	if listing==null or not board_visible():return
 	# Only rebuild on explicit changes, not while a finger is pressing a control.
 	for node in listing.get_children():listing.remove_child(node);node.queue_free()
