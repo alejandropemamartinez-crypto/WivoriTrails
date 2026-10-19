@@ -42,6 +42,15 @@ func sail(destination: int) -> void:
 	var route=g.route
 	g.player.position=route.DOCK if route.away() else route.HOME_DOCK
 	verify(route.travel(destination),"Physical ferry departs for region %d" % destination)
+	var before_bag:Dictionary=route.bag.duplicate()
+	verify(route.sailing>0 and not route.deposit() and route.bag==before_bag,"Leaving the pier blocks mid-sailing cargo deposits despite proximity to the dock")
+	# Board callbacks can still fire while the boat moves; even a sufficiently
+	# funded workshop upgrade must never be purchasable during a crossing.
+	var before_wallet:int=g.coins
+	var before_mastery:int=int(route.mastery.get("flour",0))
+	g.coins=2000
+	verify(not route.improve("flour") and int(route.mastery.get("flour",0))==before_mastery and g.coins==2000,"Stale factory upgrade actions cannot charge money during ferry travel")
+	g.coins=before_wallet
 	route.tick(1.4)
 	verify(route.region==destination,"Travel reaches actual region %d" % destination)
 
