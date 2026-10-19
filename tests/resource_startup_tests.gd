@@ -5,6 +5,7 @@ extends SceneTree
 # An absent or malformed import should fail loudly before any Android APK.
 const Art=preload("res://scripts/art_library.gd")
 const Actor=preload("res://scripts/actor.gd")
+const Route=preload("res://scripts/archipelago.gd")
 const REQUIRED_MODELS=[
 	"bakery",
 	"booth_alarm",
@@ -134,6 +135,19 @@ func run_tests() -> void:
 		check(REQUIRED_MODELS.has(model),"An existing GLB supports the regional building: "+model)
 	for model in GOODS:
 		check(REQUIRED_MODELS.has(model),"Physical trade goods have a source GLB: "+model)
+	# Read the actual recipe/project registries, not a separate handwritten
+	# subset. This catches newly added typos before a specific island loads.
+	for project in Route.PROJECTS+Route.INDUSTRY_PROJECTS:
+		var model_name:String=project["model"]
+		if model_name.is_empty():continue
+		check(REQUIRED_MODELS.has(model_name),"Project "+project["id"]+" references an actual imported building: "+model_name)
+	for item in Route.GOODS:
+		var item_model:String=Route.GOODS_MODELS.get(item,"goods_"+item)
+		check(REQUIRED_MODELS.has(item_model),"Trade item "+item+" resolves to an authored physical GLB")
+	for model_name in Actor.CARGO_MODEL_OVERRIDES.values():
+		check(REQUIRED_MODELS.has(model_name),"Player's visual backpack uses a physically imported model: "+model_name)
+	for animal in ["cow","hen","piglet"]:
+		check(REQUIRED_MODELS.has("farm_"+animal),"Livestock decoration imports the correct farm species: "+animal)
 	check(ResourceLoader.exists("res://assets/ui/signs/star.svg"),"The CONSTRUIR project sign uses an imported star pictogram")
 	check(ResourceLoader.exists("res://Main.tscn"),"The configured startup scene has a valid file")
 	print("RESULT: %d checks, %d failures; never executed during code-only development" % [checked,failures])
