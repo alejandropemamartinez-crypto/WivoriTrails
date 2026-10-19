@@ -40,8 +40,8 @@ func _make_register(index: int) -> void:
 	Art.place(node,"register")
 	# The second box is a real collision obstacle only after it is unlocked.
 	if index==0:_register_obstacle(index)
-	var txt: Label3D=g.world.make_label(node,"",Vector3(0,2.3,0),38)
-	txt.pixel_size=.010;labels.append(txt)
+	var txt: Label3D=g.world.make_label(node,"",Vector3(0,3.18,0),47)
+	txt.pixel_size=.009;labels.append(txt)
 	var pieces: Array=[]
 	for j in range(18):
 		var piece:=Art.place(node,"coin",Vector3(.12+float(j%3)*.23,1.10+float(j/9)*.13+float(j%3)*.04,float((j/3)%3-1)*.24),Vector3.ONE*.65)
@@ -56,8 +56,8 @@ func _register_obstacle(index: int) -> void:
 func _make_treasury() -> void:
 	collector_bank=Art.place(self,"treasury",BANK)
 	g.world.navigation.add_obstacle(Rect2(BANK.x-.82,BANK.z-.61,1.64,1.22))
-	treasury_label=g.world.make_label(collector_bank,"TESORERÍA",Vector3(0,2.1,0),36)
-	treasury_label.pixel_size=.010
+	treasury_label=g.world.make_label(collector_bank,"TESORERÍA",Vector3(0,3.36,.20),50)
+	treasury_label.pixel_size=.009
 
 func total_pending() -> int:return pending[0]+pending[1]
 func in_transit() -> int:return player_held+collector_held
