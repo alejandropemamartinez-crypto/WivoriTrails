@@ -50,7 +50,10 @@ const INDUSTRY_PROJECTS=[
 const INDUSTRIAL_ORDERS=[
 	{"title":"Suministros para la travesía","needs":{"kits":3,"bread":3},"reward":1460},
 	{"title":"Reserva de alimentos","needs":{"preserves":4,"cheese":3},"reward":1540},
-	{"title":"Embalaje y abastecimiento","needs":{"packaging":6,"milk":5},"reward":1020}
+	{"title":"Embalaje y abastecimiento","needs":{"packaging":6,"milk":5},"reward":1020},
+	{"title":"Viveres para el transbordador","needs":{"preserves":3,"egg":5,"flour":4},"reward":1270},
+	{"title":"Ruta especial de comerciantes","needs":{"kits":4,"packaging":4,"milk":3},"reward":1980},
+	{"title":"Entrega de temporada","needs":{"bread":7,"cheese":5,"preserves":3},"reward":1780}
 ]
 const RECIPES={
 	"flour":{"region":1,"building":"grainmill","needs":{"wheat":3},"count":2,"time":12.0},
