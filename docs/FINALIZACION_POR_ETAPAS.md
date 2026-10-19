@@ -74,8 +74,15 @@ masivas ni avisos permanentes que vuelvan incontrolable la pantalla.
 - Los paneles de compra cercanos se ocultan durante robos y alertas de la coneja, para no tapar una acción urgente.
 - Carteles de mejoras elevados: pictograma particular (10 SVG ya existentes), letra más grande, precio y placa de alto contraste.
 - Carteles de cajas, tesorería y encargos subidos por encima de los modelos.
-- **No se ejecutaron Godot, tests, capturas ni APK**, a solicitud del creador. Cambios sujetos a comprobación visual y regresión en una etapa posterior.
-- Todavía hay que revisar composición, escalas, solapes y arte en resolución real; ninguna aprobación artística se presume.
+- Segunda tanda de mejoras de interfaz **guardada sin compilar**:
+  - Cada tarjeta de compra tiene ahora acento cromático por oficio, medallón con pictograma, título, beneficio, precio y estado de compra (disponible, faltante, bloqueada, conseguida).
+  - Catálogo horizontal de nueve edificios con ilustraciones y tarjetas cromáticamente diferenciadas, coste y disponibilidad visibles.
+  - En los pueblos de la Ruta al Faro, embarcadero, caja local y letreros de producción aparecen por encima de los edificios; el marcador del siguiente proyecto es un tablero de madera y no un círculo de suelo.
+  - Menús de la ruta y la producción incorporan encabezados separados en tarjetas con tipografía Quicksand.
+  - Se añadieron comprobaciones estáticas/de escena a `tests/art_direction_tests.gd` para ejecutarlas **después**, no ahora.
+- **No se ejecutaron Godot, tests, capturas ni APK**, a solicitud del creador. Tampoco se fusionó con `main`. Estos cambios están sujetos a prueba funcional y revisión visual posteriores.
+- Pendientes concretos de esta etapa: captura y lectura en 720x1280 y 720x1600, evitar solapes con el joystick y alerta de mapaches, inspeccionar escalas reales de letreros desde distintos ángulos, verificar accesibilidad táctil y rendimiento, corregir detalles artísticos detectados en las capturas.
+- La calidad visual comparable a Township **no está acreditada**; requiere evaluación de los recursos 3D y las animaciones, además de la interfaz.
 
 ## Etapa 3 — Animaciones y recompensas visibles
 Cosecha con fruto físico, mochila y llenado; entrega con movimiento de producto;
