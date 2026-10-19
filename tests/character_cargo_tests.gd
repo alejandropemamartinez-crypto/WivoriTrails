@@ -116,6 +116,7 @@ func run_tests() -> void:
 	# the boundary. Loading must NEVER silently discard valid bought items.
 	game.max_capacity=12
 	game.stash["tomato"]=12
+	game.stash["berry"]=2
 	game.route.bag["milk"]=3
 	game.route.bag["kits"]=2
 	game._save_progress()
@@ -128,12 +129,13 @@ func run_tests() -> void:
 	game.set_process(false)
 	game.world.set_process(false)
 	await process_frame
-	check(game.max_capacity==12 and game.stash["tomato"]==12 and game.route.bag["milk"]==3 and game.route.bag["kits"]==2,"Reload preserves every real mainland and island item even if an older saved pouch exceeds capacity")
-	check(game.player.carrying==17 and game.player.goods_root.get_child_count()==6,"Overfilled legacy cargo remains honest and uses a bounded six-mesh preview")
+	check(game.max_capacity==12 and game.stash["tomato"]==12 and game.stash["berry"]==2 and game.route.bag["milk"]==3 and game.route.bag["kits"]==2,"Reload preserves both mainland produce types and every island item beyond old carrying limits")
+	check(game.player.carrying==19 and game.player.goods_root.get_child_count()==6,"Overfilled legacy cargo remains honest and uses a bounded six-mesh preview")
 	check(game.coins==cash and game.counter==stock,"Restoring temporarily overfull cargo creates no money or sales")
 	game.route.bag["kits"]=0
 	game.route.bag["milk"]=0
 	game.stash["tomato"]=0
+	game.stash["berry"]=0
 	game.route._update_cargo()
 	check(game.player.goods_root.get_child_count()==0 and game.player.carrying==0,"Unloading all regions removes old 3D cargo automatically")
 	game.queue_free()
