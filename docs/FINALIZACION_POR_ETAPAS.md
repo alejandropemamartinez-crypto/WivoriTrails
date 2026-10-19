@@ -353,6 +353,32 @@ El detalle de requisitos, economía y verificaciones que faltan está en
 exportación del personaje y alineación del paquete de publicación permanecen
 pendientes; no se presentan como trabajo ya realizado.
 
+## Etapa 7 — modelo exportado y revisión de ojos
+
+Rama `feat/v018-stage7-hero-export-no-build`, continuación de la etapa 6.
+Se utilizó Blender para crear y revisar el recurso, conservando la instrucción
+de no ejecutar Godot, pruebas de juego, workflows ni APK.
+
+- Exportado `hero.glb` y guardada su fuente editable actualizada.
+- Corregido el defecto observado de perfil: iris y pupila eran piezas
+  superpuestas que sobresalían. Ahora se pintan en un solo ojo, con cuenca
+  esculpida en la cabeza y borde del color del pelaje.
+- Orejas más cortas y gris carbón ajustado. Sin nombre de protagonista nuevo
+  ni cambios de modelos de los NPC.
+- Atlas incrustado y textura de importación sincronizados; no se mezcla una
+  malla nueva con una textura de cara antigua.
+- Inspección del GLB: 17 huesos, 14 clips, tres superficies, 54 140 triángulos,
+  pesos normalizados y archivo de 3 221 704 bytes.
+- Ocho vistas renderizadas e inspeccionadas en Blender: frente, tres cuartos,
+  perfil, espalda, carrera, carga, cosecha y parpadeo. No acreditan fluidez,
+  rendimiento ni calidad de presentación dentro de Godot.
+- Generador, inspector de archivo y revisión de autoría reproducibles incluidos.
+  El AO de 0.16 queda identificado como histórico; el GLB usa su atlas final.
+
+Pendientes: reimportación y transiciones en Godot, contacto de patas, carga
+visible, recorrido entre escenarios, balance, colisiones y pruebas Android.
+Sigue pendiente preparar versión y publicación después de esas verificaciones.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y

@@ -1,7 +1,7 @@
-"""Unnamed protagonist v0.16. Original sculpt, sewn clothes and mobile PBR atlas.
+"""Unnamed protagonist. Original sculpt, sewn clothes and mobile PBR atlas.
 Blender 4.x --background --python art/source/build_hero.py.
 Reuses the anatomical rig and animation API, never the old bearded head.
-Stage 5E: shorter square-jawed Scottish Terrier proportions, tapered upright
+Stages 5E/7: shorter square-jawed Scottish Terrier proportions, tapered upright
 asymmetric ears and subtle charcoal-grey brindle shading; not a Schnauzer beard.
 """
 import bpy, math, importlib.util
@@ -11,7 +11,7 @@ from mathutils.bvhtree import BVHTree
 P=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('wivori_art',P/'build_assets.py')
 a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
-COAT='596b75'
+COAT='4c5b63'
 
 def sculpt_head(species,fur,rig):
     # Strong little cheeks, a forward muzzle and compact skull; without the
@@ -20,8 +20,14 @@ def sculpt_head(species,fur,rig):
            (0,-.24,1.83,.54,.47),(0,-.075,1.98,.58,.46),(0,.015,2.16,.53,.42),
            (0,.04,2.35,.44,.35),(0,.046,2.46,.29,.24),(0,.046,2.50,.04,.04)]
     head=a.loft('Continuous rounded puppy face',rings,fur,48,2.18,2)
+    # Sculpt the socket into the skin, rather than mounting eyes on a flat face.
+    for vertex in head.data.vertices:
+        x,y,z=vertex.co
+        if y>=-.12:continue
+        recess=sum(math.exp(-1.6*(((x-side*.265)/.16)**2+((z-2.135)/.19)**2)) for side in [-1,1])
+        vertex.co.y+=.05*recess
     a.paint(head,COAT)
-    pigment=head.data.color_attributes['Pigment'];muzzle=a.rgb('8999a3')
+    pigment=head.data.color_attributes['Pigment'];muzzle=a.rgb('73848e')
     for v,c in zip(head.data.vertices,pigment.data):
         x,y,z=v.co
         # Breed-readable grey brindle is painted into the deforming coat,
@@ -41,10 +47,39 @@ def sculpt_head(species,fur,rig):
     def piece(name,center,size,material,bone='head',subdiv=1):
         ob=a.bean(name,center,size,material,2.2,24,subdiv);a.weight(ob,bone,rig);return ob
     ink=a.mat('Face warm charcoal','253841',.56)
-    ivory=a.mat('Eyes soft ivory','fff7e6',.30)
-    amber=a.mat('Eyes amber iris','ac7943',.28)
-    pupil=a.mat('Eyes pupils','152a32',.22)
-    shine=a.mat('Eyes glints','fffefd',.18)
+    eye_finish=a.mat('Continuous painted eye surface','fff7e6',.28,painted=True)
+    def integrated_eye(x,y,z,bone):
+        # Iris, pupil and glints share one surface. Raised layers looked
+        # like loose coins when viewed in profile.
+        verts=[];faces=[];sides=48;rings=28
+        for row in range(rings+1):
+            latitude=math.pi*(1.0-(row+.0001)/(rings+.0002))
+            for j in range(sides):
+                longitude=math.tau*j/sides
+                verts.append((x+.1155*math.sin(latitude)*math.cos(longitude),
+                              y+.070*math.sin(latitude)*math.sin(longitude),
+                              z+.1335*math.cos(latitude)))
+        for row in range(rings):
+            for j in range(sides):
+                k=row*sides+j;n=row*sides+(j+1)%sides
+                faces.append((k,n,n+sides,k+sides))
+        faces.extend([tuple(reversed(range(sides))),tuple(rings*sides+j for j in range(sides))])
+        eye=a.mesh('Integrated eye '+bone,verts,faces,eye_finish)
+        ivory=a.rgb('fff7e6');amber=a.rgb('ac7943');pupil=a.rgb('152a32');shine=a.rgb('fffefd')
+        def blend(left,right,weight):return tuple(left[i]*(1-weight)+right[i]*weight for i in range(3))
+        for vertex,color in zip(eye.data.vertices,eye.data.color_attributes['Pigment'].data):
+            px,py,pz=vertex.co;rgb=ivory
+            if py<y:
+                iris=math.hypot((px-x-.012)/.079,(pz-z+.006)/.104)
+                rgb=blend(rgb,amber,max(0,min(1,(1.04-iris)/.09)))
+                core=math.hypot((px-x-.012)/.052,(pz-z+.006)/.076)
+                rgb=blend(rgb,pupil,max(0,min(1,(1.04-core)/.10)))
+                glint=math.hypot((px-x+.018)/.020,(pz-z-.047)/.027)
+                rgb=blend(rgb,shine,max(0,min(1,(1.1-glint)/.30)))
+                bounce=math.hypot((px-x-.044)/.009,(pz-z+.042)/.012)
+                rgb=blend(rgb,shine,max(0,min(1,(1.1-bounce)/.30)))
+            color.color=(*rgb,1)
+        a.weight(eye,bone,rig)
     # Eye bones are centered on the actual recessed eye socket for anchored blinking.
     bpy.context.view_layer.objects.active=rig;rig.select_set(True)
     bpy.ops.object.mode_set(mode='EDIT')
@@ -55,15 +90,12 @@ def sculpt_head(species,fur,rig):
     for s,side in [(-1,'L'),(1,'R')]:
         x=s*.265;z=2.135;y=face_y(x,z);bone='eye.'+side
         # Back halves intersect the head; all accents share the same eyelid bone.
-        piece('Inset eye rim '+side,(x,y+.018,z),(.274,.165,.312),ink,bone)
-        piece('Warm eye '+side,(x,y-.022,z),(.231,.140,.267),ivory,bone)
-        piece('Amber iris '+side,(x+.012,y-.090,z-.006),(.151,.038,.195),amber,bone)
-        piece('Deep pupil '+side,(x+.012,y-.108,z-.006),(.108,.023,.149),pupil,bone)
-        piece('Key reflection '+side,(x-.018,y-.122,z+.047),(.045,.008,.056),shine,bone,0)
-        piece('Bounce reflection '+side,(x+.044,y-.120,z-.042),(.018,.008,.024),shine,bone,0)
+        lid=piece('Skin-coloured orbital lid '+side,(x,y+.050,z),(.269,.165,.307),fur,bone)
+        a.paint(lid,COAT)
+        integrated_eye(x,y-.004,z,bone)
         rs=[(s*.35,.045,2.31,.18,.145),(s*.43,.066,2.50,.145,.115),
-            (s*(.48 if s<0 else .52),.09,2.78 if s<0 else 2.73,.072,.060),
-            (s*(.475 if s<0 else .55),.115,2.96 if s<0 else 2.90,.012,.014)]
+            (s*(.48 if s<0 else .52),.09,2.68 if s<0 else 2.65,.072,.060),
+            (s*(.475 if s<0 else .55),.115,2.83 if s<0 else 2.78,.012,.014)]
         ear=a.loft('Soft asymmetric ear '+side,rs,fur,24,2,2);a.paint(ear,COAT)
         a.weight(ear,'ear.'+side,rig,lambda v,side=side:{'ear.'+side:max(0,min(1,(v.z-2.34)/.20)),'head':1-max(0,min(1,(v.z-2.34)/.20))})
         rose=a.mat('Inner ear dusky peach','be938c',.88)
@@ -93,6 +125,10 @@ def export_hero(name,rigged=False):
         seam=a.tube('Sleeve stitched edge '+side,[(s*.40,-.105,1.16),(s*.46,-.14,1.07),(s*.51,-.135,.97)],.012,linen,6);a.weight(seam,'arm.'+side,rig)
     # Soft eye blink and secondary ear motion are already keyed in every idle loop.
     original_export('hero',True)
+    # Keep the tracked Godot texture source identical to the embedded atlas.
+    check_spec=importlib.util.spec_from_file_location('hero_export_check',P/'validate_hero_export.py')
+    checker=importlib.util.module_from_spec(check_spec);check_spec.loader.exec_module(checker)
+    checker.inspect()
 
 a.head_model=sculpt_head;a.save_export=export_hero
 old_mat=a.mat
@@ -101,4 +137,5 @@ def hero_material(name,color,rough=.65,metal=0,painted=False):
     if name=='Brindle grey coat':return old_mat('Soft shaded coat',COAT,.90,0,True)
     return old_mat(name,color,rough,metal,painted)
 a.mat=hero_material
-a.character('terrier')
+if __name__=='__main__':
+    a.character('terrier')

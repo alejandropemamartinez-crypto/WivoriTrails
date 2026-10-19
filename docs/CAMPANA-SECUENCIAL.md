@@ -102,8 +102,8 @@ anteriores que exigían popups automáticos. No se ejecutaron. Quedan:
 2. Recorrer una partida desde cero y migrar partidas anteriores.
 3. Revisar carteles, objetivos, tres pestañas, gestos y navegación a
    720×1280 y 720×1600, con capturas del motor.
-4. Exportar y evaluar la escultura actualizada del protagonista: los cambios
-   de Blender de las etapas previas todavía no están en `hero.glb`.
+4. Reimportar y evaluar el protagonista dentro de Godot. La etapa 7 ya exportó
+   el GLB, integró los ojos y revisó ocho vistas del recurso en Blender.
 5. Medir manejo, FPS, memoria, temperatura y ritmo económico en Android.
 6. Alinear versión Android, notas y publicación antes de compilar; la
    discrepancia heredada 0.16.1/0.16.0 no se presenta como un lanzamiento nuevo.

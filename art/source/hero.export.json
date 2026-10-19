@@ -1,0 +1,54 @@
+{
+  "asset": "assets/models/hero.glb",
+  "bytes": 3221704,
+  "sha256": "43b5a272a4126bd27d4fe3247825aa6e259cb02a3bb44565e8fb0ea829ecf75e",
+  "joints": [
+    "root",
+    "pelvis",
+    "spine",
+    "head",
+    "ear.L",
+    "ear.R",
+    "eye.L",
+    "eye.R",
+    "arm.L",
+    "hand.L",
+    "arm.R",
+    "hand.R",
+    "leg.L",
+    "foot.L",
+    "leg.R",
+    "foot.R",
+    "tail"
+  ],
+  "clips": [
+    "alert",
+    "build",
+    "carry",
+    "celebrate",
+    "collect",
+    "deliver",
+    "harvest",
+    "idle",
+    "intercept",
+    "relief",
+    "run",
+    "surprise",
+    "turn",
+    "walk"
+  ],
+  "surfaces": 3,
+  "triangles": 54140,
+  "vertices": 32348,
+  "maximum_weight_sum_error": 2.9802322387695312e-08,
+  "images": [
+    {
+      "name": "hero_albedo",
+      "bytes": 710284,
+      "sha256": "7419bee0d2584134e606d7c5350c842a754c7ad52dc11bed7e7b6da5d8dde379"
+    }
+  ],
+  "godot_imported": false,
+  "gameplay_tested": false,
+  "android_built": false
+}

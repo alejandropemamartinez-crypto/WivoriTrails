@@ -7,8 +7,9 @@ tablero de pedidos rediseñado y expediciones desde Puerto Aurora.
 
 **Estado: código sin ejecutar en Godot ni compilar.** No se fusionó con `main`
 ni se publicó un APK de estos cambios. La revisión estática no acredita calidad
-visual ni ausencia de bugs. El protagonista sigue sin nombre; su escultura
-actualizada aún necesita exportación y revisión, como consta en la hoja de etapas.
+visual ni ausencia de bugs. El protagonista sigue sin nombre. La etapa 7 ya
+exportó el modelo y lo revisó en Blender; falta reimportarlo y comprobarlo
+dentro de Godot y Android.
 
 ## Base publicada: 0.16.0
 
