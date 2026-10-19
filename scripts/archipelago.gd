@@ -374,7 +374,11 @@ func _build_region() -> void:
 	Finish.meadow(scenery,accents)
 func _refresh_region_identity() -> void:
 	if scenery==null or region<=0:return
-	if is_instance_valid(region_identity):region_identity.free()
+	if is_instance_valid(region_identity):
+		# Remove collision footprints from the previous decorative generation
+		# before rebuilding on the same navigation grid, preventing ghosts.
+		region_identity.release_collision_footprints()
+		region_identity.free()
 	region_identity=RegionIdentity.new()
 	region_identity.configure(g.world,region,built)
 	scenery.add_child(region_identity)
