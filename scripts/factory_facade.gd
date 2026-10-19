@@ -110,6 +110,8 @@ func _stamping_and_sawtooth() -> void:
 	_part(self,"box",Vector3(-.25,.83,1.12),Vector3(3.10,.08,.52),BRASS,"Banda de empaque")
 	for i in range(4):
 		_part(self,"box",Vector3(-1.4+float(i)*.76,1.13,1.10),Vector3(.47,.34,.34),Color("#d4b58b"),"Paquete clasificado")
+	for i in range(3):
+		_part(self,"box",Vector3(-1.70+float(i)*1.7,3.23,-1.79),Vector3(.14,.54,.13),BRASS,"Remache visible del tejado")
 	var ram:=_new_pivot("Prensa vertical activa",Vector3(.10,2.25,1.0))
 	_part(ram,"box",Vector3.ZERO,Vector3(.78,.64,.72),COPPER,"Cabezal de prensa")
 	_part(ram,"box",Vector3(0,.54,0),Vector3(.22,1.10,.28),METAL,"Émbolo")
@@ -118,6 +120,12 @@ func _stamping_and_sawtooth() -> void:
 func _preserves_and_steam() -> void:
 	# Preserves: hygienic cylindrical tanks, copper bridges and low
 	# opacity vapour plumes. The steam is ambient, never a smoke hazard.
+	# One shared transparent resource avoids the former opaque white blobs.
+	var steam_material:=StandardMaterial3D.new()
+	steam_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	steam_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	steam_material.albedo_color=Color(.88,.97,.94,.21)
+	steam_material.roughness=1.0
 	for x in [-1.54,1.54]:
 		_part(self,"cylinder",Vector3(x,1.36,.20),Vector3(1.22,2.65,1.22),Color("#b3cac7"),"Tanque de conservas")
 		_part(self,"cylinder",Vector3(x,2.76,.20),Vector3(1.30,.16,1.30),INK,"Tapa del tanque")
@@ -126,6 +134,7 @@ func _preserves_and_steam() -> void:
 		var plume:=_new_pivot("Vapor suave",Vector3(x,4.95,.20))
 		for i in range(3):
 			var vapor:=_part(plume,"sphere",Vector3(.15*sin(float(i)*2.1),float(i)*.28,.0),Vector3(.34+float(i)*.09,.28+float(i)*.06,.34+float(i)*.09),Color("#cfebe5"),"Nube de vapor decorativa")
+			vapor.material_override=steam_material
 			vapor.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		moving_parts.append({"node":plume,"type":"steam","at":plume.position,"phase":x})
 	_part(self,"box",Vector3(0,2.46,.20),Vector3(2.50,.19,.20),COPPER,"Puente de canalizaciones")
