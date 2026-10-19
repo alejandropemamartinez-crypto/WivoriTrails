@@ -39,6 +39,11 @@ func capture() -> void:
 	game.hud.root.visible=false
 	game.world.visible=false
 	game.player.visible=false
+	var hidden_scene: Array[Node3D]=[]
+	for candidate in game.get_children():
+		if candidate is Node3D and candidate!=game.player and candidate.visible:
+			hidden_scene.append(candidate)
+			candidate.visible=false
 	var photo_stage:=Node3D.new()
 	photo_stage.name="Character review stage (not shipped in gameplay)"
 	game.add_child(photo_stage)
@@ -57,7 +62,7 @@ func capture() -> void:
 		game.add_child(actor)
 		actor.position=Vector3((i-1)*1.65,0,0)
 		gallery.append(actor)
-	game.camera.position=Vector3(0,2.7,6.1);game.camera.fov=46
+	game.camera.position=Vector3(0,2.95,9.2);game.camera.fov=52
 	game.camera.look_at(Vector3(0,1.37,0))
 	await frames(12);await shot("faces")
 	for actor in gallery:actor.queue_free()
@@ -74,6 +79,9 @@ func capture() -> void:
 	game.camera.position=Vector3(0,2.6,-5.4)
 	game.camera.look_at(Vector3(0,1.4,0))
 	await frames(8);await shot("hero_back")
+	for hidden in hidden_scene:
+		if is_instance_valid(hidden):
+			hidden.visible=true
 	game.world.visible=true
 	photo_stage.queue_free()
 	game.hud.root.visible=true
