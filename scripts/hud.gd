@@ -10,6 +10,20 @@ const MUTED=Color("#718783")
 const PAPER=Color("#fffaf0")
 const TEAL=Color("#238577")
 const GOLD=Color("#efb34c")
+# Accent colours are semantic: players recognise an upgrade by its hue as
+# well as its icon, even when text becomes small in portrait orientation.
+const UPGRADE_ACCENTS={
+	"helper":Color("#327f75"),"collector":Color("#488f88"),
+	"checkout":Color("#ab7840"),"lock":Color("#687a9a"),
+	"alarm":Color("#bd6855"),"guard":Color("#536f95"),
+	"bag":Color("#9b6d4f"),"speed":Color("#4f8bba"),
+	"expand":Color("#668850"),"pier":Color("#47899b")
+}
+const BUILDING_ACCENTS={
+	"house":Color("#c07757"),"cafe":Color("#98644c"),"depot":Color("#628a80"),
+	"bakery":Color("#c18b43"),"greenhouse":Color("#6b9c69"),"workshop":Color("#6e819b"),
+	"park":Color("#68a38b"),"watchtower":Color("#8a7997"),"mill":Color("#ac8756")
+}
 var g
 var root: Control
 var scrim: ColorRect
@@ -50,6 +64,10 @@ var rabbit_banner: RabbitWarningBanner
 var move_button: Button
 var shop_cards: Dictionary={}
 var shop_category: String="team"
+var shop_tabs: Dictionary={}
+var shop_states: Dictionary={}
+var town_cards: Dictionary={}
+var town_statuses: Dictionary={}
 var previous_wallet: int=-1
 var activity_button: Button
 var town_scroll: ScrollContainer
@@ -65,6 +83,23 @@ func _fit_one_line(node: Label, value: String, available_width: float, ideal_siz
 	node.add_theme_font_size_override("font_size",chosen)
 	node.text=value
 	node.tooltip_text=value
+
+func semantic_color(kind: String) -> Color:
+	return UPGRADE_ACCENTS.get(kind,TEAL)
+
+func _accent_card(base_color: Color, accent: Color) -> StyleBoxFlat:
+	var card_style:=style(base_color,17)
+	card_style.border_color=accent.lightened(.33)
+	card_style.border_width_left=7
+	card_style.border_width_right=1
+	card_style.border_width_top=1
+	card_style.border_width_bottom=3
+	card_style.content_margin_left=13;card_style.content_margin_right=13
+	card_style.content_margin_top=12;card_style.content_margin_bottom=12
+	card_style.shadow_color=Color(.11,.22,.20,.12)
+	card_style.shadow_size=7
+	card_style.shadow_offset=Vector2(0,3)
+	return card_style
 
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
@@ -446,6 +481,7 @@ func build_shop() -> void:
 		var tab:=button("CONTRATAR" if category=="team" else "MEJORAR",TEAL if category=="team" else Color("#6d8797"),17)
 		tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		tab.custom_minimum_size.y=52;tabs.add_child(tab)
+		shop_tabs[category]=tab
 		tab.pressed.connect(func():shop_category=category;_filter_shop())
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL; column.add_child(scroll)
@@ -454,25 +490,59 @@ func build_shop() -> void:
 	var names := {}
 	for kind in g.UPGRADE_POS:names[kind]=g._upgrade(kind)["name"]
 	for key in ["helper","collector","checkout","lock","alarm","guard","bag","speed","expand","pier"]:
-		var card := panel(Color("#f3ebd9")); upgrades.add_child(card)
+		var accent: Color=semantic_color(key)
+		var card:=panel(Color("#fffaef"))
 		shop_cards[key]=card
-		card.add_theme_stylebox_override("panel",style(Color("#eef2e6"),16))
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",14); card.add_child(row)
-		row.add_child(icon(key,TEAL,Vector2(42,50)))
-		var description := VBoxContainer.new(); description.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		card.add_theme_stylebox_override("panel",_accent_card(Color("#fffaef"),accent))
+		upgrades.add_child(card)
+		var row:=HBoxContainer.new()
+		row.add_theme_constant_override("separation",13)
+		card.add_child(row)
+		# An illustrated, colour-coded relief emblem anchors the card.
+		var medallion:=panel(accent.lightened(.68))
+		var medallion_style:=style(accent.lightened(.68),18)
+		medallion_style.set_border_width_all(2)
+		medallion_style.border_color=accent.lightened(.32)
+		medallion_style.content_margin_left=8;medallion_style.content_margin_right=8
+		medallion_style.content_margin_top=8;medallion_style.content_margin_bottom=8
+		medallion.add_theme_stylebox_override("panel",medallion_style)
+		medallion.custom_minimum_size=Vector2(72,76)
+		row.add_child(medallion)
+		medallion.add_child(icon(key,accent,Vector2(54,56)))
+		var description:=VBoxContainer.new()
+		description.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		description.add_theme_constant_override("separation",3)
 		row.add_child(description)
-		description.add_child(label(names[key],20))
-		var detail := label("",16,MUTED); detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		detail.custom_minimum_size=Vector2(270,0); description.add_child(detail); shop_details[key]=detail
-		var buy := button("",TEAL,18); buy.custom_minimum_size=Vector2(132,96)
-		buy.size_flags_vertical=Control.SIZE_SHRINK_CENTER; row.add_child(buy)
-		buy.pressed.connect(Callable(g,"_buy").bind(key)); g.store_buttons[key]=buy
+		var category_caption:=label("EQUIPO DEL PUEBLO" if key in ["helper","collector","guard"] else "MEJORA DEL NEGOCIO",11,accent)
+		description.add_child(category_caption)
+		var heading:=label(names[key],19,INK)
+		heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		description.add_child(heading)
+		var detail:=label("",14,MUTED)
+		detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		detail.max_lines_visible=2
+		detail.clip_text=true
+		description.add_child(detail)
+		shop_details[key]=detail
+		var status:=label("",12,accent)
+		description.add_child(status)
+		shop_states[key]=status
+		var buy:=button("",accent,17)
+		buy.custom_minimum_size=Vector2(119,90)
+		buy.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+		row.add_child(buy)
+		buy.pressed.connect(Callable(g,"_buy").bind(key))
+		g.store_buttons[key]=buy
 	var done := button("VOLVER AL MERCADO",TEAL,20); done.custom_minimum_size=Vector2(0,62)
 	done.pressed.connect(func():g._toggle_shop()); column.add_child(done)
 	_filter_shop()
 
 func _filter_shop() -> void:
-	for key in shop_cards:shop_cards[key].visible=(key in ["helper","collector","guard"]) if shop_category=="team" else (key not in ["helper","collector","guard"])
+	for key in shop_cards:
+		shop_cards[key].visible=(key in ["helper","collector","guard"]) if shop_category=="team" else (key not in ["helper","collector","guard"])
+	for category in shop_tabs:
+		shop_tabs[category].self_modulate=Color.WHITE if category==shop_category else Color(.82,.86,.85,.85)
+
 
 func refresh() -> void:
 	var city_mode: bool=g.town!=null and g.town.in_build_mode
@@ -576,7 +646,17 @@ func refresh() -> void:
 		g.store_buttons[key].disabled=upgrade["done"] or upgrade["locked"] or g.coins<upgrade["price"]
 		g.store_buttons[key].text=("NIVEL 4" if key=="guard" else "NIVEL 3") if upgrade["locked"] else ("LISTO" if upgrade["done"] else "%s\nmonedas" % _number(upgrade["price"]))
 		shop_details[key].text=upgrade["benefit"]
-		if not upgrade["done"] and not upgrade["locked"] and g.coins>=upgrade["price"]:affordable+=1
+		var ready: bool=not upgrade["done"] and not upgrade["locked"] and g.coins>=upgrade["price"]
+		if upgrade["done"]:
+			shop_states[key].text="MEJORA CONSEGUIDA"
+		elif upgrade["locked"]:
+			shop_states[key].text="SE DESBLOQUEA CON EL PROGRESO"
+		elif ready:
+			shop_states[key].text="¡PODÉS COMPRARLA!"
+		else:
+			shop_states[key].text="TE FALTAN %s MONEDAS" % _number(upgrade["price"]-g.coins)
+		shop_states[key].add_theme_color_override("font_color",Color("#2a8871") if ready else MUTED)
+		if ready:affordable+=1
 	g.shop_button.text="MEJORAS"
 
 func _number(value: int) -> String:
