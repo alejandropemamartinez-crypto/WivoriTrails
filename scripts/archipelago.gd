@@ -381,7 +381,9 @@ func tick(delta: float) -> void:
 		visual_wait=.25
 		local_money_label.text="CAJA · %d" % market_money[region];local_coins.visible=market_money[region]>0
 		var pile_count: int=mini(12,ceili(float(market_money[region])/20.0))
-		for i in range(local_coins.get_child_count()):local_coins.get_child(i).visible=i<pile_count
+		for i in range(local_coins.get_child_count()):
+			var coin: Node3D=local_coins.get_child(i) as Node3D
+			coin.visible=i<pile_count
 		for key in RECIPES:
 			var root: Node3D=station_nodes.get(RECIPES[key]["building"])
 			if root==null:continue
