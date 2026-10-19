@@ -28,6 +28,7 @@ var labels: Array[Label3D]=[]
 var collector_bank: Node3D
 var treasury_label: Label3D
 var _last_displayed: Array[int]=[-1,-1]
+var fx_regions: Dictionary={}  # Visual-only coin flight parents; never money owners.
 
 func _ready() -> void:
 	name="Recaudación física"
@@ -115,13 +116,34 @@ func _coin_at(t: float, coin: Node3D, start: Vector3, finish: Vector3, follow_he
 	coin.rotation=Vector3(t*TAU,t*PI,0)
 	coin.scale=Vector3.ONE*lerpf(.7,.15,t)
 
+func _fx_host() -> Node3D:
+	# Coin flights must never appear at the same map coordinates on a
+	# different island after a ferry journey. Each region gets an independent
+	# visual parent, while the actual money remains in pending/held balances.
+	if g.route==null or not is_instance_valid(g.route):return self
+	var region_code:int=g.route.region
+	# Save is loaded before the ferry world is reconstructed; the restored
+	# pickup is scoped to the saved destination rather than the empty home.
+	if region_code==0 and g.route.restore_region>0:
+		region_code=g.route.restore_region
+	if not fx_regions.has(region_code):
+		var host:=Node3D.new()
+		host.name="Monedas visuales · región %d" % region_code
+		g.route.add_child(host)
+		fx_regions[region_code]=host
+	display_fx_for_region(region_code if g.route.region==0 and g.route.restore_region>0 else g.route.region)
+	return fx_regions[region_code]
+
+func display_fx_for_region(region_code: int) -> void:
+	for area in fx_regions:
+		var host:Node3D=fx_regions[area]
+		if is_instance_valid(host):host.visible=int(area)==region_code
+
 func _fly_money(from: Vector3, target: Vector3, count: int, to_hero: bool) -> float:
-	# The home cash node is hidden and PROCESS_MODE_DISABLED while a ferry
-	# island is active. FX parented/bound to this node were consequently
-	# invisible or paused even though the wallet transfer timer continued.
-	# Use the always-present route container for transient money flights, in
-	# both the market and the other islands, while leaving the ledger alone.
-	var fx_host: Node3D=g.route if g.route!=null and is_instance_valid(g.route) else self
+	# Visual parents belong to their source island, so departing mid-flight
+	# never makes the previous island's coins appear over the new town.
+	# Tweets finish while hidden; ledgers and timings are unaffected.
+	var fx_host:Node3D=_fx_host()
 	var duration:=0.0
 	for j in range(mini(12,count)):
 		var start:=from+Vector3(float(j%3-1)*.13,.06*float(j),0)
