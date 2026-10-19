@@ -81,7 +81,11 @@ func tick(delta: float) -> void:
 	if pending.is_empty():return
 	current=pending.pop_front()
 	title.text=current["title"];detail.text=current["detail"];kicker.text=current["tag"]
-	emblem.texture=load("res://assets/ui/signs/"+current["symbol"]+".svg")
+	var emblem_path:String="res://assets/ui/signs/"+str(current["symbol"])+".svg"
+	if not ResourceLoader.exists(emblem_path):
+		push_warning("Wivori Trails: pictograma de capítulo no disponible: "+emblem_path)
+		emblem_path="res://assets/ui/signs/star.svg"
+	emblem.texture=load(emblem_path)
 	action_button.text="SIGUIENTE NIVEL" if current["action"]=="level" else "VER LA RUTA" if current["action"]=="route" else "¡VAMOS!"
 	cover.visible=true;g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
 	g.player.act("celebrate" if current["symbol"]=="star" else "alert")
