@@ -59,7 +59,7 @@ func run_tests() -> void:
 	game.route.refresh_board()
 	check(game.route.route_button.text=="DISTRITO FORJA","Post-Faro save or progress switches route launcher to the industrial destination")
 	check(game.route.unlocked()==4 and game.route.NAMES[0]=="Wivori","All five destinations retain home-market identity")
-	check(not game.route.industry_order().size()>0,"Orders stay gated behind all five paid factories")
+	check(game.route.industry_order().is_empty(),"Orders stay gated behind all five paid factories")
 	check(game._save_data()["version"]==8,"Industry additions keep backward-compatible outer save version")
 
 	game.queue_free()
