@@ -231,9 +231,9 @@ func _build_region() -> void:
 	region_ferry=Art.place(scenery,"route_ferry",Vector3(4.8,.18,23),Vector3.ONE*.9)
 	g.world.navigation.add_obstacle(Rect2(2.8,20,4,8))
 	g.world.make_label(scenery,NAMES[region].to_upper(),Vector3(0,3,-23),56,true)
-	g.world.make_label(scenery,"EMBARCAR",DOCK+Vector3(0,1.5,0),34,true)
+	g.world.make_label(scenery,"EMBARCAR",DOCK+Vector3(0,2.85,0),50,true)
 	Art.place(scenery,"market",Vector3(12,0,1.1),Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(9.8,-.3,4.4,3))
-	local_money_label=g.world.make_label(scenery,"CAJA LOCAL",MARKET+Vector3(0,2.5,0),42)
+	local_money_label=g.world.make_label(scenery,"CAJA LOCAL",MARKET+Vector3(0,3.8,0),50,true)
 	local_coins=Art.place(scenery,"coin",MARKET+Vector3(.6,1.0,-.1),Vector3.ONE*1.4)
 	for p in PROJECTS:
 		if p["region"]==region and built.has(p["id"]) and not p["model"].is_empty():_place_project(p,false)
@@ -263,7 +263,7 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		for node in model.find_children("*","Node3D",true,false):
 			if "rotor" in node.name.to_lower():mill_rotor=node;break
 	g.world.navigation.add_obstacle(Rect2(p["at"].x-2.4,p["at"].z-2.2,4.8,4.4))
-	g.world.make_label(root,{"grain":"TRIGAL","grainmill":"MOLINO","breadshop":"PANADERÍA","henhouse":"GALLINERO","cowbarn":"ESTABLO","dairy":"QUESERÍA","pigpen":"CORRAL","butcher":"CARNICERÍA","harbor_depot":"ALMACÉN","cannery":"COCINA","route_watch":"VIGÍA","beacon":"FARO"}.get(p["id"],p["name"]),Vector3(0,4.1,0),40,true)
+	g.world.make_label(root,{"grain":"TRIGAL","grainmill":"MOLINO","breadshop":"PANADERÍA","henhouse":"GALLINERO","cowbarn":"ESTABLO","dairy":"QUESERÍA","pigpen":"CORRAL","butcher":"CARNICERÍA","harbor_depot":"ALMACÉN","cannery":"COCINA","route_watch":"VIGÍA","beacon":"FARO"}.get(p["id"],p["name"]),Vector3(0,5.4,.7),51,true)
 	if animated:
 		model.scale=Vector3(1,.05,1);create_tween().tween_property(model,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if p["id"] in ["cowbarn","henhouse","pigpen"]:
@@ -277,7 +277,7 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 	for key in RECIPES:
 		if RECIPES[key]["building"]==p["id"]:
 			var output:=Art.place(root,"goods_"+key,Vector3(-1.0 if key=="flour" else 1.1,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
-			var label: Label3D=g.world.make_label(root,"",Vector3(-1.0 if key=="flour" else 1.1,1.3,3.1),27);label.name="Job_"+key
+			var label: Label3D=g.world.make_label(root,"",Vector3(-1.0 if key=="flour" else 1.1,1.8,3.1),34);label.name="Job_"+key;label.pixel_size=.008;label.outline_size=7;label.outline_modulate=Color("#254b45")
 			if employees.get(key,false):_spawn_operator(key)
 func _spawn_operator(key: String) -> void:
 	if scenery==null or region!=RECIPES[key]["region"]:return
@@ -298,8 +298,11 @@ func _update_project_marker() -> void:
 	var p:=project()
 	if p.is_empty() or p["region"]!=region:return
 	var marker:=Node3D.new();marker.name="ProjectMarker";marker.position=p["at"]+(Vector3(0,0,3.2) if not p["model"].is_empty() else Vector3.ZERO);scenery.add_child(marker)
-	g.world.shape(marker,"cylinder",Vector3(0,.15,0),Vector3(2.5,.12,2.5),Color("#f0bd4b"))
-	g.world.make_label(marker,"CONSTRUIR",Vector3(0,1.4,0),34,true)
+	# Original project sign: a timber noticeboard, not another flat purchase circle.
+	g.world.shape(marker,"box",Vector3(0,.13,0),Vector3(2.65,.18,1.65),Color("#dab88a"),"Solar para construir")
+	for x in [-.95,.95]:
+		g.world.shape(marker,"box",Vector3(x,1.08,0),Vector3(.15,1.86,.15),Color("#8c6548"),"Postes del proyecto")
+	g.world.make_label(marker,"CONSTRUIR",Vector3(0,2.22,.38),52,true)
 func _update_cargo() -> void:
 	g.player.set_carry(g._total_bag())
 	var key:=""
