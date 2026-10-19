@@ -56,14 +56,18 @@ static func model(kind: String) -> Node3D:
 			var empty:=Node3D.new()
 			empty.name="ERROR · Falta "+kind
 			return empty
-		var resource:Resource=load(asset_path)
-		if not resource is PackedScene:
+		var resource:PackedScene=load(asset_path) as PackedScene
+		if resource==null:
 			push_error("Wivori Trails: GLB inválido para actor "+asset_path)
 			var empty:=Node3D.new()
 			empty.name="ERROR · Recurso inválido "+kind
 			return empty
 		scenes[kind]=resource
-	var imported:Node=scenes[kind].instantiate()
+	var scene:PackedScene=scenes[kind] as PackedScene
+	if scene==null:
+		push_error("Wivori Trails: cache 3D corrupta "+asset_path)
+		return Node3D.new()
+	var imported:Node=scene.instantiate()
 	var instance:Node3D=imported as Node3D
 	if instance==null:
 		if imported!=null:imported.free()
