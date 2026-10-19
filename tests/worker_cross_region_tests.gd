@@ -110,12 +110,22 @@ func run_tests() -> void:
 	verify(g.player.carrying==avatar_before-3 and g.player.goods_root.get_child_count()==6,"Manual ingredient consumption refreshes the real 3D backpack immediately")
 	verify(route.jobs["flour"]["remaining"]>0,"Manual workshop uses the same non-instant production timer as workers")
 	verify(route._job_status("flour").begins_with("EN PROCESO"),"Manual batches display ongoing work instead of zero remaining seconds")
+	# Bread is a second real manual recipe, already funded with flour that the
+	# player physically picked up from the mill. Let it be almost complete.
+	g.player.position=route.station("bread")
+	verify(route.start_batch("bread",false),"The player's collected flour can start a separate, legitimate bread batch")
+	verify(route.bag["flour"]==4 and g.player.carrying==6,"Bread consumes two carried flour and updates the visible loadout")
+	route.jobs["bread"]["remaining"]=.45
+	var mill_time_before_sailing:float=route.jobs["flour"]["remaining"]
 	var inventory:Dictionary=route.inventory.duplicate()
 	var bag:Dictionary=route.bag.duplicate()
 	await sail(0)
 	verify(route.inventory==inventory and route.bag==bag and g.coins==wallet,"Travelling home never changes stored or carried production goods")
+	verify(route.jobs["bread"]["ready"]==2 and route.jobs["bread"]["remaining"]==0.0,"Legitimate production finishes while the player is crossing on the ferry")
+	verify(route.jobs["flour"]["remaining"]<mill_time_before_sailing,"Another workshop's timer also progresses during the same ferry crossing")
 	await restart()
 	verify(g.route.region==0 and g.route.inventory==inventory and g.route.bag==bag,"Remote worker goods survive a home-world restart without a new save format")
+	verify(g.route.jobs["bread"]["ready"]==2 and g.route.jobs["flour"]["remaining"]>0.0,"Production completed during a ferry crossing is preserved by v8 save")
 	g.queue_free()
 	await process_frame
 	await process_frame
