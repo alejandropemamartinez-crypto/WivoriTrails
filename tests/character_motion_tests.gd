@@ -56,6 +56,21 @@ func run_tests() -> void:
 	check(protagonist.body_root.scene_file_path=="res://assets/models/hero.glb","The hero retains its original unnamed custom model")
 	check(protagonist.skeleton!=null and protagonist.motion_bones.has("ear.L") and protagonist.motion_bones.has("ear.R"),"Unnamed hero keeps both rigged ears for small secondary motions")
 	check(protagonist.motion_bones.has("eye.L") and protagonist.motion_bones.has("eye.R"),"Scottish Terrier blink uses two genuine skinned eye bones, no floating eyelids")
+	# Simulate an animation clip that does not key facial bones: repeated
+	# additive cosmetics must never spiral the head or collapse both eyes.
+	var head_index:int=protagonist.motion_bones["head"]
+	var eye_index:int=protagonist.motion_bones["eye.L"]
+	var neutral_head:Quaternion=protagonist.skeleton.get_bone_pose_rotation(head_index)
+	var neutral_eye:Vector3=protagonist.skeleton.get_bone_pose_scale(eye_index)
+	protagonist.current_clip="walk"
+	for frame in range(240):
+		protagonist.motion_clock=float(frame)*.016
+		protagonist._restore_secondary_pose()
+		protagonist._secondary_motion(0.0)
+	protagonist._restore_secondary_pose()
+	check(protagonist.skeleton.get_bone_pose_rotation(head_index).is_equal_approx(neutral_head),"Four seconds of secondary gestures return the head to its original keyed pose")
+	check(protagonist.skeleton.get_bone_pose_scale(eye_index).is_equal_approx(neutral_eye),"Blinking while walking never progressively shrinks the eye bones")
+	protagonist.current_clip="idle"
 	var base_pose:Vector3=protagonist.body_root.position
 	protagonist._process(.25)
 	check(protagonist.body_root.position.distance_to(base_pose)<.04,"Standing breathing is subtle enough to preserve grounded feet")
