@@ -318,6 +318,11 @@ func _arrive(destination: int,restore: bool=false) -> void:
 			if is_instance_valid(node):node.visible=item["visible"];node.process_mode=item["mode"]
 		home_hidden.clear();home_harbor.visible=true;home_ferry.position=HOME_BERTH;g.player.position=home_nav.nearest_free(HOME_DOCK+Vector3(-1,0,0))
 	if restore:g.player.position=g.world.navigation.nearest_free(restored_position)
+	# The restored destination is only a startup hint. Clear it after arrival:
+	# otherwise later trips home incorrectly tag new money flights as if they
+	# still originated on the region restored at startup.
+	restore_region=0
+	g.cash.display_fx_for_region(region)
 	g.camera_follow=g.player.position;g.camera_lead=Vector3.ZERO;g._update_camera(1)
 	g.milestone.announce("arrive:%d" % region,"¡Llegaste a "+NAMES[region]+"!",("Tu mercado conserva sus edificios y empleados. Podés volver a embarcar cuando quieras." if not away() else active_project().get("why","Tus pueblos siguen conectados. Podés cumplir contratos industriales.")),"boat","","NUEVO DESTINO")
 	g._save_progress();g._refresh_ui()
@@ -366,7 +371,11 @@ func _build_region() -> void:
 	for at in [Vector3(-21,0,-17),Vector3(21,0,-17),Vector3(-21,0,10),Vector3(21,0,12)]:
 		Art.place(scenery,("depot" if at.z<0 else "workshop") if region==4 else "house",at,Vector3.ONE*.72)
 		g.world.navigation.add_obstacle(Rect2(at.x-1.8,at.z-1.7,3.6,3.4))
-	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:Art.place(scenery,"oak_bench",at)
+	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:
+		Art.place(scenery,"oak_bench",at)
+		# A bench is a real obstacle, not just a rendered low-poly mesh.
+		# Route search and collision sliding must agree with what is visible.
+		g.world.navigation.add_obstacle(Rect2(at.x-.80,at.z-.42,1.60,.84))
 	for at in [Vector3(7,0,10),Vector3(-7,0,-20)]:Art.place(scenery,"flower_cart",at,Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(at.x-.8,at.z-.5,1.6,1))
 	# Decorative scene state is derived from the actually completed projects.
 	_refresh_region_identity()
