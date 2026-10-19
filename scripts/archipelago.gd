@@ -398,6 +398,11 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		var authored:=FactoryFacade.new()
 		authored.configure(g.world,p["id"])
 		root.add_child(authored)
+		# Let new architectural features rise together with the original
+		# imported building instead of appearing fully built instantaneously.
+		if animated:
+			authored.scale=Vector3(1,.05,1)
+			create_tween().tween_property(authored,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if p["id"]=="grainmill":
 		for node in model.find_children("*","Node3D",true,false):
 			if "rotor" in node.name.to_lower():mill_rotor=node;break
