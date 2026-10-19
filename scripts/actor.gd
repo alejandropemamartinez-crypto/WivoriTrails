@@ -63,8 +63,10 @@ static func model(kind: String) -> Node3D:
 			empty.name="ERROR · Recurso inválido "+kind
 			return empty
 		scenes[kind]=resource
-	var instance:Node3D=scenes[kind].instantiate() as Node3D
+	var imported:Node=scenes[kind].instantiate()
+	var instance:Node3D=imported as Node3D
 	if instance==null:
+		if imported!=null:imported.free()
 		push_error("Wivori Trails: raíz incompatible con Node3D en "+asset_path)
 		var empty:=Node3D.new()
 		empty.name="ERROR · Raíz incompatible "+kind
