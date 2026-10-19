@@ -1,6 +1,8 @@
 """Unnamed protagonist v0.16. Original sculpt, sewn clothes and mobile PBR atlas.
 Blender 4.x --background --python art/source/build_hero.py.
 Reuses the anatomical rig and animation API, never the old bearded head.
+Stage 5E: shorter square-jawed Scottish Terrier proportions, tapered upright
+asymmetric ears and subtle charcoal-grey brindle shading; not a Schnauzer beard.
 """
 import bpy, math, importlib.util
 from pathlib import Path
@@ -12,18 +14,23 @@ a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
 COAT='596b75'
 
 def sculpt_head(species,fur,rig):
-    rings=[(0,-.05,1.49,.11,.13),(0,-.10,1.57,.32,.29),(0,-.13,1.69,.46,.42),
-           (0,-.12,1.83,.52,.49),(0,-.055,1.98,.57,.46),(0,.015,2.16,.55,.43),
-           (0,.035,2.35,.45,.36),(0,.045,2.46,.29,.25),(0,.045,2.50,.04,.04)]
+    # Strong little cheeks, a forward muzzle and compact skull; without the
+    # hanging beard, oversized mustache or arching Schnauzer eyebrow.
+    rings=[(0,-.055,1.49,.11,.13),(0,-.12,1.57,.31,.28),(0,-.21,1.69,.47,.42),
+           (0,-.24,1.83,.54,.47),(0,-.075,1.98,.58,.46),(0,.015,2.16,.53,.42),
+           (0,.04,2.35,.44,.35),(0,.046,2.46,.29,.24),(0,.046,2.50,.04,.04)]
     head=a.loft('Continuous rounded puppy face',rings,fur,48,2.18,2)
     a.paint(head,COAT)
-    pigment=head.data.color_attributes['Pigment'];muzzle=a.rgb('bbc4bf')
+    pigment=head.data.color_attributes['Pigment'];muzzle=a.rgb('8999a3')
     for v,c in zip(head.data.vertices,pigment.data):
         x,y,z=v.co
-        # A small integrated muzzle patch, with no pale beard or heavy brows.
-        patch=math.exp(-((x/.37)**4)-(((z-1.78)/.21)**4))*max(0,min(1,(-y-.28)/.16))*.90
-        top=.94+.11*max(0,min(1,(z-1.5)))
-        c.color=(*[c.color[i]*top*(1-patch)+muzzle[i]*patch for i in range(3)],1)
+        # Breed-readable grey brindle is painted into the deforming coat,
+        # NOT hanging tuft meshes or a brightly coloured muzzle beard.
+        fleck=.045*math.sin(x*31+z*17)*math.sin(z*25-x*9)
+        coat_shade=.92+.10*max(0,min(1,(z-1.5)))+fleck
+        # A small soft muzzle blaze; preserve dark coat around chin/eyes.
+        patch=math.exp(-((x/.30)**4)-(((z-1.81)/.185)**4))*max(0,min(1,(-y-.38)/.20))*.61
+        c.color=(*[min(1,max(0,c.color[i]*coat_shade*(1-patch)+muzzle[i]*patch)) for i in range(3)],1)
     bpy.context.view_layer.update()
     bvh=BVHTree.FromObject(head,bpy.context.evaluated_depsgraph_get())
     def face_y(x,z):
@@ -48,15 +55,15 @@ def sculpt_head(species,fur,rig):
     for s,side in [(-1,'L'),(1,'R')]:
         x=s*.265;z=2.135;y=face_y(x,z);bone='eye.'+side
         # Back halves intersect the head; all accents share the same eyelid bone.
-        piece('Inset eye rim '+side,(x,y+.018,z),(.295,.17,.333),ink,bone)
-        piece('Warm eye '+side,(x,y-.022,z),(.255,.145,.293),ivory,bone)
-        piece('Amber iris '+side,(x+.012,y-.090,z-.006),(.161,.038,.203),amber,bone)
-        piece('Deep pupil '+side,(x+.012,y-.108,z-.006),(.111,.023,.158),pupil,bone)
+        piece('Inset eye rim '+side,(x,y+.018,z),(.274,.165,.312),ink,bone)
+        piece('Warm eye '+side,(x,y-.022,z),(.231,.140,.267),ivory,bone)
+        piece('Amber iris '+side,(x+.012,y-.090,z-.006),(.151,.038,.195),amber,bone)
+        piece('Deep pupil '+side,(x+.012,y-.108,z-.006),(.108,.023,.149),pupil,bone)
         piece('Key reflection '+side,(x-.018,y-.122,z+.047),(.045,.008,.056),shine,bone,0)
         piece('Bounce reflection '+side,(x+.044,y-.120,z-.042),(.018,.008,.024),shine,bone,0)
-        rs=[(s*.35,.045,2.31,.19,.145),(s*.43,.065,2.49,.16,.12),
-            (s*(.48 if s<0 else .52),.09,2.73 if s<0 else 2.69,.08,.07),
-            (s*(.475 if s<0 else .55),.115,2.86 if s<0 else 2.80,.01,.015)]
+        rs=[(s*.35,.045,2.31,.18,.145),(s*.43,.066,2.50,.145,.115),
+            (s*(.48 if s<0 else .52),.09,2.78 if s<0 else 2.73,.072,.060),
+            (s*(.475 if s<0 else .55),.115,2.96 if s<0 else 2.90,.012,.014)]
         ear=a.loft('Soft asymmetric ear '+side,rs,fur,24,2,2);a.paint(ear,COAT)
         a.weight(ear,'ear.'+side,rig,lambda v,side=side:{'ear.'+side:max(0,min(1,(v.z-2.34)/.20)),'head':1-max(0,min(1,(v.z-2.34)/.20))})
         rose=a.mat('Inner ear dusky peach','be938c',.88)
