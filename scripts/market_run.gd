@@ -127,7 +127,8 @@ func deliver_contract() -> int:
 	if amount<=0:return 0
 	g.stash[kind]-=amount; contract_done+=amount; g.manual_delivered+=amount
 	var income: int=amount*int(g.SELL_VALUE[kind])*2
-	g._record_sale(amount,income)
+	g._fly_produce(kind,g.player.position+Vector3(0,1.15,0),CART+Vector3(0,1.4,0),amount)
+	g._record_sale(amount,income,CART+Vector3(0,1.4,0))
 	g.player.set_carry(g._total_bag()); g.player.act("deliver")
 	g.world.sale_receipt(CART,income); g._cash_sound()
 	g._notice("PEDIDO PREMIUM: +%d\nVos entregaste %d %s." % [income,amount,g.CROP_NAMES[kind]],2.2)
