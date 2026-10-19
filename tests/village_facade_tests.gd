@@ -60,7 +60,7 @@ func run_tests() -> void:
 		for p in game.route.PROJECTS:
 			if p["region"]!=region or p["model"].is_empty():continue
 			var root:Node3D=game.route.station_nodes[p["id"]]
-			var detail:WivoriVillageFacade=root.get_node_or_null("Identidad de pueblo · "+p["id"])
+			var detail:WivoriVillageFacade=root.get_node_or_null("Identidad de pueblo · "+p["id"]) as WivoriVillageFacade
 			check(detail!=null,"Completed %s renders its own authored regional facade" % p["id"])
 			if detail==null:continue
 			found+=1
