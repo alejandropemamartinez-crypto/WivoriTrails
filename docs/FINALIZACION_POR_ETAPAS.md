@@ -68,6 +68,15 @@ Medir solapes con pruebas automatizadas; verificar manualmente las capturas.
 caja/tesorería/entrega son reconocibles al caminar; no hay cajas flotantes
 masivas ni avisos permanentes que vuelvan incontrolable la pantalla.
 
+### Avance técnico de la etapa 2 — rama sin compilación
+- Rama de cambios: `feat/v017-stage2-ui-signage-no-build`, basada en la etapa 1.
+- Títulos de misión ajustables en tamaño (Quicksand), explicación en dos líneas y botón de guía más compacto.
+- Los paneles de compra cercanos se ocultan durante robos y alertas de la coneja, para no tapar una acción urgente.
+- Carteles de mejoras elevados: pictograma particular (10 SVG ya existentes), letra más grande, precio y placa de alto contraste.
+- Carteles de cajas, tesorería y encargos subidos por encima de los modelos.
+- **No se ejecutaron Godot, tests, capturas ni APK**, a solicitud del creador. Cambios sujetos a comprobación visual y regresión en una etapa posterior.
+- Todavía hay que revisar composición, escalas, solapes y arte en resolución real; ninguna aprobación artística se presume.
+
 ## Etapa 3 — Animaciones y recompensas visibles
 Cosecha con fruto físico, mochila y llenado; entrega con movimiento de producto;
 clientes comprando; monedas que quedan en pilas de cajas; recogida automática al
