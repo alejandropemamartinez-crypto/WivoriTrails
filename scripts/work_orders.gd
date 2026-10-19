@@ -187,9 +187,18 @@ func close_board() -> void:
 	if board_scrim!=null:board_scrim.visible=false
 func toggle_board() -> void:
 	if board_scrim==null or g.run.level<7:return
-	if g.shop_panel.visible:g._toggle_shop()
+	if g.route.sailing>0 or g.milestone!=null and g.milestone.is_open():return
+	var opening:bool=not board_scrim.visible
+	if opening:
+		g.route.close_board()
+		if g.town.in_build_mode:g.town.toggle_mode()
+		if g.shop_panel.visible:g._toggle_shop()
+		g.has_tap_destination=false
+		g.destination_marker.visible=false
 	g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
-	board_scrim.visible=not board_scrim.visible;refresh_board();g._refresh_ui()
+	board_scrim.visible=opening
+	refresh_board()
+	g._refresh_ui()
 func build_board() -> void:
 	board_scrim=ColorRect.new();board_scrim.color=Color(.04,.14,.16,.60);board_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.hud.root.add_child(board_scrim);board_scrim.visible=false
 	board=g.hud.panel();board_scrim.add_child(board);board.set_anchors_and_offsets_preset(Control.PRESET_CENTER);board.offset_left=-326;board.offset_right=326;board.offset_top=-466;board.offset_bottom=466
