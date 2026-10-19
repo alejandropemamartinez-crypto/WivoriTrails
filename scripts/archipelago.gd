@@ -173,6 +173,7 @@ func repair_ferry() -> bool:
 	g.milestone.announce("ferry:ready","¡Tu barco está listo!","Villa Miga ya está en el mapa. Embarcá en el puerto y empezá sus campos de trigo.","boat","route","NUEVA RUTA ABIERTA")
 	g._save_progress();g._refresh_ui();refresh_board();return true
 func build_project() -> bool:
+	if sailing>0:return false
 	var p:=active_project()
 	if p.is_empty() or region!=p["region"] or g.player.position.distance_to(p["at"]+Vector3(0,0,3.2) if not p["model"].is_empty() else p["at"])>2.8:return false
 	if g.coins<p["cost"] or not has_needs(p["needs"]):return false
@@ -204,6 +205,7 @@ func station(key: String) -> Vector3:
 		if p["id"]==RECIPES[key]["building"]:return p["at"]+Vector3(0,0,3.2)
 	return DOCK
 func start_batch(key: String,automatic: bool=false) -> bool:
+	if sailing>0 and not automatic:return false
 	if not RECIPES.has(key):return false
 	var recipe: Dictionary=RECIPES[key]
 	if not built.has(recipe["building"]):return false
@@ -235,6 +237,7 @@ func start_batch(key: String,automatic: bool=false) -> bool:
 		g.save_timer=minf(g.save_timer,2.0)
 	return true
 func pickup(key: String) -> bool:
+	if sailing>0:return false
 	if not jobs.has(key) or region!=RECIPES[key]["region"] or g.player.position.distance_to(station(key))>2.8:return false
 	var count:=mini(int(jobs[key]["ready"]),g.max_capacity-g._total_bag())
 	if count<=0:return false
@@ -242,13 +245,16 @@ func pickup(key: String) -> bool:
 	g._fly_model_goods(goods_model(key),station(key)+Vector3(0,1.25,0),g.player.position+Vector3(0,1.25,0),count,g.player)
 	_update_cargo();g._notice("+%d %s en tu mochila" % [count,GOODS[key]],1.8);g._save_progress();return true
 func hire(key: String) -> bool:
+	if sailing>0:return false
 	if not RECIPES.has(key) or not built.has(RECIPES[key]["building"]) or employees.has(key) or g.coins<650:return false
 	g.coins-=650;employees[key]=true;_spawn_operator(key);g._notice("¡Empleado contratado!\nPrepara lotes con ingredientes guardados en el barco.",2.7);g._save_progress();refresh_board();return true
 func improve(key: String) -> bool:
+	if sailing>0:return false
 	var tier:=int(mastery.get(key,0));var cost:=450+tier*350
 	if not RECIPES.has(key) or not built.has(RECIPES[key]["building"]) or tier>=3 or g.coins<cost:return false
 	g.coins-=cost;mastery[key]=tier+1;g._save_progress();refresh_board();return true
 func deposit() -> bool:
+	if sailing>0:return false
 	if g.player.position.distance_to(DOCK if away() else HOME_DOCK)>2.8 or bag_total()==0:return false
 	var transferred:=0
 	var remaining_visual:=8
@@ -263,6 +269,7 @@ func deposit() -> bool:
 	_update_cargo()
 	focused_deposit=false;g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
 func fulfill_industry_order() -> bool:
+	if sailing>0:return false
 	# Cargo is consumed exactly once; reward remains in the physical local
 	# cash register until a player collects it. Orders cannot be repeated.
 	var contract:=industry_order()
@@ -293,6 +300,7 @@ func fulfill_industry_order() -> bool:
 	return true
 
 func sell_bundle(key: String) -> bool:
+	if sailing>0:return false
 	if not away() or not GOODS.has(key) or g.player.position.distance_to(MARKET)>2.8 or amount(key)<3:return false
 	var carried: int=mini(3,int(bag[key]))
 	consume({key:3});market_money[region]+=sale_value(key);contracts_done+=1
