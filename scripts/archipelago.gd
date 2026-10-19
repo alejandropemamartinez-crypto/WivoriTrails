@@ -3,6 +3,7 @@ class_name WivoriArchipelago
 
 const Finish=preload("res://scripts/scene_finish.gd")
 const Art=preload("res://scripts/art_library.gd")
+const RegionIdentity=preload("res://scripts/region_identity.gd")
 const Store=preload("res://scripts/save_store.gd")
 const Nav=preload("res://scripts/navigation.gd")
 const HOME_DOCK=preload("res://scripts/town_layout.gd").DOCK
@@ -56,6 +57,7 @@ var contracts_done:=0
 var home_nav
 var home_position:=Vector3.ZERO
 var scenery: Node3D
+var region_identity: Node3D
 var home_ferry: Node3D
 var home_harbor: Node3D
 const HOME_BERTH=Vector3(29,.16,19)
@@ -76,6 +78,7 @@ var focused_recipe:=""
 var focused_sale:=""
 var focused_deposit:=false
 var animals: Array[Dictionary]=[]
+var processing_visuals: Dictionary={}
 var lighthouse_beam: Node3D
 var mill_rotor: Node3D
 var pinned:=false
@@ -217,7 +220,7 @@ func _arrive(destination: int,restore: bool=false) -> void:
 		crop_timers.clear()
 		for crop in wheat:crop_timers.append(crop["remaining"])
 	if scenery!=null:scenery.free();scenery=null
-	region=destination;focused_recipe="";focused_sale="";focused_deposit=false;residents.clear();animals.clear();lighthouse_beam=null;mill_rotor=null;station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
+	region=destination;focused_recipe="";focused_sale="";focused_deposit=false;residents.clear();animals.clear();processing_visuals.clear();region_identity=null;lighthouse_beam=null;mill_rotor=null;station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
 	if away():
 		_build_region();g.player.position=DOCK+Vector3(0,0,-2)
 	else:
@@ -269,6 +272,10 @@ func _build_region() -> void:
 		Art.place(scenery,"house",at,Vector3.ONE*.72);g.world.navigation.add_obstacle(Rect2(at.x-1.8,at.z-1.7,3.6,3.4))
 	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:Art.place(scenery,"oak_bench",at)
 	for at in [Vector3(7,0,10),Vector3(-7,0,-20)]:Art.place(scenery,"flower_cart",at,Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(at.x-.8,at.z-.5,1.6,1))
+	# Scenic identity is created anew when sailing; it never enters the save file.
+	region_identity=RegionIdentity.new()
+	region_identity.configure(g.world,region)
+	scenery.add_child(region_identity)
 	g.world.navigation.build();_update_project_marker()
 	var accents:=PackedVector3Array()
 	for i in range(100):
@@ -291,7 +298,7 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		var kind: String={"cowbarn":"cow","henhouse":"hen","pigpen":"piglet"}[p["id"]]
 		for i in range(2):
 			var animal:=Art.place(root,"farm_"+kind,Vector3(-1.2+i*2.4,0,3.7),Vector3.ONE*(.8 if kind!="hen" else 1.0));animal.rotation.y=.12 if i==0 else -.25
-			animals.append({"node":animal,"at":animal.position,"yaw":animal.rotation.y,"phase":float(i)*1.8})
+			animals.append({"node":animal,"at":animal.position,"yaw":animal.rotation.y,"phase":float(i)*1.8,"base_scale":animal.scale})
 		for x in [-2.8,2.8]:
 			Art.place(root,"farm_fence",Vector3(x,0,2.1))
 			g.world.navigation.add_obstacle(Rect2(p["at"].x+x-.13,p["at"].z-1, .26,6.2))
@@ -299,7 +306,23 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		if RECIPES[key]["building"]==p["id"]:
 			var output:=Art.place(root,"goods_"+key,Vector3(-1.0 if key=="flour" else 1.1,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
 			var label: Label3D=g.world.make_label(root,"",Vector3(-1.0 if key=="flour" else 1.1,1.8,3.1),34);label.name="Job_"+key;label.pixel_size=.008;label.outline_size=7;label.outline_modulate=Color("#254b45")
+			if key in ["flour","feed","bread","cheese","meat","provisions"]:_build_process_visual(root,key)
 			if employees.get(key,false):_spawn_operator(key)
+func _build_process_visual(root: Node3D, key: String) -> void:
+	# A small animated conveyor shows the *actual* recipe output while a batch
+	# is running. It has no collision and owns no inventory or economy state.
+	var machine:=Node3D.new()
+	machine.name="Línea de producción "+key
+	machine.position=Vector3(-.72 if key=="flour" else .72,.10,1.60)
+	root.add_child(machine)
+	g.world.shape(machine,"box",Vector3(0,.42,0),Vector3(1.38,.16,.63),Color("#687d7b"),"Banda transportadora")
+	for x in [-.56,.56]:
+		g.world.shape(machine,"cylinder",Vector3(x,.36,0),Vector3(.19,.32,.19),Color("#d2b580"),"Rodillo")
+	var product:=Art.place(machine,"goods_"+key,Vector3(-.45,.78,0),Vector3.ONE*.53)
+	product.name="Producto en elaboración "+key
+	product.visible=false
+	processing_visuals[key]={"node":product,"origin":Vector3(-.45,.78,0)}
+
 func _spawn_operator(key: String) -> void:
 	if scenery==null or region!=RECIPES[key]["region"]:return
 	var root: Node3D=station_nodes.get(RECIPES[key]["building"])
@@ -337,8 +360,21 @@ func _update_cargo() -> void:
 func tick(delta: float) -> void:
 	clock+=delta
 	for animal in animals:
-		animal["node"].position.y=animal["at"].y+.018*sin(clock*2+animal["phase"])
-		animal["node"].rotation.y=animal["yaw"]+.12*sin(clock*.7+animal["phase"])
+		var creature: Node3D=animal["node"]
+		var phase:float=animal["phase"]
+		# Walking in a small pen, turning to graze and breathing without slipping
+		# outside the fence or replacing the imported species-specific meshes.
+		creature.position=animal["at"]+Vector3(.25*sin(clock*.43+phase),.025*absf(sin(clock*2.1+phase)),.18*sin(clock*.31+phase))
+		creature.rotation.y=animal["yaw"]+.26*sin(clock*.48+phase)
+		creature.scale=animal["base_scale"]*(1.0+.012*sin(clock*1.45+phase))
+	for key in processing_visuals:
+		var visual: Node3D=processing_visuals[key]["node"]
+		if not is_instance_valid(visual):continue
+		var active:bool=jobs.has(key) and float(jobs[key].get("remaining",0.0))>0.0
+		visual.visible=active
+		if active:
+			visual.position=processing_visuals[key]["origin"]+Vector3(fposmod(clock*.46,1.0),.07*sin(clock*2.4),0)
+			visual.rotation.y=clock*.65
 	if is_instance_valid(lighthouse_beam):lighthouse_beam.rotation.y=clock*.28
 	if is_instance_valid(mill_rotor):mill_rotor.rotation.z+=delta*.32
 	if sailing>0:
