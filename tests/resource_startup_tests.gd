@@ -6,6 +6,7 @@ extends SceneTree
 const Art=preload("res://scripts/art_library.gd")
 const Actor=preload("res://scripts/actor.gd")
 const Route=preload("res://scripts/archipelago.gd")
+const Layout=preload("res://scripts/town_layout.gd")
 const REQUIRED_MODELS=[
 	"bakery",
 	"booth_alarm",
@@ -148,6 +149,12 @@ func run_tests() -> void:
 		check(REQUIRED_MODELS.has(model_name),"Player's visual backpack uses a physically imported model: "+model_name)
 	for animal in ["cow","hen","piglet"]:
 		check(REQUIRED_MODELS.has("farm_"+animal),"Livestock decoration imports the correct farm species: "+animal)
+	# All 10 market kiosks use dynamically composed booth and SVG names:
+	# an absent file must be detected by the import suite, not on purchase.
+	for kind in Layout.UPGRADES:
+		check(REQUIRED_MODELS.has("booth_"+kind),"Upgrade "+kind+" uses an imported authored building")
+		check(ResourceLoader.exists("res://assets/ui/icons/"+kind+".svg"),"Upgrade "+kind+" has a legible icon in the market")
+	check(ResourceLoader.exists("res://assets/ui/icons/shop.svg"),"Missing future upgrade icons can safely fall back to the known shop pictogram")
 	check(ResourceLoader.exists("res://assets/ui/signs/star.svg"),"The CONSTRUIR project sign uses an imported star pictogram")
 	check(ResourceLoader.exists("res://Main.tscn"),"The configured startup scene has a valid file")
 	print("RESULT: %d checks, %d failures; never executed during code-only development" % [checked,failures])
