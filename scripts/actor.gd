@@ -184,7 +184,7 @@ func _cargo_asset(kind: String) -> String:
 
 func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -> void:
 	if destination==null:return
-	for child in destination.get_children():child.free()
+	var prior_nodes:Array=destination.get_children()
 	var kinds: Array=amounts.keys()
 	kinds.sort()
 	var remaining:Dictionary={}
@@ -202,12 +202,24 @@ func _fill_visual_basket(destination: Node3D, amounts: Dictionary, limit: int) -
 			if visible.size()==limit:break
 		if not added:break
 	for i in range(visible.size()):
-		var item:=model(_cargo_asset(visible[i]))
+		var asset:String=_cargo_asset(visible[i])
+		var expected:String="res://assets/models/"+asset+".glb"
+		var item:Node3D=prior_nodes[i] if i<prior_nodes.size() else null
+		# Preserve imported mesh + rig instances when the same product still
+		# occupies this slot; repeated farming should not cause GLB churn.
+		if item!=null and item.scene_file_path!=expected:
+			item.free()
+			item=null
+		if item==null:
+			item=model(asset)
+			destination.add_child(item)
+			destination.move_child(item,i)
 		var x:float=(float(i%3)-1.0)*.22
-		var z:float=(float(i/3))*.21
+		var z:float=float(i/3)*.21
 		item.position=Vector3(x,z,0)
 		item.scale=Vector3.ONE*.53
-		destination.add_child(item)
+	for i in range(visible.size(),prior_nodes.size()):
+		if is_instance_valid(prior_nodes[i]):prior_nodes[i].free()
 
 func set_visible_cargo(contents: Dictionary) -> void:
 	# Cosmetics only. The caller owns the real item counts; we never change
