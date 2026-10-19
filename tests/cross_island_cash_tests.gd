@@ -61,21 +61,31 @@ func run_tests() -> void:
 	await reload()
 	route=game.route
 	check(route.region==4 and game.cash.player_held==92 and game.coins==opening_wallet,"Reloading Forja mid-pickup preserves the uncredited exact amount")
+	check(route.restore_region==0,"Startup-only destination does not remain sticky after restored arrival")
+	check(game.cash.fx_regions.has(4) and game.cash.fx_regions[4].visible,"In-flight cash is reconstructed in the saved island's visible graphics layer, not Wivori")
 	route.tick(1.15)
 	check(game.cash.player_held==0 and game.coins==opening_wallet+92,"After visual travel, Forja credits exactly once")
 	route.tick(1.15)
 	check(game.coins==opening_wallet+92,"Repeated ticks cannot replay collected industrial cash")
 	await arrive(1)
+	check(game.cash.fx_regions.has(4) and not game.cash.fx_regions[4].visible,"Ferry hides old Forja coin flights while showing Villa Miga")
+	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:
+		check(not game.world.navigation.is_walkable(at,.25),"Villa Miga benches have matching real navigation collisions")
 	game.player.position=route.MARKET+Vector3(.8,0,0)
 	route.market_money[1]=67
 	route.tick(.06)
 	check(game.cash.player_held==67 and game.coins==opening_wallet+92,"Villa Miga cash pickup also waits for animation to complete")
 	await arrive(0)
+	check(not game.cash.fx_regions[1].visible,"Returning home hides the previous island's visual cash while its money stays in transit")
+	check(route.restore_region==0,"Subsequent returns to Wivori never revive the initially restored destination")
 	check(game.coins==opening_wallet+92 and game.cash.player_held==67,"Sailing home does not duplicate a still-flying remote payout")
 	game.cash.tick(1.12)
 	check(game.coins==opening_wallet+159 and game.cash.player_held==0,"Returning home correctly settles the remote in-transit payment once")
 	game.cash.tick(1.12)
 	check(game.coins==opening_wallet+159,"Treasury and local island payouts cannot double-count")
+	game.cash.add_sale(37)
+	check(game.cash.fx_regions.has(0) and game.cash.fx_regions[0].visible,"A new home-market customer sale uses Wivori's visible coin layer")
+	check(not game.cash.fx_regions[4].visible and not game.cash.fx_regions[1].visible,"New Wivori money never reuses the saved Forja or Villa Miga effects")
 
 	game.queue_free()
 	await process_frame
