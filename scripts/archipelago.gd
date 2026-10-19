@@ -207,7 +207,7 @@ func start_batch(key: String,automatic: bool=false) -> bool:
 			var needed: int=int(recipe["needs"][item])
 			var carried: int=mini(needed,int(bag[item]))
 			if carried>0:g._fly_model_goods(goods_model(item),g.player.position+Vector3(0,1.1,0),station(key)+Vector3(0,1.2,0),carried)
-			if needed>carried:g._fly_model_goods("goods_"+item,DOCK+Vector3(0,1.15,0),station(key)+Vector3(0,1.2,0),needed-carried)
+			if needed>carried:g._fly_model_goods(goods_model(item),DOCK+Vector3(0,1.15,0),station(key)+Vector3(0,1.2,0),needed-carried)
 	consume(recipe["needs"],automatic)
 	job["remaining"]=recipe["time"]*pow(.8,int(mastery.get(key,0)))
 	job["automatic"]=automatic
@@ -242,6 +242,36 @@ func deposit() -> bool:
 	if transferred==0:g._notice("Ese producto ya llena el almacén. Vendé un lote para liberar espacio.",2);return false
 	_update_cargo()
 	focused_deposit=false;g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
+func fulfill_industry_order() -> bool:
+	# Cargo is consumed exactly once; reward remains in the physical local
+	# cash register until a player collects it. Orders cannot be repeated.
+	var contract:=industry_order()
+	if region!=4 or contract.is_empty() or g.player.position.distance_to(MARKET)>2.8:return false
+	if not has_needs(contract["needs"]):return false
+	var remaining_visual:int=8
+	for key in contract["needs"]:
+		var required:int=int(contract["needs"][key])
+		var carried:int=mini(required,int(bag[key]))
+		if carried>0 and remaining_visual>0:
+			var shown:int=mini(carried,remaining_visual)
+			g._fly_model_goods(goods_model(key),g.player.position+Vector3(0,1.2,0),MARKET+Vector3(0,1.2,0),shown)
+			remaining_visual-=shown
+		if required>carried and remaining_visual>0:
+			var stored:int=mini(required-carried,remaining_visual)
+			g._fly_model_goods(goods_model(key),DOCK+Vector3(0,1.2,0),MARKET+Vector3(0,1.2,0),stored)
+			remaining_visual-=stored
+	consume(contract["needs"])
+	market_money[4]+=int(contract["reward"])
+	industry_orders_done+=1
+	contracts_done+=1
+	g.player.act("deliver")
+	_update_cargo()
+	g._notice("¡Contrato entregado! Recogé el pago en la CAJA.",2.1)
+	g._save_progress()
+	refresh_board()
+	g._refresh_ui()
+	return true
+
 func sell_bundle(key: String) -> bool:
 	if not away() or not GOODS.has(key) or g.player.position.distance_to(MARKET)>2.8 or amount(key)<3:return false
 	var carried: int=mini(3,int(bag[key]))
@@ -374,6 +404,26 @@ func _build_process_visual(root: Node3D, key: String) -> void:
 	product.name="Producto en elaboración "+key
 	product.visible=false
 	processing_visuals[key]={"node":product,"origin":Vector3(-.45,.78,0)}
+
+func _decorate_industry_facility(root: Node3D, id: String) -> void:
+	# Industrial identity layered onto imported buildings without new binary
+	# assets. These details are visual and do not modify the navigation mesh.
+	var cobalt:=Color("#60858e")
+	var copper:=Color("#cb9066")
+	var plaster:=Color("#ebdfbb")
+	for i in range(2):
+		var x:float=-1.85 if i==0 else 1.85
+		g.world.shape(root,"cylinder",Vector3(x,1.15,-.55),Vector3(.44,2.3,.44),cobalt,"Depósito vertical")
+		g.world.shape(root,"cylinder",Vector3(x,2.40,-.55),Vector3(.50,.25,.50),copper,"Remate de depósito")
+		g.world.shape(root,"box",Vector3(x,1.90,.07),Vector3(.16,.17,1.24),plaster,"Tubería de taller")
+	if id=="packaging_plant":
+		for i in range(3):
+			g.world.shape(root,"box",Vector3(-1.25+float(i)*1.25,.68,2.12),Vector3(.70,.40,.48),Color("#d4b28b"),"Empaques en máquina")
+	if id=="preserves_line":
+		for i in range(3):
+			g.world.shape(root,"cylinder",Vector3(-1.3+float(i)*1.25,.67,2.12),Vector3(.52,.62,.52),Color("#c5d6ce"),"Lata de conserva")
+	if id=="trade_center":
+		g.world.shape(root,"box",Vector3(0,3.55,0),Vector3(2.5,.25,1.10),Color("#f2d28c"),"Emblema del comercio isleño")
 
 func _spawn_operator(key: String) -> void:
 	if scenery==null or region!=RECIPES[key]["region"]:return
@@ -631,27 +681,37 @@ func save_state() -> Dictionary:
 	if not wheat.is_empty():
 		for crop in wheat:crops.append(crop["remaining"])
 	else:crops=crop_timers.duplicate()
-	return {"ferry":ferry,"region":region,"position":[g.player.position.x,g.player.position.z],"stage":stage,"inventory":inventory.duplicate(),"bag":bag.duplicate(),"jobs":jobs.duplicate(true),"employees":employees.duplicate(),"mastery":mastery.duplicate(),"produced":total_produced.duplicate(),"market_money":market_money.duplicate(),"contracts":contracts_done,"crops":crops}
+	return {"ferry":ferry,"region":region,"position":[g.player.position.x,g.player.position.z],"stage":stage,"industry_stage":industry_stage,"industry_orders_done":industry_orders_done,"inventory":inventory.duplicate(),"bag":bag.duplicate(),"jobs":jobs.duplicate(true),"employees":employees.duplicate(),"mastery":mastery.duplicate(),"produced":total_produced.duplicate(),"market_money":market_money.duplicate(),"contracts":contracts_done,"crops":crops}
 func load_state(data: Dictionary) -> void:
 	ferry=data.get("ferry")==true;stage=int(Store.number(data,"stage",0,0,PROJECTS.size())) if ferry else 0
 	for i in range(stage):built.append(PROJECTS[i]["id"])
+	industry_stage=int(Store.number(data,"industry_stage",0,0,INDUSTRY_PROJECTS.size())) if stage==PROJECTS.size() else 0
+	industry_orders_done=int(Store.number(data,"industry_orders_done",0,0,1000000)) if industry_stage==INDUSTRY_PROJECTS.size() else 0
+	for i in range(industry_stage):built.append(INDUSTRY_PROJECTS[i]["id"])
 	for key in GOODS:
 		inventory[key]=int(Store.number(data.get("inventory",{}) if data.get("inventory") is Dictionary else {},key,0,0,100000))
 		bag[key]=int(Store.number(data.get("bag",{}) if data.get("bag") is Dictionary else {},key,0,0,maxi(0,g.max_capacity-g._total_bag())))
 	for key in RECIPES:
 		var saved: Dictionary=data.get("jobs",{}) if data.get("jobs") is Dictionary else {}
 		if saved.get(key) is Dictionary and built.has(RECIPES[key]["building"]):
-			jobs[key]={"remaining":Store.number(saved[key],"remaining",0,0,25),"ready":int(Store.number(saved[key],"ready",0,0,9)),"automatic":saved[key].get("automatic",false)==true}
+			jobs[key]={"remaining":Store.number(saved[key],"remaining",0,0,RECIPES[key]["time"]),"ready":int(Store.number(saved[key],"ready",0,0,9)),"automatic":saved[key].get("automatic",false)==true}
 		if data.get("employees") is Dictionary and data["employees"].get(key) is bool and built.has(RECIPES[key]["building"]):employees[key]=data["employees"][key]
 		mastery[key]=int(Store.number(data.get("mastery",{}) if data.get("mastery") is Dictionary else {},key,0,0,3))
 		if data.get("produced") is Dictionary:total_produced[key]=int(Store.number(data["produced"],key,0,0,1000000))
 	contracts_done=int(Store.number(data,"contracts",0,0,1000000))
 	var money: Array=data["market_money"] if data.get("market_money") is Array else []
-	for i in range(mini(4,money.size())):market_money[i]=int(Store.number({"n":money[i]},"n",0,0,100000000))
+	for i in range(mini(market_money.size(),money.size())):market_money[i]=int(Store.number({"n":money[i]},"n",0,0,100000000))
 	var crops: Array=data["crops"] if data.get("crops") is Array else []
 	for i in range(mini(16,crops.size())):crop_timers.append(Store.number({"n":crops[i]},"n",0,0,8))
 	var saved_region:=int(Store.number(data,"region",0,0,unlocked()))
 	restore_region=saved_region;restored_position=Store.position(data.get("position"),DOCK+Vector3(0,0,-2))
+
+func _guide_industry_order() -> void:
+	close_board()
+	if not fulfill_industry_order():
+		pinned=true
+		g._set_world_goal(MARKET if region==4 else (DOCK if away() else HOME_DOCK))
+		g._refresh_ui()
 
 func _guide_deposit() -> void:
 	close_board();focused_recipe="";focused_deposit=true;pinned=true
