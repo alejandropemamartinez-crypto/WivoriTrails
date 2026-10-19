@@ -68,9 +68,12 @@ func tick(delta: float) -> void:
 		var action: String=objective.get("action","")
 		var task_title: String=objective.get("title","")
 		var id:=""
-		# Explain a task once per DISTINCT action, not again each new chapter.
-		if g.route.away() and action.begins_with("route:") and action!="route:project" and action!="route:board":id="tutorial:route:%s" % action
-		elif not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:id="tutorial:mercado:%s" % task_title
+		# Sailing arrivals and construction milestones already use one large
+		# acknowledged card. Everyday crafting, sale and pickup actions must
+		# NOT create further blocking popups for each product or contract.
+		# Their next step remains visible in the objective panel.
+		if not g.route.away() and task_title in ["Recogé lo que ganaste","Llevá tu cosecha al puesto"]:
+			id="tutorial:mercado:%s" % task_title
 		if not id.is_empty():announce(id,task_title,objective.get("detail","")+"\n\nTocá SEÑALAR y seguí las flechas con el joystick.","deliver","","TU SIGUIENTE TAREA")
 	# A long customer queue is operational information, not a screen-blocking
 	# milestone. Existing objective/alert indicators remain available in HUD.
