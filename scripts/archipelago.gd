@@ -9,15 +9,17 @@ const Nav=preload("res://scripts/navigation.gd")
 const HOME_DOCK=preload("res://scripts/town_layout.gd").DOCK
 const DOCK=Vector3(0,0,20)
 const MARKET=Vector3(12,0,6)
-const NAMES=["Wivori","Villa Miga","Puerto Nata","Bahía Farol"]
-const GOODS={"wheat":"Trigo","flour":"Harina","feed":"Alimento","bread":"Pan","egg":"Huevos","milk":"Leche","cheese":"Queso","meat":"Carne empaquetada","provisions":"Provisiones"}
-const VALUES={"wheat":8,"flour":20,"feed":16,"bread":55,"egg":24,"milk":30,"cheese":80,"meat":68,"provisions":160}
+const NAMES=["Wivori","Villa Miga","Puerto Nata","Bahía Farol","Distrito Forja"]
+const GOODS={"wheat":"Trigo","flour":"Harina","feed":"Alimento","bread":"Pan","egg":"Huevos","milk":"Leche","cheese":"Queso","meat":"Carne empaquetada","provisions":"Provisiones","packaging":"Empaques","preserves":"Conservas","kits":"Kits comerciales"}
+const VALUES={"wheat":8,"flour":20,"feed":16,"bread":55,"egg":24,"milk":30,"cheese":80,"meat":68,"provisions":160,"packaging":74,"preserves":195,"kits":320}
+const GOODS_MODELS={"packaging":"goods_parcel","preserves":"goods_provisions","kits":"goods_crate"}
 # Distinct local buyer preferences reward moving real stock by ferry.
 # No new currencies, inventory classes or save-version changes.
 const SPECIALTIES={
 	1:["wheat","flour","feed","bread"],
 	2:["egg","milk","cheese","meat"],
-	3:["provisions","bread","cheese"]
+	3:["provisions","bread","cheese"],
+	4:["packaging","preserves","kits"]
 }
 const PROJECTS=[
 	{"region":1,"id":"grain","name":"Campos de Villa Miga","cost":380,"needs":{},"at":Vector3(-12,0,-16),"model":"greenhouse","why":"Abrí los campos de trigo. La harina alimentará a tres pueblos."},
@@ -36,6 +38,20 @@ const PROJECTS=[
 	{"region":3,"id":"beacon","name":"Reconstruir el Faro","cost":1800,"needs":{"provisions":8,"cheese":8},"at":Vector3(0,0,2),"model":"route_lighthouse","why":"El faro vuelve a guiar a los barcos de los cuatro pueblos."},
 	{"region":3,"id":"festival","name":"Inaugurar la Ruta del Faro","cost":2200,"needs":{"provisions":12,"bread":12,"milk":12},"at":Vector3(0,0,7),"model":"","why":"Abastecé la inauguración y conectá definitivamente todos los pueblos."}
 ]
+# Separate post-Faro arc: legacy 15/15 completion and save field 'stage' stay
+# unchanged, while industry_stage is an optional additive save field.
+const INDUSTRY_PROJECTS=[
+	{"region":4,"id":"dockworks","name":"Abrir muelle industrial","cost":1800,"needs":{"provisions":6,"bread":8},"at":Vector3(-12,0,-16),"model":"depot","why":"Habilitá el muelle de carga para recibir suministros de los cuatro pueblos."},
+	{"region":4,"id":"packaging_plant","name":"Fábrica de empaques","cost":2600,"needs":{"wheat":12,"flour":8},"at":Vector3(0,0,-12),"model":"workshop","why":"Usá fibra agrícola y harina para fabricar embalajes biodegradables."},
+	{"region":4,"id":"preserves_line","name":"Planta de conservas","cost":3600,"needs":{"packaging":9,"provisions":8},"at":Vector3(12,0,-12),"model":"bakery","why":"Transformá provisiones del archipiélago en conservas para viajes largos."},
+	{"region":4,"id":"shipping_hub","name":"Centro de logística","cost":4600,"needs":{"preserves":6,"cheese":6},"at":Vector3(-12,0,4),"model":"workshop","why":"Combiná conservas, empaques y queso para preparar kits de comercio."},
+	{"region":4,"id":"trade_center","name":"Bolsa de comercio isleño","cost":6000,"needs":{"kits":12,"preserves":8,"milk":8},"at":Vector3(0,0,2),"model":"watchtower","why":"Coordiná contratos industriales de varios ingredientes y ganá nuevos encargos."}
+]
+const INDUSTRIAL_ORDERS=[
+	{"title":"Suministros para la travesía","needs":{"kits":3,"bread":3},"reward":1460},
+	{"title":"Reserva de alimentos","needs":{"preserves":4,"cheese":3},"reward":1540},
+	{"title":"Embalaje y abastecimiento","needs":{"packaging":6,"milk":5},"reward":1020}
+]
 const RECIPES={
 	"flour":{"region":1,"building":"grainmill","needs":{"wheat":3},"count":2,"time":12.0},
 	"feed":{"region":1,"building":"grainmill","needs":{"wheat":2},"count":3,"time":10.0},
@@ -44,7 +60,10 @@ const RECIPES={
 	"milk":{"region":2,"building":"cowbarn","needs":{"feed":3},"count":3,"time":16.0},
 	"cheese":{"region":2,"building":"dairy","needs":{"milk":3},"count":2,"time":20.0},
 	"meat":{"region":2,"building":"butcher","needs":{"feed":4},"count":2,"time":22.0},
-	"provisions":{"region":3,"building":"cannery","needs":{"bread":2,"cheese":1,"meat":1},"count":2,"time":25.0}
+	"provisions":{"region":3,"building":"cannery","needs":{"bread":2,"cheese":1,"meat":1},"count":2,"time":25.0},
+	"packaging":{"region":4,"building":"packaging_plant","needs":{"wheat":3,"flour":1},"count":3,"time":18.0},
+	"preserves":{"region":4,"building":"preserves_line","needs":{"provisions":2,"packaging":2},"count":2,"time":25.0},
+	"kits":{"region":4,"building":"shipping_hub","needs":{"preserves":2,"packaging":2,"cheese":1},"count":2,"time":30.0}
 }
 var g
 var restore_region:=0
@@ -52,6 +71,8 @@ var restored_position:=Vector3.ZERO
 var ferry:=false
 var region:=0
 var stage:=0
+var industry_stage:=0
+var industry_orders_done:=0
 var inventory: Dictionary={}
 var bag: Dictionary={}
 var built: Array[String]=[]
@@ -59,7 +80,7 @@ var jobs: Dictionary={}
 var employees: Dictionary={}
 var mastery: Dictionary={}
 var total_produced: Dictionary={}
-var market_money: Array[int]=[0,0,0,0]
+var market_money: Array[int]=[0,0,0,0,0]
 var contracts_done:=0
 var home_nav
 var home_position:=Vector3.ZERO
@@ -114,7 +135,17 @@ func _ready() -> void:
 	set_process(false)
 func away() -> bool:return region>0
 func project() -> Dictionary:return PROJECTS[stage] if stage<PROJECTS.size() else {}
-func unlocked() -> int:return 3 if built.has("farol_route") else 2 if built.has("nata_route") else 1 if ferry else 0
+func industry_project() -> Dictionary:
+	return INDUSTRY_PROJECTS[industry_stage] if stage>=PROJECTS.size() and industry_stage<INDUSTRY_PROJECTS.size() else {}
+func active_project() -> Dictionary:
+	var original:=project()
+	return original if not original.is_empty() else industry_project()
+func unlocked() -> int:
+	return 4 if stage>=PROJECTS.size() else 3 if built.has("farol_route") else 2 if built.has("nata_route") else 1 if ferry else 0
+func goods_model(key: String) -> String:
+	return GOODS_MODELS.get(key,"goods_"+key)
+func industry_order() -> Dictionary:
+	return INDUSTRIAL_ORDERS[industry_orders_done%INDUSTRIAL_ORDERS.size()] if industry_stage==INDUSTRY_PROJECTS.size() else {}
 func bag_total() -> int:
 	var count:=0
 	for n in bag.values():count+=int(n)
