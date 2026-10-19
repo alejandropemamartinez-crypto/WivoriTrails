@@ -96,12 +96,14 @@ func _fields_and_harvest() -> void:
 	for lane in range(3):
 		var x:float=9.0+float(lane)*3.6
 		_solid("box",Vector3(x,.085,-23),Vector3(2.5,.12,5.5),earth,"Surco agrícola")
-		for row in range(5):
-			var z:float=-25.0+float(row)*1.0
-			for k in range(3):
-				_solid("cone",Vector3(x+(float(k)-1.0)*.6,.41,z),Vector3(.24,.58,.24),Color("#cca45e"),"Espiga decorativa")
-	for at in [Vector3(-17,0,-23),Vector3(-20,0,-23),Vector3(-17,0,-20)]:
-		_solid("cylinder",at+Vector3(0,.48,0),Vector3(1.5,.95,1.1),Color("#d0a765"),"Rollo de heno")
+		if completed_projects.has("grain"):
+			for row in range(5):
+				var z:float=-25.0+float(row)*1.0
+				for k in range(3):
+					_solid("cone",Vector3(x+(float(k)-1.0)*.6,.41,z),Vector3(.24,.58,.24),Color("#cca45e"),"Espiga decorativa")
+	if completed_projects.has("grain"):
+		for at in [Vector3(-17,0,-23),Vector3(-20,0,-23),Vector3(-17,0,-20)]:
+			_solid("cylinder",at+Vector3(0,.48,0),Vector3(1.5,.95,1.1),Color("#d0a765"),"Rollo de heno")
 	_solid("cylinder",Vector3(-19,.72,16),Vector3(.25,1.45,.25),Color("#927051"),"Mástil del campo")
 	_banner(Vector3(-19,1.55,16),Color("#d8aa58"),0.0)
 	_asset("flower_cart",Vector3(16,0,15),.78)
@@ -111,19 +113,21 @@ func _fields_and_harvest() -> void:
 func _pasture_and_dairy() -> void:
 	# Puerto Nata is livestock country, but animals only appear when their
 	# actual project has been purchased: scenery must never fake progression.
-	for z in [-24.0,-21.5,-19.0]:
-		_solid("box",Vector3(16,.11,z),Vector3(8,.10,1.4),Color("#a4bf89"),"Pradera cercada")
-	for x in [11.8,20.2]:
+	if completed_projects.has("cowbarn"):
+		for z in [-24.0,-21.5,-19.0]:
+			_solid("box",Vector3(16,.11,z),Vector3(8,.10,1.4),Color("#a4bf89"),"Pradera cercada")
+		for x in [11.8,20.2]:
+			for z in [-25.0,-17.8]:
+				_solid("cylinder",Vector3(x,.65,z),Vector3(.16,1.3,.16),Color("#98704e"),"Poste de pradera")
 		for z in [-25.0,-17.8]:
-			_solid("cylinder",Vector3(x,.65,z),Vector3(.16,1.3,.16),Color("#98704e"),"Poste de pradera")
-	for z in [-25.0,-17.8]:
-		_solid("box",Vector3(16,1.15,z),Vector3(8.5,.12,.12),Color("#ba9568"),"Cerca de pradera")
-	for i in range(4):
-		var x:float=-15.5+float(i)*2.4
-		_solid("cylinder",Vector3(x,.48,16),Vector3(.90,.96,.90),Color("#b58c68"),"Barril de lácteos")
-		_solid("cylinder",Vector3(x,1.00,16),Vector3(.94,.13,.94),Color("#e0c18c"))
-		_register_collision(Rect2(x-.55,15.45,1.1,1.1))
-	_solid("box",Vector3(-12,.12,16),Vector3(11,.18,3),Color("#c9b996"),"Plaza de barriles")
+			_solid("box",Vector3(16,1.15,z),Vector3(8.5,.12,.12),Color("#ba9568"),"Cerca de pradera")
+	if completed_projects.has("dairy"):
+		for i in range(4):
+			var x:float=-15.5+float(i)*2.4
+			_solid("cylinder",Vector3(x,.48,16),Vector3(.90,.96,.90),Color("#b58c68"),"Barril de lácteos")
+			_solid("cylinder",Vector3(x,1.00,16),Vector3(.94,.13,.94),Color("#e0c18c"))
+			_register_collision(Rect2(x-.55,15.45,1.1,1.1))
+		_solid("box",Vector3(-12,.12,16),Vector3(11,.18,3),Color("#c9b996"),"Plaza de barriles")
 	_banner(Vector3(10,2.1,15),Color("#88b9a2"),1.0)
 	_asset("flower_cart",Vector3(-18,0,17),.7)
 	_register_collision(Rect2(-18.8,16.5,1.6,1.0))
