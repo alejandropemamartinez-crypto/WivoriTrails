@@ -594,7 +594,7 @@ func tick(delta: float) -> void:
 		for i in range(crop_timers.size()):crop_timers[i]=maxf(0,crop_timers[i]-delta)
 	for crop in wheat:
 		crop["remaining"]=maxf(0,crop["remaining"]-delta);crop["node"].scale=Vector3.ONE*clampf(1-crop["remaining"]/8,.1,1);crop_timers.append(crop["remaining"])
-		if crop["remaining"]<=0 and harvest_wait<=0 and not board_visible() and g._total_bag()<g.max_capacity and g.player.position.distance_to(crop["node"].position)<1.5:
+		if crop["remaining"]<=0 and harvest_wait<=0 and g._movement_input_allowed() and g._total_bag()<g.max_capacity and g.player.position.distance_to(crop["node"].position)<1.5:
 			bag["wheat"]+=1;crop["remaining"]=8.0;harvest_wait=.35;g.player.act("harvest")
 			g._fly_model_goods("goods_wheat",crop["node"].global_position+Vector3(0,.8,0),g.player.position+Vector3(0,1.3,0),1,g.player)
 			g._float_activity(crop["node"].global_position,"+1 TRIGO",Color("#e5c37c"));_update_cargo()
@@ -604,7 +604,7 @@ func tick(delta: float) -> void:
 		var actor: MarketActor=resident["actor"]
 		if g._move_actor(actor,resident["route"][resident["index"]],1.7,delta):resident["index"]=(resident["index"]+1)%3;resident["wait"]=2.5
 	g.cash._complete_player_flight(delta)
-	if market_money[region]>0 and g.player.position.distance_to(MARKET)<2.3:
+	if market_money[region]>0 and g._movement_input_allowed() and g.player.position.distance_to(MARKET)<2.3:
 		g.cash.player_held+=market_money[region];g.cash.player_remaining=maxf(g.cash.player_remaining,g.cash._fly_money(MARKET+Vector3(0,1,0),g.player.position,market_money[region],true));market_money[region]=0;g.player.act("collect")
 		local_coins.visible=false;g._save_progress()
 	visual_wait-=delta
@@ -703,10 +703,14 @@ func board_visible() -> bool:return board_scrim!=null and board_scrim.visible
 func close_board() -> void:
 	if board_scrim!=null:board_scrim.visible=false
 func open_board() -> void:
+	if sailing>0 or g.milestone!=null and g.milestone.is_open():return
 	g.work.close_board();g.shop_panel.visible=false
 	if g.town.in_build_mode:g.town.toggle_mode()
 	g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
-	board_scrim.visible=true;refresh_board()
+	g.has_tap_destination=false
+	g.destination_marker.visible=false
+	board_scrim.visible=true
+	refresh_board()
 func build_board() -> void:
 	route_button=g.hud.button("DISTRITO FORJA" if stage>=PROJECTS.size() else "RUTA AL FARO",Color("#3d88a6"),17);g.hud.root.add_child(route_button);route_button.offset_left=24;route_button.offset_right=242;route_button.offset_top=224;route_button.offset_bottom=288;route_button.pressed.connect(open_board)
 	board_scrim=ColorRect.new();board_scrim.color=Color(.04,.14,.22,.78);board_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.hud.root.add_child(board_scrim);board_scrim.visible=false
