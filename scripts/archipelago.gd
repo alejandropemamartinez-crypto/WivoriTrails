@@ -462,7 +462,7 @@ func _spawn_operator(key: String) -> void:
 	root.add_child(a)
 	a.name="Operator_"+key
 	a.position=Vector3(-1.8,0,2.4)
-	a.rotation.y=PI
+	a.face_direction_yaw(PI)
 	a.act("build")
 func _make_wheat() -> void:
 	if not wheat.is_empty() or scenery==null:return
