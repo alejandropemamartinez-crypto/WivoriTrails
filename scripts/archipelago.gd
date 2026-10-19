@@ -312,7 +312,7 @@ func _arrive(destination: int,restore: bool=false) -> void:
 		home_hidden.clear();home_harbor.visible=true;home_ferry.position=HOME_BERTH;g.player.position=home_nav.nearest_free(HOME_DOCK+Vector3(-1,0,0))
 	if restore:g.player.position=g.world.navigation.nearest_free(restored_position)
 	g.camera_follow=g.player.position;g.camera_lead=Vector3.ZERO;g._update_camera(1)
-	g.milestone.announce("arrive:%d" % region,"¡Llegaste a "+NAMES[region]+"!",("Tu mercado conserva sus edificios y empleados. Podés volver a embarcar cuando quieras." if not away() else project().get("why","Tus pueblos siguen conectados. Mejorá tus talleres o prepará un contrato.")),"boat","","NUEVO DESTINO")
+	g.milestone.announce("arrive:%d" % region,"¡Llegaste a "+NAMES[region]+"!",("Tu mercado conserva sus edificios y empleados. Podés volver a embarcar cuando quieras." if not away() else active_project().get("why","Tus pueblos siguen conectados. Podés cumplir contratos industriales.")),"boat","","NUEVO DESTINO")
 	g._save_progress();g._refresh_ui()
 func _build_region() -> void:
 	scenery=Node3D.new();scenery.name=NAMES[region];add_child(scenery)
@@ -542,21 +542,33 @@ func tick(delta: float) -> void:
 			root.get_node("Job_"+key).text=("¡LISTO! ×%d" % jobs[key]["ready"] if jobs[key]["ready"]>0 else "%ds" % ceili(jobs[key]["remaining"])) if jobs.has(key) else ""
 	
 func objective() -> Dictionary:
-	var result: Dictionary={"tag":"RUTA AL FARO · %d / %d" % [stage,PROJECTS.size()],"title":"Reconstruí la ruta entre pueblos","detail":"Wivori → Villa Miga → Puerto Nata → Bahía Farol","goal":15.0,"value":float(stage),"button":"VER RUTA","action":"route:board"}
+	var result: Dictionary={"tag":"RUTA AL FARO · %d / %d" % [stage,PROJECTS.size()],"title":"Reconstruí la ruta entre pueblos","detail":"Wivori → Villa Miga → Puerto Nata → Bahía Farol","goal":float(PROJECTS.size()),"value":float(stage),"button":"VER RUTA","action":"route:board"}
+	if stage>=PROJECTS.size():
+		result.merge({"tag":"DISTRITO FORJA · %d / %d" % [industry_stage,INDUSTRY_PROJECTS.size()],"title":"Desarrollá el comercio industrial","detail":"Las fábricas enlazan los cuatro pueblos anteriores.","goal":float(INDUSTRY_PROJECTS.size()),"value":float(industry_stage)},true)
 	if not ferry:
 		result.merge({"title":"Restaurá tu barco · 900 monedas","detail":"Nivel 6 + muelle construido. Conservás todos tus edificios.","target":HOME_DOCK,"button":"RESTAURAR" if g.player.position.distance_to(HOME_DOCK)<=2.8 else "SEÑALAR","action":"route:repair"},true);return result
 	if focused_sale!="":
 		result.merge({"title":"Vendé 3 "+GOODS[focused_sale],"detail":"Entregá al mercado y recogé las monedas de CAJA.","target":MARKET,"button":"VENDER","action":"route:sell:"+focused_sale},true);return result
 	if bag_total()>0 and (focused_deposit or g._total_bag()>=g.max_capacity-1):
 		result.merge({"title":"Guardá la carga en el barco","target":DOCK if away() else HOME_DOCK,"button":"GUARDAR","action":"route:deposit"},true);return result
-	var p:=project()
+	var p:=active_project()
 	if not focused_recipe.is_empty():return recipe_objective(focused_recipe,result)
-	if p.is_empty():result["title"]="¡Ruta del Faro completada!";result["detail"]="Mejorá talleres, comerciá y visitá tus pueblos.";return result
+	if p.is_empty():
+		var order:=industry_order()
+		if not order.is_empty():
+			var at_factory:bool=region==4
+			result.merge({"title":order["title"],"detail":"Contrato industrial: "+need_text(order["needs"])+" · Paga %d monedas en la caja" % order["reward"],"target":MARKET if at_factory else (DOCK if away() else HOME_DOCK),"button":"ENTREGAR" if at_factory and has_needs(order["needs"]) else "DESTINOS" if not at_factory else "SEÑALAR","action":"route:order" if at_factory else "route:board"},true)
+			return result
+		result["title"]="¡Ruta del Faro completada!";result["detail"]="Mejorá talleres, comerciá y visitá tus pueblos."
+		return result
 	if p["region"]!=region:
 		result.merge({"title":"Embarcá hacia "+NAMES[p["region"]],"detail":p["name"]+" · "+p["why"],"target":DOCK if away() else HOME_DOCK,"action":"route:board","button":"DESTINOS"},true);return result
 	for key in p["needs"]:
 		if amount(key)<p["needs"][key]:
-			if key=="wheat":result.merge({"title":"Cosechá trigo para el proyecto","target":Vector3(-12,0,-8),"action":"","button":"SEÑALAR","detail":need_text(p["needs"])},true);return result
+			if key=="wheat":
+				if region!=1:result.merge({"title":"Conseguí trigo en Villa Miga","target":DOCK if away() else HOME_DOCK,"action":"route:board","button":"DESTINOS","detail":need_text(p["needs"])},true)
+				else:result.merge({"title":"Cosechá trigo para el proyecto","target":Vector3(-12,0,-8),"action":"","button":"SEÑALAR","detail":need_text(p["needs"])},true)
+				return result
 			var data:=recipe_objective(key,result);data["detail"]="Para "+p["name"]+" · "+data["detail"];return data
 	result.merge({"title":p["name"],"detail":"%d monedas · %s" % [p["cost"],need_text(p["needs"])],"target":p["at"]+(Vector3(0,0,3.2) if not p["model"].is_empty() else Vector3.ZERO),"button":"CONSTRUIR" if not p["model"].is_empty() else "ENTREGAR","action":"route:project"},true);return result
 func recipe_objective(key: String,result: Dictionary) -> Dictionary:
@@ -569,7 +581,9 @@ func recipe_objective(key: String,result: Dictionary) -> Dictionary:
 	else:
 		for ingredient in recipe["needs"]:
 			if amount(ingredient)>=recipe["needs"][ingredient]:continue
-			if ingredient=="wheat":result.merge({"title":"Cosechá trigo para "+GOODS[key],"target":Vector3(-12,0,-8),"action":"","button":"SEÑALAR","detail":need_text(recipe["needs"])},true)
+			if ingredient=="wheat":
+				if region!=1:result.merge({"title":"Traé trigo desde Villa Miga","target":DOCK if away() else HOME_DOCK,"action":"route:board","button":"DESTINOS","detail":need_text(recipe["needs"])},true)
+				else:result.merge({"title":"Cosechá trigo para "+GOODS[key],"target":Vector3(-12,0,-8),"action":"","button":"SEÑALAR","detail":need_text(recipe["needs"])},true)
 			else:return recipe_objective(ingredient,result)
 			break
 	return result
@@ -584,6 +598,8 @@ func act(action: String) -> void:
 		"deposit":deposit()
 		"make":start_batch(parts[2])
 		"pickup":pickup(parts[2])
+		"order":
+			if not fulfill_industry_order():g._notice("Reuní los productos y lleválos al mercado de Forja.",2)
 		"sell":
 			if sell_bundle(parts[2]):focused_sale=""
 	g._refresh_ui()
@@ -635,23 +651,35 @@ func refresh_board() -> void:
 	if listing==null or not board_visible():return
 	# Only rebuild on explicit changes, not while a finger is pressing a control.
 	for node in listing.get_children():listing.remove_child(node);node.queue_free()
-	board_head.text=NAMES[region]+" · Ruta %d/15" % stage
+	board_head.text=NAMES[region]+(" · Industria %d/%d" % [industry_stage,INDUSTRY_PROJECTS.size()] if stage>=PROJECTS.size() else " · Ruta %d/%d" % [stage,PROJECTS.size()])
 	if board_tab==0:
-		_text("RECONSTRUÍ EL FARO",24);_text("Cuatro pueblos conectados. Cada destino conserva sus edificios y aporta productos a la ruta.",18)
+		_text("RUTA DEL FARO E INDUSTRIA",24);_text("Cuatro pueblos y el Distrito Forja. Las construcciones persisten y las mercancías viajan en el barco entre destinos.",18)
 		if not ferry:
 			_text("Tu primer viaje\nNivel 6 + muelle + 900 monedas",22)
 			_button("IR A RESTAURAR EL BARCO",func():close_board();pinned=true;g._set_world_goal(HOME_DOCK);g._refresh_ui())
 		if region==0 and pinned:_button("MISIONES DEL MERCADO DE WIVORI",func():pinned=false;close_board();g._refresh_ui())
-		for i in range(4):
+		for i in range(NAMES.size()):
 			var locked: bool=i>unlocked()
 			_button(("ESTÁS EN " if region==i else "BLOQUEADO · " if locked else "VIAJAR A ")+NAMES[i].to_upper(),Callable(self,"travel").bind(i),locked or region==i)
-		var p:=project()
+		var p:=active_project()
 		if not p.is_empty():
-			_text("PROYECTO %d / 15 · %s" % [stage+1,p["name"]],24);_text(p["why"],19);_text("%d / %d monedas\n%s" % [g.coins,p["cost"],need_text(p["needs"])],20)
+			var progress_label: String=("INDUSTRIA %d / %d" % [industry_stage+1,INDUSTRY_PROJECTS.size()]) if stage==PROJECTS.size() else ("PROYECTO %d / %d" % [stage+1,PROJECTS.size()])
+			_text(progress_label+" · "+p["name"],24)
+			_text(p["why"],19)
+			_text("%d / %d monedas\n%s" % [g.coins,p["cost"],need_text(p["needs"])],20)
 			_button("SEÑALAR MI SIGUIENTE TAREA",func():close_board();pinned=true;focused_recipe="";g._refresh_ui();g._follow_objective())
-		else:_text("¡RUTA COMPLETADA!\nEl faro conecta todos tus pueblos. Quedan talleres por mejorar y comercio libre.",23)
+		else:_text("¡FARO E INDUSTRIA COMPLETADOS!\nCumplí contratos mixtos desde Distrito Forja para seguir comerciando.",23)
+		if stage>=PROJECTS.size():
+			_text("Distrito Forja · %d/%d" % [industry_stage,INDUSTRY_PROJECTS.size()],23)
+			for i in range(industry_stage,INDUSTRY_PROJECTS.size()):
+				_text("%02d  %s" % [i+1,INDUSTRY_PROJECTS[i]["name"]],18)
 		_text("DESTINOS POR ABRIR",20)
 		for i in range(stage,PROJECTS.size()):_text("%02d  %s · %s" % [i+1,NAMES[PROJECTS[i]["region"]],PROJECTS[i]["name"]],17)
+		if region==4 and not industry_order().is_empty():
+			var order: Dictionary=industry_order()
+			_text("CONTRATO INDUSTRIAL · %d COMPLETADOS" % industry_orders_done,24)
+			_text(order["title"]+"\n"+need_text(order["needs"])+"\nPago: %d monedas (CAJA LOCAL)" % order["reward"],19)
+			_button("ENTREGAR CONTRATO" if has_needs(order["needs"]) else "SEÑALAR ENTREGA",_guide_industry_order)
 	else:
 		_text("CARGA DEL BARCO",24)
 		var amounts: PackedStringArray=[]
