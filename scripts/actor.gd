@@ -88,11 +88,9 @@ func _ready() -> void:
 	stolen_bundle.position=Vector3(0,.86,.56)
 	add_child(stolen_bundle)
 	# Stolen produce becomes visible only after the raider actually takes it.
-	money_bag=model("money_bag")
-	money_bag.name="Bolsa de recaudación real"
-	money_bag.scale=Vector3.ONE*.60
-	money_bag.position=Vector3(0,.78,.54)
-	add_child(money_bag)
+	# Cash-bag geometry is only needed by the hired money collector.
+	# Avoid importing and instantiating it for every customer, player,
+	# assistant and raccoon when none of them can carry bank cash.
 	set_carry(0)
 	last_position=position
 	facing=rotation.y
@@ -181,6 +179,12 @@ func set_carry(amount: int) -> void:
 
 func set_money_carry(amount: int) -> void:
 	is_money_courier=true
+	if money_bag==null:
+		money_bag=model("money_bag")
+		money_bag.name="Bolsa de recaudación real"
+		money_bag.scale=Vector3.ONE*.60
+		money_bag.position=Vector3(0,.78,.54)
+		add_child(money_bag)
 	set_carry(amount)
 
 func _cargo_asset(kind: String) -> String:
@@ -301,7 +305,7 @@ func _process(delta: float) -> void:
 	var bounce:float=sin(anim_t+motion_phase)*walk_amount*.025
 	goods_root.position.y=1.40+ground_offset+bounce
 	stolen_bundle.position.y=.86+ground_offset+bounce
-	money_bag.position.y=.78+ground_offset+bounce
+	if money_bag!=null:money_bag.position.y=.78+ground_offset+bounce
 	if action_left>0:action_left=maxf(0.0,action_left-delta)
 	else:
 		var locomotion:String=Motion.choose_clip(walk_amount,speed,carrying,turn_error)
