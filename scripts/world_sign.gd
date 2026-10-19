@@ -16,7 +16,11 @@ func _ready() -> void:
 	shaded=false;no_depth_test=true;render_priority=4
 	plate=Sprite3D.new();plate.texture=PLAQUE;plate.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	plate.shaded=false;plate.no_depth_test=true;plate.render_priority=1;plate.position=Vector3(0,0,-.035);add_child(plate)
-	pictogram=Sprite3D.new();pictogram.texture=load("res://assets/ui/signs/"+symbol+".svg");pictogram.billboard=BaseMaterial3D.BILLBOARD_ENABLED
+	var symbol_path:String="res://assets/ui/signs/"+symbol+".svg"
+	if not ResourceLoader.exists(symbol_path):
+		push_error("Wivori Trails: falta pictograma 3D de señal "+symbol_path)
+		symbol_path="res://assets/ui/signs/deliver.svg"
+	pictogram=Sprite3D.new();pictogram.texture=load(symbol_path);pictogram.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	pictogram.shaded=false;pictogram.no_depth_test=true;pictogram.render_priority=3;pictogram.position.z=.02;add_child(pictogram)
 	_update_plate()
 func _process(delta: float) -> void:
