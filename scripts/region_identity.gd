@@ -13,6 +13,7 @@ const REGION_THEMES={
 var world: MarketWorld
 var region_index:=0
 var completed_projects: Array[String]=[]
+var collision_footprints: Array[Rect2]=[]
 var pennants: Array[Dictionary]=[]
 var elapsed:=0.0
 var machine_rotors: Array[Node3D]=[]
@@ -38,6 +39,19 @@ func _ready() -> void:
 
 func _solid(kind: String, at: Vector3, size_: Vector3, color_: Color, title: String="") -> MeshInstance3D:
 	return world.shape(self,kind,at,size_,color_,title)
+
+func _register_collision(site: Rect2) -> void:
+	# Props placed by scenery scripts are not physics bodies. Register only
+	# real solid footprints so the hero and residents cannot pass through them.
+	# Dynamic island upgrades recreate the district: unregister on replacement.
+	collision_footprints.append(site)
+	world.navigation.add_obstacle(site)
+
+func release_collision_footprints() -> void:
+	if world==null:return
+	for site in collision_footprints:
+		world.navigation.remove_obstacle(site)
+	collision_footprints.clear()
 
 func _asset(asset: String, at: Vector3, size_: float=1.0) -> Node3D:
 	var item: Node3D=Art.place(self,asset,at,Vector3.ONE*size_)
@@ -91,6 +105,7 @@ func _fields_and_harvest() -> void:
 	_solid("cylinder",Vector3(-19,.72,16),Vector3(.25,1.45,.25),Color("#927051"),"Mástil del campo")
 	_banner(Vector3(-19,1.55,16),Color("#d8aa58"),0.0)
 	_asset("flower_cart",Vector3(16,0,15),.78)
+	_register_collision(Rect2(15.3,14.4,1.4,1.2))
 	_solid("box",Vector3(16,.11,15),Vector3(3,.15,2.5),Color("#d6bf8f"),"Plazoleta de la cosecha")
 
 func _pasture_and_dairy() -> void:
@@ -107,9 +122,11 @@ func _pasture_and_dairy() -> void:
 		var x:float=-15.5+float(i)*2.4
 		_solid("cylinder",Vector3(x,.48,16),Vector3(.90,.96,.90),Color("#b58c68"),"Barril de lácteos")
 		_solid("cylinder",Vector3(x,1.00,16),Vector3(.94,.13,.94),Color("#e0c18c"))
+		_register_collision(Rect2(x-.55,15.45,1.1,1.1))
 	_solid("box",Vector3(-12,.12,16),Vector3(11,.18,3),Color("#c9b996"),"Plaza de barriles")
 	_banner(Vector3(10,2.1,15),Color("#88b9a2"),1.0)
 	_asset("flower_cart",Vector3(-18,0,17),.7)
+	_register_collision(Rect2(-18.8,16.5,1.6,1.0))
 
 func _maritime_quarter() -> void:
 	# Bahía Farol is the shipping destination: cargo, navigation markers and
@@ -119,6 +136,7 @@ func _maritime_quarter() -> void:
 	for i in range(3):
 		var at:=Vector3(-14.5+float(i)*2.1,.12,16)
 		_solid("box",at,Vector3(1.85,.2,2.6),Color("#ad8a67"),"Plataforma de carga")
+		_register_collision(Rect2(at.x-.91,at.z-1.18,1.82,2.36))
 		for level in range(2):
 			var crate:=_asset("goods_crate",at+Vector3(0,.25+float(level)*.75,0),.71)
 			crate.name="Carga real visible %d" % (i*2+level+1)
@@ -147,12 +165,14 @@ func _industrial_quarter() -> void:
 		for at in [Vector3(-17,0,17),Vector3(17,0,17)]:
 			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial construida")
 			_solid("box",at+Vector3(0,1.06,0),Vector3(2.4,.22,2.8),Color("#c1a780"),"Zona de descarga industrial")
+			_register_collision(Rect2(at.x-1.46,at.z-1.70,2.92,3.40))
 	if completed_projects.has("packaging_plant"):
 		for at in [Vector3(-24,0,-22),Vector3(24,0,-22)]:
 			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial")
 			_solid("cylinder",at+Vector3(0,2.0,0),Vector3(1.55,2.95,1.55),steel,"Silo industrial")
 			_solid("cylinder",at+Vector3(0,3.6,0),Vector3(1.62,.18,1.62),copper,"Coronación metálica")
 			_solid("box",at+Vector3(0,2.4,1.06),Vector3(.45,.20,1.35),Color("#e6d6b6"),"Canalización del silo")
+			_register_collision(Rect2(at.x-1.58,at.z-1.58,3.16,3.16))
 	if completed_projects.has("preserves_line"):
 		for at in [Vector3(-25,0,-6),Vector3(25,0,11)]:
 			_solid("cylinder",at+Vector3(0,2.3,0),Vector3(.27,4.6,.27),steel,"Torre de ventilación")
@@ -169,6 +189,7 @@ func _industrial_quarter() -> void:
 		for i in range(3):
 			var at:=Vector3(-16.5+float(i)*2.0,0,16.5)
 			_solid("box",at+Vector3(0,.12,0),Vector3(1.8,.23,2.35),Color("#c6b28e"),"Plataforma logística")
+			_register_collision(Rect2(at.x-.86,at.z-1.10,1.72,2.20))
 			for j in range(2):
 				var crate:=_asset("goods_crate",at+Vector3(0,.40+float(j)*.7,0),.75)
 				crate.name="Stock de fábrica %d" % (i*2+j+1)
