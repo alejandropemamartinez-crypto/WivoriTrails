@@ -144,7 +144,7 @@ func _industrial_quarter() -> void:
 	var concrete:=Color("#9aa5a0")
 	var copper:=Color("#c68c61")
 	if completed_projects.has("dockworks"):
-		for at in [Vector3(-21,0,15),Vector3(21,0,15)]:
+		for at in [Vector3(-17,0,17),Vector3(17,0,17)]:
 			_solid("box",at+Vector3(0,.40,0),Vector3(3.0,.76,3.5),concrete,"Plataforma industrial construida")
 			_solid("box",at+Vector3(0,1.06,0),Vector3(2.4,.22,2.8),Color("#c1a780"),"Zona de descarga industrial")
 	if completed_projects.has("packaging_plant"):
