@@ -33,18 +33,51 @@ func capture() -> void:
 	game.set_process(false);game.world.set_process(false)
 	camera_reset();await shot("start")
 
-	game.hud.root.visible=false;game.player.visible=false
+	# The old "hero closeup" had a market roof between the lens and
+	# the protagonist. Build a REAL Godot character-review stage instead of
+	# accidentally approving a screenshot of a building.
+	game.hud.root.visible=false
+	game.world.visible=false
+	game.player.visible=false
+	var photo_stage:=Node3D.new()
+	photo_stage.name="Character review stage (not shipped in gameplay)"
+	game.add_child(photo_stage)
+	var stage_floor:=MeshInstance3D.new()
+	var stage_plane:=PlaneMesh.new();stage_plane.size=Vector2(18,18)
+	stage_floor.mesh=stage_plane
+	var stage_material:=StandardMaterial3D.new()
+	stage_material.albedo_color=Color("#b9d0b4");stage_material.roughness=1.0
+	stage_floor.material_override=stage_material
+	photo_stage.add_child(stage_floor)
 	var gallery: Array[MarketActor]=[]
+	# Distinct NPC species; the hero remains the only Scottish Terrier.
 	for i in range(3):
-		var actor: MarketActor=game.ActorScript.new();actor.setup("customer",[Color("#4c9992"),Color("#d49f68"),Color("#70899b")][i],["scottie","rabbit","raccoon"][i]);game.add_child(actor)
-		actor.position=Vector3((i-1)*1.65,0,20);gallery.append(actor)
-	game.camera.position=Vector3(0,3.25,27);game.camera.fov=42;game.camera.look_at(Vector3(0,1.30,20))
-	await shot("faces")
+		var actor: MarketActor=game.ActorScript.new()
+		actor.setup("customer",[Color("#4c9992"),Color("#d49f68"),Color("#70899b")][i],["fox","rabbit","pig"][i])
+		game.add_child(actor)
+		actor.position=Vector3((i-1)*1.65,0,0)
+		gallery.append(actor)
+	game.camera.position=Vector3(0,2.7,6.1);game.camera.fov=46
+	game.camera.look_at(Vector3(0,1.37,0))
+	await frames(12);await shot("faces")
 	for actor in gallery:actor.queue_free()
-	game.player.visible=true;game.player.position=Vector3(0,0,18);game.player.facing=-.13;game.player.rotation.y=-.13
-	game.camera.position=Vector3(.30,2.5,23.5);game.camera.fov=34;game.camera.look_at(Vector3(0,1.22,18))
-	await frames(14);await shot("hero_closeup")
-	game.hud.root.visible=true;game.camera.fov=43;game.player.position=Vector3(0,0,4);camera_reset()
+	await frames(2)
+	game.player.visible=true
+	game.player.position=Vector3.ZERO
+	game.player.facing=0;game.player.rotation.y=0
+	game.camera.position=Vector3(0,2.35,5.5)
+	game.camera.fov=32;game.camera.look_at(Vector3(0,1.43,0))
+	await frames(16);await shot("hero_closeup")
+	game.camera.position=Vector3(4.9,2.5,3.0)
+	game.camera.look_at(Vector3(0,1.4,0))
+	await frames(8);await shot("hero_profile")
+	game.camera.position=Vector3(0,2.6,-5.4)
+	game.camera.look_at(Vector3(0,1.4,0))
+	await frames(8);await shot("hero_back")
+	game.world.visible=true
+	photo_stage.queue_free()
+	game.hud.root.visible=true
+	game.camera.fov=43;game.player.position=Vector3(0,0,4);camera_reset()
 	game.input_stick.axis=Vector2.LEFT
 	for frame in range(22):
 		game._process_player(.016);game._update_camera(.016);await process_frame
