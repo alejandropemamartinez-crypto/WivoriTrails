@@ -230,7 +230,7 @@ func refresh_board() -> void:
 	patrol_button.disabled=g.run.level<9 or not patrol.is_empty() or not g.run.raiders.is_empty() or g.run.warning>0 or g._total_stock()<4
 	patrol_button.text="RONDA · NIVEL 9" if g.run.level<9 else "RONDA · FRENÁ 2 · +160 EN CAJA"
 	improve_button.disabled=g.run.level<10 or production_level>=2 or g.coins<360+production_level*300
-	improve_button.text="TALLERES · NIVEL 10" if g.run.level<10 else "TALLERES AL MÁXIMO" if production_level>=2 else "TALLERES · -20 % TIEMPO · %d" % (360+production_level*300)
+	improve_button.text="TALLERES · NIVEL 10" if g.run.level<10 else "TALLERES AL MÁXIMO" if production_level>=2 else "TALLERES · -20 %% TIEMPO · %d" % (360+production_level*300)
 func save_state() -> Dictionary:
 	return {"active":active.duplicate(true),"jobs":jobs.duplicate(true),"cargo":cargo.duplicate(),"orders":orders_done,"rush":rush_done,"festival":festival_done,"patrol_wins":patrol_wins,"recipes":recipes_seen.duplicate(),"patrol":patrol.duplicate(),"production_level":production_level}
 func load_state(data: Dictionary) -> void:

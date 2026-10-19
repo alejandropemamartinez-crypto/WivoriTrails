@@ -103,4 +103,4 @@ func run_tests() -> void:
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
 	print("RESULT: %d passed, %d failed" % [passed,failed])
-	quit(1 if failed>0 else 0)
+	await create_timer(.08).timeout;quit(1 if failed>0 else 0)

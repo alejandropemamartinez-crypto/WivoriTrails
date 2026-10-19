@@ -90,6 +90,9 @@ func run_tests() -> void:
 	game.queue_free()
 	await process_frame
 	await process_frame
+	# The dummy audio thread needs one mix cycle to release the last sale
+	# sound before this short-lived test process exits.
+	await create_timer(.05).timeout
 	clean()
 	print("RESULT: %d cash crossing checks, %d failures" % [checks,failed])
-	quit(1 if failed>0 else 0)
+	await create_timer(.08).timeout;quit(1 if failed>0 else 0)

@@ -52,4 +52,4 @@ func run_tests() -> void:
 	banner.queue_free()
 	await process_frame
 	print("RESULT: %d portrait contract checks, %d failed" % [checked,failed])
-	quit(1 if failed else 0)
+	await create_timer(.08).timeout;quit(1 if failed else 0)

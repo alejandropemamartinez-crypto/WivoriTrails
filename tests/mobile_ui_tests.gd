@@ -204,4 +204,4 @@ func run() -> void:
 	game.queue_free(); await process_frame
 	clean_files()
 	print("RESULT: %d mobile UI checks, %d failures" % [checks,failures])
-	quit(1 if failures else 0)
+	await create_timer(.08).timeout;quit(1 if failures else 0)

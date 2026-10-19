@@ -140,4 +140,4 @@ func run_tests() -> void:
 	await process_frame
 	clean()
 	print("RESULT: %d prepared worker checks, %d failures" % [successes+failures,failures])
-	quit(1 if failures else 0)
+	await create_timer(.08).timeout;quit(1 if failures else 0)

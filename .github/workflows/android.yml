@@ -61,7 +61,7 @@ jobs:
           godot --headless --path . --import 2>&1 | tee godot-import.log
           if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-import.log; then exit 1; fi
           godot --headless --path . --quit-after 120 2>&1 | tee godot-runtime.log
-          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-runtime.log; then exit 1; fi
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script|^ERROR:' godot-runtime.log; then exit 1; fi
 
       - name: Run gameplay regression checks
         shell: bash
@@ -70,7 +70,7 @@ jobs:
           for suite in tests/*_tests.gd; do
             timeout 120 godot --headless --path . --script "res://$suite"
           done 2>&1 | tee godot-tests.log
-          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script' godot-tests.log; then exit 1; fi
+          if grep -E 'SCRIPT ERROR:|Parse Error|Failed to load script|^ERROR:' godot-tests.log; then exit 1; fi
 
       - name: Export Android APK (debug)
         shell: bash

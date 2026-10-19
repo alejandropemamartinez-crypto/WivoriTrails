@@ -118,4 +118,4 @@ func run_tests() -> void:
 	game._save_progress();check(game._save_data()["version"]==8 and game.route.stage==15,"The new save schema stores the completed campaign")
 	await stop();clean();Store.write_data(test_path,{"version":7,"coins":321,"worker_count":2,"player_speed":8,"run":{"level":8},"town":{"buildings":["house"]}});await start()
 	check(game.coins==321 and game.worker_count==2 and game.run.level==8 and game.town.has_building("house") and not game.route.ferry,"Version seven migrates without resetting money, helpers, chapter or buildings")
-	await stop();clean();print("RESULT: %d archipelago checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
+	await stop();clean();print("RESULT: %d archipelago checks, %d failures" % [checks,failures]);await create_timer(.08).timeout;quit(1 if failures else 0)

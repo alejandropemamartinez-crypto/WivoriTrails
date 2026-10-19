@@ -276,4 +276,4 @@ func run() -> void:
 	clean_files()
 
 	print("RESULT: %d checks, %d failures" % [checks,failures])
-	quit(1 if failures else 0)
+	await create_timer(.08).timeout;quit(1 if failures else 0)

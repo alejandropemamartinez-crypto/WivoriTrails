@@ -78,4 +78,4 @@ func run_tests() -> void:
 	game.hud.rabbit_banner.last_phase="escape";game.hud.rabbit_banner.recovered(4);game.hud.rabbit_banner.sync_state("")
 	check(game.hud.rabbit_banner.visible and game.hud.rabbit_banner.relieved and game.hud.rabbit_banner.lifetime>2,"Recovered goods trigger a complete rabbit relief reaction")
 	await stop();clean()
-	print("RESULT: %d production checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
+	print("RESULT: %d production checks, %d failures" % [checks,failures]);await create_timer(.08).timeout;quit(1 if failures else 0)

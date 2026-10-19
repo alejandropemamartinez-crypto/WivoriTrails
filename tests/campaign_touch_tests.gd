@@ -46,4 +46,4 @@ func run() -> void:
 		check(game.world.navigation.is_walkable(game.player.position,.25),"Map %d touch movement stays on walkable ground" % (region+1))
 	game.queue_free();await process_frame;await process_frame
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path+suffix))
-	print("RESULT: %d campaign touch checks, %d failures" % [checks,failures]);quit(1 if failures else 0)
+	print("RESULT: %d campaign touch checks, %d failures" % [checks,failures]);await create_timer(.08).timeout;quit(1 if failures else 0)

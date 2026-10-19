@@ -63,4 +63,4 @@ func run() -> void:
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path+suffix))
 	print("RESULT: %d physical-flow checks, %d failures" % [checks,failures])
-	quit(1 if failures else 0)
+	await create_timer(.08).timeout;quit(1 if failures else 0)

@@ -164,4 +164,4 @@ func run_tests() -> void:
 	check(ResourceLoader.exists("res://assets/ui/signs/star.svg"),"The CONSTRUIR project sign uses an imported star pictogram")
 	check(ResourceLoader.exists("res://Main.tscn"),"The configured startup scene has a valid file")
 	print("RESULT: %d checks, %d failures" % [checked,failures])
-	quit(1 if failures else 0)
+	await create_timer(.08).timeout;quit(1 if failures else 0)

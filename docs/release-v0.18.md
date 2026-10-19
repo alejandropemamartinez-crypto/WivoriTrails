@@ -29,6 +29,8 @@ compilar. El protagonista conserva su control manual y no tiene nombre.
 - Silos con nombres únicos para identificar ambos modelos construidos.
 - Marcador de ruta sin sombra flotante. Estado final de campaña explícito,
   sin anunciar ampliaciones de flota que todavía no existen.
+- Texto del descuento de talleres sin error de formato por el signo `%`.
+  Animaciones de construcción ligadas al edificio para cancelarse al viajar.
 - La comprobación de transformaciones MultiMesh se ejecuta con gráficos
   activos: el servidor dummy de Godot no conserva sus matrices.
 

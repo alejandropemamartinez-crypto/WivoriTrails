@@ -83,4 +83,4 @@ func run_tests() -> void:
 	temp.queue_free()
 	await process_frame
 	print("RESULT: %d checks, %d failures" % [checked,failed])
-	quit(1 if failed else 0)
+	await create_timer(.08).timeout;quit(1 if failed else 0)

@@ -475,14 +475,14 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		# the actual models nor any saved economy state are replaced.
 		if animated:
 			authored.scale=Vector3(1,.05,1)
-			create_tween().tween_property(authored,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			create_tween().bind_node(authored).tween_property(authored,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if p["id"]=="grainmill":
 		for node in model.find_children("*","Node3D",true,false):
 			if "rotor" in node.name.to_lower():mill_rotor=node;break
 	g.world.navigation.add_obstacle(Rect2(p["at"].x-2.4,p["at"].z-2.2,4.8,4.4))
 	g.world.make_label(root,{"grain":"TRIGAL","grainmill":"MOLINO","breadshop":"PANADERÍA","henhouse":"GALLINERO","cowbarn":"ESTABLO","dairy":"QUESERÍA","pigpen":"CORRAL","butcher":"CARNICERÍA","harbor_depot":"ALMACÉN","cannery":"COCINA","route_watch":"VIGÍA","beacon":"FARO","dockworks":"MUELLE INDUSTRIAL","packaging_plant":"EMPAQUETADORA","preserves_line":"CONSERVERA","shipping_hub":"LOGÍSTICA","trade_center":"COMERCIO ISLEÑO","aurora_dock":"PUERTO AURORA","aurora_shipyard":"ASTILLERO","aurora_chart_house":"NAVEGACIÓN"}.get(p["id"],p["name"]),Vector3(0,5.4,.7),51,true)
 	if animated:
-		model.scale=Vector3(1,.05,1);create_tween().tween_property(model,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		model.scale=Vector3(1,.05,1);create_tween().bind_node(model).tween_property(model,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if p["id"] in ["cowbarn","henhouse","pigpen"]:
 		var kind: String={"cowbarn":"cow","henhouse":"hen","pigpen":"piglet"}[p["id"]]
 		for i in range(2):

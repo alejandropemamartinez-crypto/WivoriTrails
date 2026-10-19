@@ -113,4 +113,4 @@ func run_checks() -> void:
 		check(is_equal_approx((sign.get_child(0) as Sprite3D).pixel_size,dimensions),"Long crop names cannot resize the premium board")
 	game.queue_free();await process_frame;await process_frame;clean()
 	print("RESULT: %d campaign checks, %d failures" % [checks,failures])
-	quit(1 if failures>0 else 0)
+	await create_timer(.08).timeout;quit(1 if failures>0 else 0)
