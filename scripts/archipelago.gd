@@ -23,7 +23,7 @@ const PROJECTS=[
 	{"region":2,"id":"farol_route","name":"Abrir Bahía Farol","cost":1500,"needs":{"cheese":10,"meat":8,"bread":10},"at":DOCK,"model":"","why":"Llevá suministros para reconstruir el último puerto de la ruta."},
 	{"region":3,"id":"harbor_depot","name":"Almacén de la bahía","cost":1200,"needs":{"bread":8,"milk":6},"at":Vector3(-12,0,-12),"model":"depot","why":"Uní la producción de los pueblos en un puerto de intercambio."},
 	{"region":3,"id":"cannery","name":"Cocina de provisiones","cost":1500,"needs":{"cheese":6,"meat":6,"egg":6},"at":Vector3(0,0,-12),"model":"bakery","why":"Pan, queso y carne se convierten en provisiones para los barcos."},
-	{"region":3,"id":"route_watch","name":"Vigía de la bahía","cost":1400,"needs":{"provisions":4},"at":Vector3(12,0,-12),"model":"watchtower","why":"Prepará el mirador y la señalización de la ruta comercial."},
+	{"region":3,"id":"route_watch","name":"Vigía de la bahía","cost":1400,"needs":{"provisions":4},"at":Vector3(12,0,-12),"model":"watchtower","why":"El mirador guía a los comerciantes: los pedidos de la bahía pagan 25 % más."},
 	{"region":3,"id":"beacon","name":"Reconstruir el Faro","cost":1800,"needs":{"provisions":8,"cheese":8},"at":Vector3(0,0,2),"model":"route_lighthouse","why":"El faro vuelve a guiar a los barcos de los cuatro pueblos."},
 	{"region":3,"id":"festival","name":"Inaugurar la Ruta del Faro","cost":2200,"needs":{"provisions":12,"bread":12,"milk":12},"at":Vector3(0,0,7),"model":"","why":"Abastecé la inauguración y conectá definitivamente todos los pueblos."}
 ]
@@ -39,6 +39,7 @@ const RECIPES={
 }
 var g
 var restore_region:=0
+var restored_position:=Vector3.ZERO
 var ferry:=false
 var region:=0
 var stage:=0
@@ -55,7 +56,7 @@ var home_nav
 var home_position:=Vector3.ZERO
 var scenery: Node3D
 var home_ferry: Node3D
-var home_hidden: Array[Node3D]=[]
+var home_hidden: Array[Dictionary]=[]
 var station_nodes: Dictionary={}
 var wheat: Array[Dictionary]=[]
 var crop_timers: Array[float]=[]
@@ -69,6 +70,10 @@ var listing: VBoxContainer
 var board_head: Label
 var route_button: Button
 var focused_recipe:=""
+var focused_sale:=""
+var focused_deposit:=false
+var animals: Array[Dictionary]=[]
+var lighthouse_beam: Node3D
 var pinned:=false
 var board_tab:=0
 var board_wait:=0.0
@@ -90,7 +95,7 @@ func _ready() -> void:
 	for x in [24.0,25.0]:g.world.shape(self,"box",Vector3(x,.22,20),Vector3(1.0,.28,5),Color("#b8895d"),"Embarcadero")
 	home_ferry=Art.place(self,"route_ferry",Vector3(29,.16,19),Vector3.ONE*.87)
 	var sign: Label3D=g.world.make_label(self,"RUTA AL FARO",HOME_DOCK+Vector3(0,2.4,0),44)
-	sign.modulate=Color("#f3cb64")
+	sign.modulate=Color("#214960")
 	set_process(false)
 func away() -> bool:return region>0
 func project() -> Dictionary:return PROJECTS[stage] if stage<PROJECTS.size() else {}
@@ -127,7 +132,7 @@ func build_project() -> bool:
 	if p["id"]=="grain":_make_wheat()
 	_update_project_marker()
 	var next:=project()
-	g.milestone.announce("route:built:"+p["id"],"¡"+p["name"]+"!",("La Ruta del Faro está completa. Podés mejorar talleres, visitar tus pueblos y cumplir contratos de comercio." if next.is_empty() else "Siguiente proyecto: "+next["name"]+"\n\n"+next["why"]),"boat" if p["id"].ends_with("route") else "star","","RUTA COMPLETA" if next.is_empty() else "PROYECTO %d / %d" % [stage,PROJECTS.size()])
+	g.milestone.announce("route:stage:%d" % stage,"¡"+p["name"]+"!",("La Ruta del Faro está completa. Podés mejorar talleres, visitar tus pueblos y cumplir contratos de comercio." if next.is_empty() else "Siguiente proyecto: "+next["name"]+"\n\n"+next["why"]),"boat" if p["id"].ends_with("route") else "star","","RUTA COMPLETA" if next.is_empty() else "PROYECTO %d / %d" % [stage,PROJECTS.size()])
 	g.player.act("build");g._save_progress();g._refresh_ui();refresh_board();return true
 func station(key: String) -> Vector3:
 	for p in PROJECTS:
@@ -149,7 +154,7 @@ func pickup(key: String) -> bool:
 	if count<=0:return false
 	jobs[key]["ready"]-=count;bag[key]+=count;g.player.act("collect");g._notice("+%d %s en tu mochila" % [count,GOODS[key]],1.8);g._save_progress();return true
 func hire(key: String) -> bool:
-	if not RECIPES.has(key) or not built.has(RECIPES[key]["building"]) or employees.get(key,false) or g.coins<650:return false
+	if not RECIPES.has(key) or not built.has(RECIPES[key]["building"]) or employees.has(key) or g.coins<650:return false
 	g.coins-=650;employees[key]=true;_spawn_operator(key);g._notice("¡Empleado contratado!\nPrepara lotes con ingredientes guardados en el barco.",2.7);g._save_progress();refresh_board();return true
 func improve(key: String) -> bool:
 	var tier:=int(mastery.get(key,0));var cost:=450+tier*350
@@ -158,10 +163,10 @@ func improve(key: String) -> bool:
 func deposit() -> bool:
 	if g.player.position.distance_to(DOCK if away() else HOME_DOCK)>2.8 or bag_total()==0:return false
 	for key in bag:inventory[key]=mini(100000,int(inventory[key])+int(bag[key]));bag[key]=0
-	g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
+	focused_deposit=false;g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
 func sell_bundle(key: String) -> bool:
 	if not away() or not GOODS.has(key) or g.player.position.distance_to(MARKET)>2.8 or amount(key)<3:return false
-	consume({key:3});market_money[region]+=VALUES[key]*3+30;contracts_done+=1
+	consume({key:3});market_money[region]+=sale_value(key);contracts_done+=1
 	g.player.act("deliver");g._notice("Venta entregada · recogé las monedas en la caja",2);g._save_progress();return true
 func travel(destination: int) -> bool:
 	if destination<0 or destination>unlocked() or destination==region or sailing>0 or not ferry:return false
@@ -172,32 +177,39 @@ func travel(destination: int) -> bool:
 		close_board();g._set_world_goal(dock);g._notice("Llevá a Scottie al embarcadero con el joystick.",2.5);return false
 	close_board();sailing=1.3;sail_target=destination;g.input_stick._clear();g.boost_active=false;g.move_velocity=Vector3.ZERO
 	g.player.act("deliver");g._notice("¡ZARPAMOS A "+NAMES[destination].to_upper()+"!",2);g._save_progress();return true
-func _arrive(destination: int) -> void:
+func _arrive(destination: int,restore: bool=false) -> void:
 	g.has_tap_destination=false;g.destination_marker.visible=false;g.guide_override={}
 	if region==0:
 		home_position=g.player.position;home_hidden.clear()
 		for node in g.get_children():
 			if node is Node3D and node!=g.player and node!=g.camera and node!=self and not node is Light3D:
-				home_hidden.append(node);node.visible=false;node.process_mode=Node.PROCESS_MODE_DISABLED
+				home_hidden.append({"node":node,"visible":node.visible,"mode":node.process_mode});node.visible=false;node.process_mode=Node.PROCESS_MODE_DISABLED
 		home_ferry.visible=false
+	if not wheat.is_empty():
+		crop_timers.clear()
+		for crop in wheat:crop_timers.append(crop["remaining"])
 	if scenery!=null:scenery.free();scenery=null
-	region=destination;focused_recipe="";residents.clear();station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
+	region=destination;focused_recipe="";focused_sale="";focused_deposit=false;residents.clear();animals.clear();lighthouse_beam=null;station_nodes.clear();wheat.clear();region_ferry=null;local_money_label=null;local_coins=null
 	if away():
 		_build_region();g.player.position=DOCK+Vector3(0,0,-2)
 	else:
 		g.world.navigation=home_nav
-		for node in home_hidden:
-			if is_instance_valid(node):node.visible=true;node.process_mode=Node.PROCESS_MODE_INHERIT
+		g.player.ground_sampler=Callable(g.world,"ground_height")
+		for item in home_hidden:
+			var node: Node3D=item["node"]
+			if is_instance_valid(node):node.visible=item["visible"];node.process_mode=item["mode"]
 		home_hidden.clear();home_ferry.visible=true;g.player.position=home_nav.nearest_free(HOME_DOCK+Vector3(-1,0,0))
+	if restore:g.player.position=g.world.navigation.nearest_free(restored_position)
 	g.camera_follow=g.player.position;g.camera_lead=Vector3.ZERO;g._update_camera(1)
 	g.milestone.announce("arrive:%d" % region,"¡Llegaste a "+NAMES[region]+"!",("Tu mercado conserva sus edificios y empleados. Podés volver a embarcar cuando quieras." if not away() else project().get("why","Tus pueblos siguen conectados. Mejorá tus talleres o prepará un contrato.")),"boat","","NUEVO DESTINO")
 	g._save_progress();g._refresh_ui()
 func _build_region() -> void:
 	scenery=Node3D.new();scenery.name=NAMES[region];add_child(scenery)
 	g.world.navigation=Nav.new()
-	g.world.shape(scenery,"box",Vector3(0,-.5,0),Vector3(69,.8,69),Color("#6cb9ca"))
-	g.world.shape(scenery,"cylinder",Vector3(0,-.14,-2),Vector3(62,.5,60),Color("#debd7e"))
-	g.world.shape(scenery,"cylinder",Vector3(0,.015,-3),Vector3(57,.25,55),[Color("#82b47b"),Color("#9ac49b"),Color("#91b8a6")][region-1])
+	g.player.ground_sampler=Callable(self,"ground_height")
+	g.world.shape(scenery,"box",Vector3(0,-.35,0),Vector3(69,.5,69),Color("#6cb9ca"))
+	g.world.shape(scenery,"cylinder",Vector3(0,-.28,-2),Vector3(62,.22,60),Color("#debd7e"))
+	g.world.shape(scenery,"cylinder",Vector3(0,-.14,-3),Vector3(57,.16,55),[Color("#82b47b"),Color("#9ac49b"),Color("#91b8a6")][region-1])
 	g.world.navigation.add_obstacle(Rect2(-34,25,68,9));g.world.navigation.add_obstacle(Rect2(-34,-34,68,5))
 	g.world.navigation.add_obstacle(Rect2(-34,-29,6,54));g.world.navigation.add_obstacle(Rect2(28,-29,6,54))
 	g.world.shape(scenery,"box",Vector3(0,.18,-1),Vector3(4.4,.10,44),Color("#e5cc97"))
@@ -205,8 +217,8 @@ func _build_region() -> void:
 	g.world.shape(scenery,"box",Vector3(0,.28,21),Vector3(5,.30,9),Color("#b78d5c"))
 	region_ferry=Art.place(scenery,"route_ferry",Vector3(4.8,.18,23),Vector3.ONE*.9)
 	g.world.navigation.add_obstacle(Rect2(2.8,20,4,8))
-	g.world.make_label(scenery,NAMES[region].to_upper(),Vector3(0,3,-23),56)
-	g.world.make_label(scenery,"BARCO · GUARDAR CARGA",DOCK+Vector3(0,1.5,0),34)
+	g.world.make_label(scenery,NAMES[region].to_upper(),Vector3(0,3,-23),56,true)
+	g.world.make_label(scenery,"EMBARCAR",DOCK+Vector3(0,1.5,0),34,true)
 	Art.place(scenery,"market",Vector3(12,0,1.1),Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(9.8,-.3,4.4,3))
 	local_money_label=g.world.make_label(scenery,"CAJA LOCAL",MARKET+Vector3(0,2.5,0),42)
 	local_coins=Art.place(scenery,"coin",MARKET+Vector3(.6,1.0,-.1),Vector3.ONE*1.4)
@@ -219,24 +231,30 @@ func _build_region() -> void:
 	for i in range(3):
 		var a: MarketActor=g.ActorScript.new();a.setup("resident",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][i],["duck","pig","fox"][i]);scenery.add_child(a);a.position=Vector3(-2+i*3,0,11)
 		residents.append({"actor":a,"index":i,"wait":float(i),"route":[Vector3(-5,0,12),Vector3(5,0,13),Vector3(8,0,7)]})
+	for at in [Vector3(-21,0,-17),Vector3(21,0,-17),Vector3(-21,0,10),Vector3(21,0,12)]:
+		Art.place(scenery,"house",at,Vector3.ONE*.72);g.world.navigation.add_obstacle(Rect2(at.x-1.8,at.z-1.7,3.6,3.4))
+	for at in [Vector3(-6,0,7),Vector3(6,0,-9),Vector3(-7,0,16)]:Art.place(scenery,"oak_bench",at)
+	for at in [Vector3(7,0,10),Vector3(-7,0,-20)]:Art.place(scenery,"flower_cart",at,Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(at.x-.8,at.z-.5,1.6,1))
 	g.world.navigation.build();_update_project_marker()
 func _place_project(p: Dictionary,animated: bool) -> void:
 	if scenery==null or station_nodes.has(p["id"]):return
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
 	var model:=Art.place(root,p["model"])
+	if p["id"]=="beacon":_make_beam(root)
 	g.world.navigation.add_obstacle(Rect2(p["at"].x-2.4,p["at"].z-2.2,4.8,4.4))
-	g.world.make_label(root,p["name"].to_upper(),Vector3(0,4.1,0),34)
+	g.world.make_label(root,{"grain":"TRIGAL","grainmill":"MOLINO","breadshop":"PANADERÍA","henhouse":"GALLINERO","cowbarn":"ESTABLO","dairy":"QUESERÍA","pigpen":"CORRAL","butcher":"CARNICERÍA","harbor_depot":"ALMACÉN","cannery":"COCINA","route_watch":"VIGÍA","beacon":"FARO"}.get(p["id"],p["name"]),Vector3(0,4.1,0),40,true)
 	if animated:
 		model.scale=Vector3(1,.05,1);create_tween().tween_property(model,"scale",Vector3.ONE,.8).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if p["id"] in ["cowbarn","henhouse","pigpen"]:
 		var kind: String={"cowbarn":"cow","henhouse":"hen","pigpen":"piglet"}[p["id"]]
 		for i in range(2):
-			var animal:=Art.place(root,"farm_"+kind,Vector3(-1.0+i*1.9,0,1.0),Vector3.ONE*(.8 if kind!="hen" else 1.0));animal.rotation.y=.12 if i==0 else -.25
-		for x in [-2.8,2.8]:g.world.shape(root,"box",Vector3(x,.5,0),Vector3(.12,.9,5),Color("#f1d8a5"))
+			var animal:=Art.place(root,"farm_"+kind,Vector3(-1.2+i*2.4,0,3.7),Vector3.ONE*(.8 if kind!="hen" else 1.0));animal.rotation.y=.12 if i==0 else -.25
+			animals.append({"node":animal,"at":animal.position,"yaw":animal.rotation.y,"phase":float(i)*1.8})
+		for x in [-2.8,2.8]:g.world.shape(root,"box",Vector3(x,.5,1.8),Vector3(.12,.9,7),Color("#f1d8a5"))
 	for key in RECIPES:
 		if RECIPES[key]["building"]==p["id"]:
-			var output:=Art.place(root,"goods_"+key,Vector3(1.4,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
-			var label: Label3D=g.world.make_label(root,"",Vector3(0,1.3,3.1),32);label.name="Job_"+key
+			var output:=Art.place(root,"goods_"+key,Vector3(-1.0 if key=="flour" else 1.1,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
+			var label: Label3D=g.world.make_label(root,"",Vector3(-1.0 if key=="flour" else 1.1,1.3,3.1),27);label.name="Job_"+key
 			if employees.get(key,false):_spawn_operator(key)
 func _spawn_operator(key: String) -> void:
 	if scenery==null or region!=RECIPES[key]["region"]:return
@@ -258,7 +276,7 @@ func _update_project_marker() -> void:
 	if p.is_empty() or p["region"]!=region:return
 	var marker:=Node3D.new();marker.name="ProjectMarker";marker.position=p["at"]+(Vector3(0,0,3.2) if not p["model"].is_empty() else Vector3.ZERO);scenery.add_child(marker)
 	g.world.shape(marker,"cylinder",Vector3(0,.15,0),Vector3(2.5,.12,2.5),Color("#f0bd4b"))
-	g.world.make_label(marker,"SIGUIENTE PROYECTO",Vector3(0,1.4,0),34)
+	g.world.make_label(marker,"CONSTRUIR",Vector3(0,1.4,0),34,true)
 func _update_cargo() -> void:
 	var key:=""
 	for item in bag:
@@ -270,6 +288,10 @@ func _update_cargo() -> void:
 	if not key.is_empty():g.player.carrying=g._total_bag();g.player.goods_root.visible=false
 func tick(delta: float) -> void:
 	clock+=delta
+	for animal in animals:
+		animal["node"].position.y=animal["at"].y+.018*sin(clock*2+animal["phase"])
+		animal["node"].rotation.y=animal["yaw"]+.12*sin(clock*.7+animal["phase"])
+	if is_instance_valid(lighthouse_beam):lighthouse_beam.rotation.y=clock*.28
 	if sailing>0:
 		sailing=maxf(0,sailing-delta)
 		var boat: Node3D=region_ferry if away() else home_ferry
@@ -314,7 +336,9 @@ func objective() -> Dictionary:
 	var result: Dictionary={"tag":"RUTA AL FARO · %d / %d" % [stage,PROJECTS.size()],"title":"Reconstruí la ruta entre pueblos","detail":"Wivori → Villa Miga → Puerto Nata → Bahía Farol","goal":15.0,"value":float(stage),"button":"VER RUTA","action":"route:board"}
 	if not ferry:
 		result.merge({"title":"Restaurá tu barco · 900 monedas","detail":"Nivel 6 + muelle construido. Conservás todos tus edificios.","target":HOME_DOCK,"button":"RESTAURAR" if g.player.position.distance_to(HOME_DOCK)<=2.8 else "SEÑALAR","action":"route:repair"},true);return result
-	if bag_total()>0 and g._total_bag()>=g.max_capacity-1:
+	if focused_sale!="":
+		result.merge({"title":"Vendé 3 "+GOODS[focused_sale],"detail":"Entregá al mercado y recogé las monedas de CAJA.","target":MARKET,"button":"VENDER","action":"route:sell:"+focused_sale},true);return result
+	if bag_total()>0 and (focused_deposit or g._total_bag()>=g.max_capacity-1):
 		result.merge({"title":"Guardá la carga en el barco","target":DOCK if away() else HOME_DOCK,"button":"GUARDAR","action":"route:deposit"},true);return result
 	var p:=project()
 	if not focused_recipe.is_empty():return recipe_objective(focused_recipe,result)
@@ -351,6 +375,8 @@ func act(action: String) -> void:
 		"deposit":deposit()
 		"make":start_batch(parts[2])
 		"pickup":pickup(parts[2])
+		"sell":
+			if sell_bundle(parts[2]):focused_sale=""
 	g._refresh_ui()
 func board_visible() -> bool:return board_scrim!=null and board_scrim.visible
 func close_board() -> void:
@@ -387,6 +413,7 @@ func refresh_board() -> void:
 		if not ferry:
 			_text("Tu primer viaje\nNivel 6 + muelle + 900 monedas",22)
 			_button("IR A RESTAURAR EL BARCO",func():close_board();pinned=true;g._set_world_goal(HOME_DOCK);g._refresh_ui())
+		if region==0 and pinned:_button("MISIONES DEL MERCADO DE WIVORI",func():pinned=false;close_board();g._refresh_ui())
 		for i in range(4):
 			var locked: bool=i>unlocked()
 			_button(("ESTÁS EN " if region==i else "BLOQUEADO · " if locked else "VIAJAR A ")+NAMES[i].to_upper(),Callable(self,"travel").bind(i),locked or region==i)
@@ -410,19 +437,19 @@ func refresh_board() -> void:
 			var job: Dictionary=jobs.get(key,{"remaining":0.0,"ready":0})
 			_text(need_text(recipe["needs"])+"\n%d s · produce ×%d · listo ×%d" % [ceili(recipe["time"]*pow(.8,int(mastery.get(key,0)))),recipe["count"],job["ready"]],18)
 			_button("SEÑALAR / PREPARAR / RECOGER",func():close_board();focused_recipe=key;pinned=true;g._refresh_ui();g._follow_objective())
-			if not employees.get(key,false):_button("CONTRATAR OPERARIO · 650",Callable(self,"hire").bind(key),g.coins<650)
+			if not employees.has(key):_button("CONTRATAR OPERARIO · 650",Callable(self,"hire").bind(key),g.coins<650)
 			else:_button("PAUSAR OPERARIO" if employees[key] else "REANUDAR OPERARIO",func():employees[key]=not employees[key];g._save_progress();refresh_board())
 			var tier:=int(mastery.get(key,0));_button("TALLER AL MÁXIMO" if tier>=3 else "MEJORAR TIEMPO · %d · NIVEL %d/3" % [450+tier*350,tier+1],Callable(self,"improve").bind(key),tier>=3 or g.coins<450+tier*350)
 		if away():
 			_text("PEDIDOS DEL MERCADO LOCAL",23);_text("Elegí qué vender. Guardá ingredientes para tu proyecto. Cobrás al acercarte a CAJA.",18)
 			for key in GOODS:
-				if amount(key)>=3:_button("VENDER 3 %s · +%d" % [GOODS[key].to_upper(),VALUES[key]*3+30],Callable(self,"_guide_sale").bind(key))
+				if amount(key)>=3:_button("VENDER 3 %s · +%d" % [GOODS[key].to_upper(),sale_value(key)],Callable(self,"_guide_sale").bind(key))
 func save_state() -> Dictionary:
 	var crops: Array=[]
 	if not wheat.is_empty():
 		for crop in wheat:crops.append(crop["remaining"])
 	else:crops=crop_timers.duplicate()
-	return {"ferry":ferry,"region":region,"stage":stage,"inventory":inventory.duplicate(),"bag":bag.duplicate(),"jobs":jobs.duplicate(true),"employees":employees.duplicate(),"mastery":mastery.duplicate(),"produced":total_produced.duplicate(),"market_money":market_money.duplicate(),"contracts":contracts_done,"crops":crops}
+	return {"ferry":ferry,"region":region,"position":[g.player.position.x,g.player.position.z],"stage":stage,"inventory":inventory.duplicate(),"bag":bag.duplicate(),"jobs":jobs.duplicate(true),"employees":employees.duplicate(),"mastery":mastery.duplicate(),"produced":total_produced.duplicate(),"market_money":market_money.duplicate(),"contracts":contracts_done,"crops":crops}
 func load_state(data: Dictionary) -> void:
 	ferry=data.get("ferry")==true;stage=int(Store.number(data,"stage",0,0,PROJECTS.size())) if ferry else 0
 	for i in range(stage):built.append(PROJECTS[i]["id"])
@@ -441,12 +468,27 @@ func load_state(data: Dictionary) -> void:
 	var crops: Array=data["crops"] if data.get("crops") is Array else []
 	for i in range(mini(16,crops.size())):crop_timers.append(Store.number({"n":crops[i]},"n",0,0,8))
 	var saved_region:=int(Store.number(data,"region",0,0,unlocked()))
-	restore_region=saved_region
+	restore_region=saved_region;restored_position=Store.position(data.get("position"),DOCK+Vector3(0,0,-2))
 
 func _guide_deposit() -> void:
-	close_board();focused_recipe=""
+	close_board();focused_recipe="";focused_deposit=true;pinned=true
 	g._set_world_goal(DOCK if away() else HOME_DOCK)
 	if not deposit():g._notice("Acercate al embarcadero con la carga.",2)
 func _guide_sale(key: String) -> void:
 	close_board()
-	if not sell_bundle(key):g._set_world_goal(MARKET)
+	if not sell_bundle(key):focused_sale=key;pinned=true;g._set_world_goal(MARKET);g._refresh_ui()
+
+func sale_value(key: String) -> int:
+	return int((VALUES[key]*3+30)*(1.25 if region==3 and built.has("route_watch") else 1.0))
+func ground_height(at: Vector3) -> float:
+	if absf(at.x)<2.3 or absf(at.z+9)<1.6 and absf(at.x)<15 or absf(at.z-7.2)<1.6 and absf(at.x)<15:return .25
+	if absf(at.x)<2.6 and at.z>16:return .44
+	if region==1 and built.has("grain") and absf(at.x+12)<3.5 and absf(at.z+8)<3:return .34
+	return .04
+func _make_beam(root: Node3D) -> void:
+	lighthouse_beam=Node3D.new();root.add_child(lighthouse_beam);lighthouse_beam.position.y=5.5
+	var mesh:=ArrayMesh.new();var arrays: Array=[];arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX]=PackedVector3Array([Vector3(0,0,0),Vector3(-5,-.8,-18),Vector3(5,-.8,-18)])
+	arrays[Mesh.ARRAY_NORMAL]=PackedVector3Array([Vector3.UP,Vector3.UP,Vector3.UP]);mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var material:=StandardMaterial3D.new();material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;material.cull_mode=BaseMaterial3D.CULL_DISABLED;material.albedo_color=Color(1,.95,.64,.16)
+	var ray:=MeshInstance3D.new();ray.mesh=mesh;ray.material_override=material;ray.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;lighthouse_beam.add_child(ray)

@@ -24,6 +24,7 @@ var uncollected_label: Label
 var run_button: Button
 var shop_details := {}
 var objective := {}
+var level_caption: Label
 var level_label: Label
 var level_progress: ProgressBar
 var queue_label: Label
@@ -161,7 +162,7 @@ func build(game: Node3D) -> void:
 	var badge:=panel(Color("#e8b95e"));badge.custom_minimum_size=Vector2(76,0);row.add_child(badge)
 	var badge_style:=style(Color("#e8b95e"),19);badge_style.content_margin_top=5;badge_style.content_margin_bottom=5;badge_style.content_margin_left=12;badge_style.content_margin_right=12;badge.add_theme_stylebox_override("panel",badge_style)
 	var level:=VBoxContainer.new();badge.add_child(level)
-	var small:=label("NIVEL",11,Color("#76532b"));small.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(small)
+	var small:=label("NIVEL",11,Color("#76532b"));small.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(small);level_caption=small
 	level_label=label("01",23,Color("#fff5dc"));level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(level_label)
 	level_progress=progress(Color("#fdf0c5"));level_progress.custom_minimum_size.y=5;level.add_child(level_progress)
 	row.add_child(icon("bag",Color("#e8cb9b"),Vector2(35,45)))
@@ -499,7 +500,8 @@ func refresh() -> void:
 	team_label.text="Equipo  %d" % g.worker_count
 	queue_label.text="Fila  %d/6" % g._waiting_count()
 	queue_label.add_theme_color_override("font_color",Color("#af5845") if g._waiting_count()>=4 else INK)
-	level_label.text="%02d" % g.run.level
+	level_caption.text="ETAPA" if g.route.away() else "NIVEL"
+	level_label.text="%02d" % (mini(15,g.route.stage+1) if g.route.away() else g.run.level)
 	level_progress.max_value=1.0; level_progress.value=g.run.progress()
 	if g.route.route_button!=null:
 		g.route.route_button.visible=not city_mode

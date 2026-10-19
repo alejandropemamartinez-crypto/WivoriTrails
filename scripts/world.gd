@@ -96,11 +96,11 @@ func batch_paving(pieces: Array[Dictionary]) -> void:
 	n.multimesh=batch
 	add_child(n)
 
-func make_label(parent: Node3D, message: String, pos: Vector3, size_: int = 70) -> Label3D:
-	var is_sign: bool=message in ["ENTREGAR","TESORERÍA","Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS","MUELLE","PEDIDO PREMIUM","ENCARGOS DEL VALLE","WIVORI"] or parent.name.begins_with("Caja ")
+func make_label(parent: Node3D, message: String, pos: Vector3, size_: int = 70, sign_: bool=false) -> Label3D:
+	var is_sign: bool=sign_ or message in ["ENTREGAR","TESORERÍA","Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS","MUELLE","PEDIDO PREMIUM","ENCARGOS DEL VALLE","WIVORI"] or message in ["RUTA AL FARO","EMBARCAR","CAJA LOCAL"] or parent.name.begins_with("Caja ")
 	var label: Label3D=preload("res://scripts/world_sign.gd").new() if is_sign else Label3D.new()
 	if is_sign:
-		label.symbol="money" if message=="TESORERÍA" or parent.name.begins_with("Caja ") else "harvest" if message in ["Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS"] else "deliver"
+		label.symbol="money" if message=="TESORERÍA" or message in ["RUTA AL FARO","EMBARCAR","CAJA LOCAL"] or parent.name.begins_with("Caja ") else "harvest" if message in ["Tomates","Zanahorias","ARÁNDANOS","TOMATES","ZANAHORIAS","ARANDANOS"] else "deliver"
 		size_=maxi(size_,46)
 	label.text = message
 	label.font=TownFont
@@ -167,7 +167,7 @@ func build_market() -> void:
 	shape(self,"box",Vector3(4,.10,2.5),Vector3(3.7,.12,2.7),Color("#aa8967"),"Terraza de entregas")
 	var rug:=shape(self,"box",Vector3(4,.18,2.5),Vector3(3.30,.08,2.34),Color("#d6ba84"),"Alfombra de entregas")
 	var paint:=ShaderMaterial.new();paint.shader=preload("res://scripts/ground.gdshader");paint.set_shader_parameter("cobbled",true);paint.set_shader_parameter("base_color",Color("#e0c89a"));rug.material_override=paint
-	var sign:=make_label(self,"ENTREGAR",Vector3(4,1.1,2.5),48)
+	var sign:=make_label(self,"ENTREGAR",Vector3(1.25,1.7,3.5),48)
 	sign.pixel_size=.011
 
 func build_farms() -> void:
@@ -192,7 +192,7 @@ func make_bed(title: String, pos: Vector3, tint: Color, resource: String, enable
 				Art.place(unit,"produce_"+resource,Vector3((j-.5)*.27,.06,float(j%2)*.15),Vector3.ONE*(1.15 if resource!="berry" else 1.35))
 			crop_spots.append({"node":unit,"kind":resource,"ready":true,"regrow":0.0,"enabled":enabled_,"root":bed})
 	var label:=make_label(bed,title.to_upper(),Vector3(0,1.20,-2.35),39)
-	label.pixel_size=.009;label.outline_size=7
+	label.pixel_size=.010;label.outline_size=0
 	_batch_crop_bed(bed)
 
 func _batch_crop_bed(bed: Node3D) -> void:

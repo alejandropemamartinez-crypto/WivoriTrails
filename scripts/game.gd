@@ -137,7 +137,7 @@ func _ready() -> void:
 	trail=TrailScript.new(); trail.g=self; add_child(trail)
 	for i in range(worker_count):
 		_spawn_worker(i, saved_helpers[i] if i < saved_helpers.size() and saved_helpers[i] is Dictionary else {})
-	if route.restore_region>0:route._arrive(route.restore_region)
+	if route.restore_region>0:route._arrive(route.restore_region,true)
 	_refresh_ui()
 
 func _engine_world() -> void:

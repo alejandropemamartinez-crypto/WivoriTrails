@@ -91,3 +91,16 @@ programáticas no sustituyen las pruebas de manejo, temperatura, memoria y FPS
 en un teléfono Android. El acabado y el balance necesitan validación con
 jugadores; no se presenta como un juego comercial terminado ni como equivalente
 a una producción de Playrix. Todos los recursos nuevos tienen identidad propia.
+
+## 0.15.0 — Ruta del Faro
+
+Scottie es el único terrier; los NPC tienen cinco siluetas distintas. Los oficios
+separados, carteles opacos y avisos grandes enseñan la siguiente tarea.
+Desde nivel 6, muelle y 900 monedas, el transbordador conecta tres pueblos nuevos.
+Quince proyectos y doce construcciones conducen al Faro. Trigo, granjas de vacas,
+gallinas y cerdos, ocho recetas y operarios por estación mantienen la producción
+conectada entre destinos. El guardado v8 conserva el progreso anterior.
+
+La comparación con Township, Hay Day y My Mini Mart y las decisiones están en
+[docs/PROGRESION-v015.md](docs/PROGRESION-v015.md). Esta versión es un prototipo;
+retención y rendimiento en teléfonos físicos todavía requieren pruebas.

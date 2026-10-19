@@ -6,6 +6,11 @@ from pathlib import Path
 P=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('wivori_art',P/'build_assets.py')
 a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)
+original_clean=a.clean
+def clean_asset():
+    original_clean()
+    bpy.data.orphans_purge(do_recursive=True)
+a.clean=clean_asset
 
 def face(species,fur,rig):
     colors={'fox':'ce7a46','pig':'e6a0a3','duck':'fff0c2'}
