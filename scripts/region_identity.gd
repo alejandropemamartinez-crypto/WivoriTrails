@@ -12,7 +12,9 @@ const REGION_THEMES={
 var world: MarketWorld
 var region_index:=0
 var pennants: Array[Dictionary]=[]
-var animated_details: Array[Dictionary]=[]
+var elapsed:=0.0
+var storage_props: Array[Node3D]=[]
+var last_stock_count:=-1
 var landmark_count:=0
 
 func configure(source: MarketWorld, selected: int) -> void:
@@ -27,7 +29,7 @@ func _ready() -> void:
 		1:_fields_and_harvest()
 		2:_pasture_and_dairy()
 		3:_maritime_quarter()
-	set_process(not pennants.is_empty() or not animated_details.is_empty())
+	set_process(not pennants.is_empty())
 
 func _solid(kind: String, at: Vector3, size_: Vector3, color_: Color, title: String="") -> MeshInstance3D:
 	return world.shape(self,kind,at,size_,color_,title)
@@ -107,10 +109,16 @@ func _pasture_and_dairy() -> void:
 func _maritime_quarter() -> void:
 	# Bahía Farol is the shipping destination: cargo, navigation markers and
 	# lights are visually different from the two agrarian towns.
+	# Platforms always exist, but crates appear only when the player's actual
+	# ship warehouse contains goods. An empty warehouse must look empty.
 	for i in range(3):
 		var at:=Vector3(-14.5+float(i)*2.1,.12,16)
 		_solid("box",at,Vector3(1.85,.2,2.6),Color("#ad8a67"),"Plataforma de carga")
-		_asset("goods_crate",at+Vector3(0,.25,0),.78)
+		for level in range(2):
+			var crate:=_asset("goods_crate",at+Vector3(0,.25+float(level)*.75,0),.71)
+			crate.name="Carga real visible %d" % (i*2+level+1)
+			crate.visible=false
+			storage_props.append(crate)
 	for x in [-17.0,17.0]:
 		_solid("cylinder",Vector3(x,.9,21.5),Vector3(.26,1.8,.26),Color("#8c6b52"),"Bolardo portuario")
 		_solid("cylinder",Vector3(x,1.8,21.5),Vector3(.53,.19,.53),Color("#e2bb83"))
@@ -132,8 +140,17 @@ func _banner(at: Vector3, color_: Color, phase: float) -> void:
 	pennants.append({"node":pennant,"phase":phase})
 	landmark_count+=1
 
+func set_warehouse_stock(amount: int) -> void:
+	# A cosmetic representation only; we never own or change actual goods.
+	var safe_amount:int=maxi(0,amount)
+	if safe_amount==last_stock_count:return
+	last_stock_count=safe_amount
+	var visible_count:int=mini(storage_props.size(),ceili(float(safe_amount)/5.0))
+	for i in range(storage_props.size()):
+		storage_props[i].visible=i<visible_count
+
 func _process(delta: float) -> void:
-	var seconds:float=Time.get_ticks_msec()*.001
+	elapsed+=delta
 	for entry in pennants:
 		var node: Node3D=entry["node"]
-		if is_instance_valid(node):node.rotation.z=.07*sin(seconds*1.5+entry["phase"])
+		if is_instance_valid(node):node.rotation.z=.07*sin(elapsed*1.5+entry["phase"])
