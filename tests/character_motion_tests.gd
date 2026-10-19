@@ -27,6 +27,7 @@ func run_tests() -> void:
 	check(Motion.playback_rate(5.0,"idle","hero")==1.0,"Idle clip keeps its original natural cadence")
 	check(absf(Motion.turn_blend(PI,PI,.1,"helper")-PI)<.001,"Workshop workers hold their instructed heading")
 	check(absf(Motion.head_scan(.4,.0,1.0))<absf(Motion.head_scan(.4,.0,.0)),"Moving actors scan less than idle ones")
+	check(Motion.blink_factor(3.35,0.0)<.20 and Motion.blink_factor(0.0,0.0)>.99,"A travelling character blinks briefly but spends most time with open eyes")
 
 	var temp:=Node3D.new()
 	root.add_child(temp)
@@ -54,6 +55,10 @@ func run_tests() -> void:
 	temp.add_child(protagonist)
 	check(protagonist.body_root.scene_file_path=="res://assets/models/hero.glb","The hero retains its original unnamed custom model")
 	check(protagonist.skeleton!=null and protagonist.motion_bones.has("ear.L") and protagonist.motion_bones.has("ear.R"),"Unnamed hero keeps both rigged ears for small secondary motions")
+	check(protagonist.motion_bones.has("eye.L") and protagonist.motion_bones.has("eye.R"),"Scottish Terrier blink uses two genuine skinned eye bones, no floating eyelids")
+	var base_pose:Vector3=protagonist.body_root.position
+	protagonist._process(.25)
+	check(protagonist.body_root.position.distance_to(base_pose)<.04,"Standing breathing is subtle enough to preserve grounded feet")
 	protagonist.last_position=protagonist.position
 	protagonist.position+=Vector3(5,0,0)
 	protagonist._process(.016)
