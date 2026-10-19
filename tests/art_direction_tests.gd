@@ -57,7 +57,7 @@ func run() -> void:
 		"Each upgrade has a raised, larger headline, distinct icon and visible price")
 	check(game.cash.treasury_label.position.y>3 and game.cash.labels[0].position.y>3,
 		"Treasury and collection labels stand above their buildings")
-	check(game.hud.mission_detail.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and not game.hud.mission_detail.clip_text==false,
+	check(game.hud.mission_detail.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and game.hud.mission_detail.clip_text,
 		"Mission explanations can wrap instead of being aggressively truncated")
 	game.world.focus_upgrade_labels(first_pad["node"].position,false,"")
 	check(buy_label.visible and first_pad["price"].visible and first_pad["board"].visible,
