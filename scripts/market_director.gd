@@ -65,7 +65,7 @@ func alert() -> Dictionary:
 	if g._total_stock()==0:
 		var loaded: bool=g._total_bag()>0
 		return {"id":"empty","title":"Puesto vacío · %d esperando" % waiting,
-			"detail":"Entregá tu mochila para que vuelvan las ventas." if loaded else "Recolectá productos y abastecé el círculo dorado.",
+			"detail":"Entregá tu mochila para que vuelvan las ventas." if loaded else "Cosechá productos y acercate al puesto para entregarlos.",
 			"button":"SEÑALAR","target":Vector3(4,0,2.5) if loaded else g._harvest_target(),"color":Color("#c46c39")}
 	if waiting>=4:
 		var upgrade: Dictionary=g._upgrade("checkout")
