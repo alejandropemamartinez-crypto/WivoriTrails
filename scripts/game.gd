@@ -205,13 +205,19 @@ func _setup_hud() -> void:
 	hud.build(self)
 
 func _toggle_shop() -> void:
+	if route!=null and route.sailing>0:return
+	if milestone!=null and milestone.is_open():return
 	if route!=null:route.close_board()
 	work.close_board()
-	shop_panel.visible = not shop_panel.visible
-	if shop_panel.visible:
-		has_tap_destination = false
-		destination_marker.visible = false
-		boost_active = false
+	var opening:bool=not shop_panel.visible
+	if opening and town!=null and town.in_build_mode:
+		town.toggle_mode()
+	shop_panel.visible=opening
+	if opening:
+		has_tap_destination=false
+		destination_marker.visible=false
+		boost_active=false
+		move_velocity=Vector3.ZERO
 		input_stick._clear()
 	_refresh_ui()
 
@@ -343,9 +349,12 @@ func _harvest_kind(kind: String) -> Vector3:
 	return target
 
 func _toggle_build_mode() -> void:
+	if route.sailing>0 or milestone!=null and milestone.is_open():return
 	if route.away():route.open_board();return
+	route.close_board()
 	work.close_board()
 	if shop_panel.visible:_toggle_shop()
+	move_velocity=Vector3.ZERO
 	town.toggle_mode()
 
 func _build_town(kind: String) -> void:
@@ -653,7 +662,13 @@ func _movement_input_allowed() -> bool:
 	return not (milestone!=null and milestone.is_open()) and not (route!=null and (route.sailing>0 or route.board_visible())) and not (town!=null and town.in_build_mode) and not (shop_panel!=null and shop_panel.visible) and not (work!=null and work.board_visible())
 
 func _process_player(delta: float) -> void:
-	if town!=null and town.in_build_mode:return
+	# _process_player also harvests and delivers, not only walks. A menu
+	# must block all proximity-based transactions, even when the last held
+	# keyboard/joystick direction or prior inertial velocity is nonzero.
+	if not _movement_input_allowed():
+		move_velocity=Vector3.ZERO
+		if player!=null:player.walk_amount=0.0
+		return
 	var pad := input_stick.axis
 	var keyboard := Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): keyboard.x-=1
@@ -663,7 +678,6 @@ func _process_player(delta: float) -> void:
 	var joy := (pad+keyboard).limit_length(1.0)
 	# Player travel is exclusively manual. Guides and terrain taps only mark.
 	var world_motion := Vector3(joy.x,0,joy.y).rotated(Vector3.UP,camera_yaw)
-	if shop_panel.visible or work.board_visible() or route.board_visible():world_motion=Vector3.ZERO
 	var velocity := world_motion * minf(9.6,player_speed * town.player_speed_factor() * (1.16 if boost_active else 1.0))
 	# Turbo upgrades provide controllable acceleration, not runaway speed.
 	# When joystick is released, the protagonist stops instead of sliding past a target.
@@ -826,6 +840,11 @@ func _cash_sound() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if milestone!=null and milestone.is_open() or route!=null and route.sailing>0:return
+	if route!=null and route.board_visible():
+		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+			route.close_board()
+			_refresh_ui()
+		return
 	if work.board_visible():
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:work.close_board();_refresh_ui()
 		return
@@ -988,5 +1007,6 @@ func _notification(what: int) -> void:
 		has_tap_destination=false
 		if destination_marker != null: destination_marker.visible=false
 		if input_stick != null: input_stick._clear()
+		move_velocity=Vector3.ZERO
 	if what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_PAUSED] and player != null:
 		_save_progress()
