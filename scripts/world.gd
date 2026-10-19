@@ -371,7 +371,11 @@ func build_upgrade_pads() -> void:
 		# from a distance without relying on the tiny floor price.
 		var emblem:=Sprite3D.new()
 		emblem.name="Icono de mejora "+kind
-		emblem.texture=load("res://assets/ui/icons/"+kind+".svg")
+		var icon_path:String="res://assets/ui/icons/"+kind+".svg"
+		if not ResourceLoader.exists(icon_path):
+			push_warning("Wivori Trails: falta icono de mejora "+icon_path)
+			icon_path="res://assets/ui/icons/shop.svg"
+		emblem.texture=load(icon_path)
 		emblem.pixel_size=.012
 		emblem.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 		emblem.position=Vector3(-1.08,3.59,-.80)
