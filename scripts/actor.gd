@@ -14,6 +14,7 @@ var carrying := 0
 var anim_t := 0.0
 var body_root: Node3D
 var head_mesh: MeshInstance3D
+var head_surface_index:=-1
 var goods_root: Node3D
 var stolen_bundle: Node3D
 var money_bag: Node3D
@@ -93,20 +94,18 @@ func _ready() -> void:
 	# A palette mask recolors canvas in the baked atlas while preserving fur,
 	# leather and facial detail. Guards remain distinguishable from the hero.
 	if head_mesh!=null and head_mesh.mesh!=null and character_role!="player":
+		# The coat atlas may be on surface 1 or 2, while surface 0 belongs
+		# to untextured eyes or metal. Never paint the wrong GLB surface.
 		var base:StandardMaterial3D=null
-		if head_mesh.mesh.get_surface_count()>0:
-			base=head_mesh.mesh.surface_get_material(0) as StandardMaterial3D
-		# Some GLB importers create an ArrayMesh with a ShaderMaterial,
-		# or no base-color texture. Applying a sampler shader to those
-		# surfaces turns the animal black or dereferences a null material.
-		# Preserve the authored coat as-is in that case.
+		if head_surface_index>=0 and head_surface_index<head_mesh.mesh.get_surface_count():
+			base=head_mesh.mesh.surface_get_material(head_surface_index) as StandardMaterial3D
 		if base!=null and base.albedo_texture!=null:
 			var dye:=ShaderMaterial.new()
 			dye.shader=OutfitShader
 			dye.set_shader_parameter("atlas",base.albedo_texture)
 			dye.set_shader_parameter("original_dye",Color("#318c88") if animal=="terrier" else Color("#d39a63") if animal=="rabbit" else Color("#63788a"))
 			dye.set_shader_parameter("new_dye",outfit)
-			head_mesh.set_surface_override_material(0,dye)
+			head_mesh.set_surface_override_material(head_surface_index,dye)
 	if character_role=="customer":body_root.scale*=.90
 	if character_role=="thief":body_root.scale*=.94
 	if animator!=null:
@@ -213,14 +212,17 @@ func _find_animator(node: Node) -> AnimationPlayer:
 	return null
 
 func _find_mesh(node: Node) -> MeshInstance3D:
-	# An imported creature may place its untextured eyes or metal parts
-	# before the actual painted fur mesh in the GLB hierarchy. Only
-	# select a genuine atlas-bearing surface for outfit recoloring.
+	# Imported GLBs do not guarantee the coat atlas is on the first mesh
+	# or the first material slot. Search ALL surfaces and remember the
+	# precise slot so the other species keep their authored eyes and fur.
 	if node is MeshInstance3D:
 		var imported_mesh:MeshInstance3D=node as MeshInstance3D
-		if imported_mesh.mesh!=null and imported_mesh.mesh.get_surface_count()>0:
-			var material:StandardMaterial3D=imported_mesh.mesh.surface_get_material(0) as StandardMaterial3D
-			if material!=null and material.albedo_texture!=null:return imported_mesh
+		if imported_mesh.mesh!=null:
+			for surface in range(imported_mesh.mesh.get_surface_count()):
+				var material:StandardMaterial3D=imported_mesh.mesh.surface_get_material(surface) as StandardMaterial3D
+				if material!=null and material.albedo_texture!=null:
+					head_surface_index=surface
+					return imported_mesh
 	for child in node.get_children():
 		var found:=_find_mesh(child)
 		if found!=null:return found
