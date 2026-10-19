@@ -109,6 +109,25 @@ func run_tests() -> void:
 	await process_frame
 	check(game.player.carrying==5 and game.player.goods_root.get_child_count()==5,"Loaded v8 save restores the exact combined visible cargo mix")
 	check(game.route.bag["kits"]==2 and game.stash["tomato"]==2 and game.coins==cash,"Saving visible goods has no effect on original real inventory")
+	# A legacy player can have both the home harvest bag and island cargo at
+	# the boundary. Loading must NEVER silently discard valid bought items.
+	game.max_capacity=12
+	game.stash["tomato"]=12
+	game.route.bag["milk"]=3
+	game.route.bag["kits"]=2
+	game._save_progress()
+	game.queue_free()
+	await process_frame
+	await process_frame
+	game=load("res://Main.tscn").instantiate()
+	game.save_path=save_path
+	root.add_child(game)
+	game.set_process(false)
+	game.world.set_process(false)
+	await process_frame
+	check(game.max_capacity==12 and game.stash["tomato"]==12 and game.route.bag["milk"]==3 and game.route.bag["kits"]==2,"Reload preserves every real mainland and island item even if an older saved pouch exceeds capacity")
+	check(game.player.carrying==17 and game.player.goods_root.get_child_count()==6,"Overfilled legacy cargo remains honest and uses a bounded six-mesh preview")
+	check(game.coins==cash and game.counter==stock,"Restoring temporarily overfull cargo creates no money or sales")
 	game.route.bag["kits"]=0
 	game.route.bag["milk"]=0
 	game.stash["tomato"]=0
