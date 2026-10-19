@@ -53,6 +53,12 @@ func run() -> void:
 	var buy_label: Label3D=first_pad["label"]
 	var raised: bool=buy_label.position.y>3.2 and first_pad["board"] is Sprite3D
 	check(raised and buy_label.no_depth_test, "Purchase labels are elevated above the stalls and cannot be hidden behind the roof")
+	check(buy_label.font_size>=50 and first_pad["price"].font_size>=43 and first_pad["emblem"] is Sprite3D,
+		"Each upgrade has a raised, larger headline, distinct icon and visible price")
+	check(game.cash.treasury_label.position.y>3 and game.cash.labels[0].position.y>3,
+		"Treasury and collection labels stand above their buildings")
+	check(game.hud.mission_detail.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and not game.hud.mission_detail.clip_text==false,
+		"Mission explanations can wrap instead of being aggressively truncated")
 	game.world.focus_upgrade_labels(first_pad["node"].position,false,"")
 	check(buy_label.visible and first_pad["price"].visible and first_pad["board"].visible,
 		"An accessible upgrade sign stays readable when the player stands right next to it")
