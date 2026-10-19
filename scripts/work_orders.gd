@@ -36,7 +36,7 @@ func _ready() -> void:
 	name="Encargos del valle"
 	Art.place(self,"premium",DISPATCH+Vector3(0,0,-2.6),Vector3.ONE*.68)
 	g.world.navigation.add_obstacle(Rect2(DISPATCH.x-1.7,DISPATCH.z-3.9,3.4,2.0))
-	g.world.make_label(self,"ENCARGOS DEL VALLE",DISPATCH+Vector3(0,2.6,-2.6),31)
+	g.world.make_label(self,"ENCARGOS DEL VALLE",DISPATCH+Vector3(0,4.04,-2.6),52)
 	for key in RECIPES:
 		var output:=Node3D.new();add_child(output)
 		Art.place(output,RECIPES[key]["model"],Vector3.ZERO,Vector3.ONE*.8)
