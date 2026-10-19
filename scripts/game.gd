@@ -581,7 +581,7 @@ func _process_customers(delta: float) -> void:
 		var count := mini(3,int(counter[kind]))
 		counter[kind]-=count
 		var income: int=int(SELL_VALUE[kind])*count
-		_record_sale(count,income)
+		_record_sale(count,income,a.position+Vector3(0,1.1,0))
 		total_buyers+=1
 		a.set_cargo_kind(kind)
 		a.set_carry(count)
@@ -599,9 +599,9 @@ func _first_stocked() -> String:
 		if counter[kind] > 0:return kind
 	return ""
 
-func _record_sale(amount: int, income: int) -> void:
+func _record_sale(amount: int, income: int, origin: Vector3=Vector3.ZERO) -> void:
 	income+=town.income_bonus(income) if town!=null else 0
-	cash.add_sale(income)
+	cash.add_sale(income,origin)
 	earned+=income
 	sold+=amount
 	quest_level=maxi(quest_level,int(sold/20)+1)
@@ -711,13 +711,18 @@ func _produce_at(t: float, item: Node3D, start: Vector3, finish: Vector3, recipi
 	item.rotation=Vector3(t*1.3,t*2.4,t*.5)
 	item.scale=Vector3.ONE*lerpf(.68,.30,t)
 
-func _fly_produce(kind: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+func _fly_model_goods(model_name: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+	# Display-only cargo: all inventory and wallet changes happen at the source action.
+	# Capping each burst to eight meshes avoids mobile overdraw during bulk transfers.
 	for i in range(mini(8,amount)):
-		var item:=Art.place(self,"produce_"+kind,from+Vector3((float(i%3)-1)*.16,0,float(i/3)*.12),Vector3.ONE*.68)
+		var item:=Art.place(self,model_name,from+Vector3((float(i%3)-1)*.16,0,float(i/3)*.12),Vector3.ONE*.68)
 		var tween:=create_tween()
 		tween.tween_interval(float(i)*.025)
 		tween.tween_method(Callable(self,"_produce_at").bind(item,item.position,to,recipient),0.0,1.0,.48+float(i%3)*.05).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_callback(item.queue_free)
+
+func _fly_produce(kind: String, from: Vector3, to: Vector3, amount: int, recipient: Node3D=null) -> void:
+	_fly_model_goods("produce_"+kind,from,to,amount,recipient)
 
 func _animate_goods(from: Vector3, to: Vector3, amount: int, tint: Color, kind: String="tomato") -> void:
 	_fly_produce(kind,from+Vector3(0,1.1,0),to+Vector3(0,1.3,0),amount)
