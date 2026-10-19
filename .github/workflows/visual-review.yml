@@ -44,7 +44,7 @@ jobs:
           test -s previews/rabbit_robbery_alert.png
           test -s previews/cash_collection_flight.png
           test -s previews/town_overview.png
-          for suite in mobile_ui_tests factory_facade_tests campaign_touch_tests; do
+          for suite in mobile_ui_tests factory_facade_tests campaign_touch_tests hud_overlap_tests; do
             timeout 120 xvfb-run -a -s "-screen 0 720x1280x24" \
               godot --path . --audio-driver Dummy --resolution 720x1280 \
               --script "res://tests/$suite.gd" 2>&1 | tee "previews/$suite.log"

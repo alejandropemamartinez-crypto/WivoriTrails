@@ -24,7 +24,7 @@ func _ready() -> void:
 	name="Mensajera del pueblo"
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
 	anchor_right=1
-	offset_left=22;offset_right=-120;offset_top=224;offset_bottom=322
+	offset_left=24;offset_right=-24;offset_top=300;offset_bottom=398
 	var paper:=StyleBoxFlat.new()
 	paper.bg_color=Color("#fff2cf");paper.border_color=Color("#cd8b57")
 	paper.set_border_width_all(3);paper.border_width_bottom=7
@@ -61,8 +61,11 @@ func _ready() -> void:
 	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(portrait)
 	var words:=VBoxContainer.new();words.size_flags_horizontal=Control.SIZE_EXPAND_FILL;words.mouse_filter=Control.MOUSE_FILTER_IGNORE;words.add_theme_constant_override("separation",3);row.add_child(words)
 	var tag:=Label.new();tag.text="MENSAJERA";tag.add_theme_font_size_override("font_size",13);tag.add_theme_color_override("font_color",Color("#a77749"));words.add_child(tag)
-	headline=Label.new();headline.add_theme_font_size_override("font_size",18);headline.add_theme_color_override("font_color",Color("#a65247"));headline.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;words.add_child(headline)
-	detail=Label.new();detail.add_theme_font_size_override("font_size",13);detail.add_theme_color_override("font_color",Color("#426264"));detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;words.add_child(detail)
+	# Full-width notices fit their short authored lines without wrapping.
+	# Before the first container layout, wrapping at width zero can otherwise
+	# request a screen-tall minimum height and flash over the whole game.
+	headline=Label.new();headline.add_theme_font_size_override("font_size",18);headline.add_theme_color_override("font_color",Color("#a65247"));headline.clip_text=true;words.add_child(headline)
+	detail=Label.new();detail.add_theme_font_size_override("font_size",13);detail.add_theme_color_override("font_color",Color("#426264"));detail.clip_text=true;words.add_child(detail)
 	direction=Label.new();direction.add_theme_font_size_override("font_size",12);direction.add_theme_color_override("font_color",Color("#aa7441"));words.add_child(direction)
 	_ignore_input(self)
 	visible=false;set_process(false)
@@ -128,7 +131,7 @@ func _announce(title: String, explanation: String, clip: String) -> void:
 
 func _process(delta: float) -> void:
 	lifetime-=delta;phase_time+=delta
-	offset_left=22+slide_offset;offset_right=-120+slide_offset
+	offset_left=24+slide_offset;offset_right=-24+slide_offset
 	if animator!=null:animator.advance(delta)
 	if face_rig!=null:
 		# Bone-driven facial expressions: wide worried eyes, then a happy blink.
