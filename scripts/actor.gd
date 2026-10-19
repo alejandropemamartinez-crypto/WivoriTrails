@@ -2,6 +2,7 @@ extends Node3D
 class_name MarketActor
 
 const OutfitShader=preload("res://scripts/outfit.gdshader")
+const Motion=preload("res://scripts/character_motion.gd")
 
 # Authored meshes, weighted skeletons and imported animation clips. The API used
 # by the market, helpers and saved NPCs is preserved.
@@ -28,6 +29,9 @@ var ground_offset := 0.0
 var current_clip := ""
 var contact_shadow: MeshInstance3D
 var last_speed := 0.0
+var motion_clock:=0.0
+var motion_phase:=0.0
+var motion_bones: Dictionary={}
 var is_money_courier := false
 var cargo_kind := ""
 static var scenes := {}
@@ -44,12 +48,14 @@ static func model(kind: String) -> Node3D:
 func _ready() -> void:
 	var animal: String="hero" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
 	if animal not in ["hero","fox","pig","duck","rabbit","raccoon"]:animal="rabbit"
+	motion_phase=Motion.phase_for(animal)
 	body_root=model(animal)
 	body_root.name="Personaje orgánico con esqueleto"
 	body_root.scale=Vector3.ONE*.84
 	add_child(body_root)
 	contact_shadow=preload("res://scripts/scene_finish.gd").contact(self)
 	skeleton=_find_skeleton(body_root)
+	_cache_motion_bones()
 	animator=_find_animator(body_root)
 	head_mesh=_find_mesh(body_root)
 	# A palette mask recolors canvas in the baked atlas while preserving fur,
@@ -93,6 +99,42 @@ func _ready() -> void:
 	add_child(money_bag)
 	set_carry(0)
 	last_position=position
+	facing=rotation.y
+
+func face_direction_yaw(yaw: float) -> void:
+	# Imported factory workers are spawned facing their counter; a direct
+	# rotation.y assignment used to be cancelled by the actor's next tick.
+	facing=yaw
+	rotation.y=yaw
+
+func _cache_motion_bones() -> void:
+	motion_bones.clear()
+	if skeleton==null:return
+	for name_ in ["head","ear.L","ear.R","tail","arm.L","arm.R"]:
+		var index:int=skeleton.find_bone(name_)
+		if index>=0:motion_bones[name_]=index
+
+func _pose_offset(bone_name: String, axis: Vector3, radians: float) -> void:
+	if skeleton==null or not motion_bones.has(bone_name) or absf(radians)<.0001:return
+	var index:int=motion_bones[bone_name]
+	skeleton.set_bone_pose_rotation(index,skeleton.get_bone_pose_rotation(index)*Quaternion(axis,radians))
+
+func _secondary_motion(turn_error: float) -> void:
+	# The authored GLB still drives walking, ear flicks, blink and tail.
+	# Small pose offsets add alertness and turn anticipation after the
+	# animation has advanced; no unskinned props or replacement faces.
+	if skeleton==null:return
+	if current_clip in ["idle","walk","run","carry","turn"]:
+		var look:float=Motion.head_scan(motion_clock,motion_phase,walk_amount)
+		_pose_offset("head",Vector3.UP,look+clampf(turn_error,-.45,.45)*.12)
+		var wag:float=Motion.tail_response(motion_clock,motion_phase,walk_amount,character_role)
+		_pose_offset("tail",Vector3.UP,wag)
+		_pose_offset("ear.L",Vector3.RIGHT,Motion.ear_follow(motion_clock,motion_phase,-1.0))
+		_pose_offset("ear.R",Vector3.RIGHT,Motion.ear_follow(motion_clock,motion_phase,1.0))
+	if action_left>0 and walk_amount>.14 and action in ["harvest","deliver","collect"]:
+		var amount:float=sin((1-action_left/action_duration)*PI)*.55
+		_pose_offset("arm.L",Vector3.RIGHT,-amount)
+		_pose_offset("arm.R",Vector3.RIGHT,-amount)
 
 func _find_skeleton(node: Node) -> Skeleton3D:
 	if node is Skeleton3D:return node
@@ -157,34 +199,35 @@ func _play(clip: String) -> void:
 	animator.play(clip,.16)
 
 func _process(delta: float) -> void:
-	var distance:=position.distance_to(last_position)
+	motion_clock+=delta
+	var distance:float=position.distance_to(last_position)
 	last_position=position
-	var speed:=distance/maxf(delta,.001) if distance<3 else 0.0
-	walk_amount=lerpf(walk_amount,minf(speed/4.2,1),1-exp(-14*delta))
-	var turn_lean: float=clampf(angle_difference(rotation.y,facing),-.35,.35)*walk_amount*.22
-	body_root.rotation.z=lerpf(body_root.rotation.z,-turn_lean,1-exp(-10*delta))
-	rotation.y=lerp_angle(rotation.y,facing,1-exp(-12*delta))
-	anim_t+=distance*3.8 if distance<3 else 0
-	var ground_y: float=ground_sampler.call(position) if ground_sampler.is_valid() else .03
-	ground_offset=lerpf(ground_offset,ground_y,1-exp(-20*delta))
+	# Ignore teleport/sailing jumps: they are never a real stride.
+	var speed:float=distance/maxf(delta,.001) if distance<3.0 else 0.0
+	walk_amount=lerpf(walk_amount,Motion.target_gait(speed),1.0-exp(-14.0*delta))
+	var turn_error:float=angle_difference(rotation.y,facing)
+	var turn_lean:float=clampf(turn_error,-.35,.35)*walk_amount*.22
+	if is_instance_valid(body_root):
+		body_root.rotation.z=lerpf(body_root.rotation.z,-turn_lean,1.0-exp(-10.0*delta))
+	rotation.y=Motion.turn_blend(rotation.y,facing,delta,character_role)
+	anim_t+=distance*3.8 if distance<3.0 else 0.0
+	var ground_y:float=ground_sampler.call(position) if ground_sampler.is_valid() else .03
+	ground_offset=lerpf(ground_offset,ground_y,1.0-exp(-20.0*delta))
 	body_root.position.y=ground_offset
 	contact_shadow.position.y=ground_offset+.025
-	goods_root.position.y=1.40+ground_offset+sin(anim_t)*walk_amount*.025
-	stolen_bundle.position.y=.86+ground_offset+sin(anim_t)*walk_amount*.025
-	money_bag.position.y=.78+ground_offset+sin(anim_t)*walk_amount*.025
-	if action_left>0:action_left=maxf(0,action_left-delta)
+	var bounce:float=sin(anim_t+motion_phase)*walk_amount*.025
+	goods_root.position.y=1.40+ground_offset+bounce
+	stolen_bundle.position.y=.86+ground_offset+bounce
+	money_bag.position.y=.78+ground_offset+bounce
+	if action_left>0:action_left=maxf(0.0,action_left-delta)
 	else:
-		var locomotion: String=("carry" if carrying>0 else ("run" if speed>6.8 else "walk")) if walk_amount>.06 else "idle"
+		var locomotion:String=Motion.choose_clip(walk_amount,speed,carrying,turn_error)
 		_play(locomotion)
-	# Keep the gait active during pickups while walking. The upper-body action
-	# is layered onto the skeleton instead of freezing the feet for a full clip.
+	# A brief upper-body harvesting gesture stays available while walking.
+	# The authored leg stride continues without an abrupt feet freeze.
 	if action_left>0 and walk_amount>.14 and action in ["harvest","deliver","collect"]:
-		_play("carry" if carrying>0 else ("run" if speed>6.8 else "walk"))
+		_play(Motion.choose_clip(walk_amount,speed,carrying,turn_error))
 	if animator!=null:
-		animator.speed_scale=clampf(speed/(6.5 if current_clip=="run" else 4.3),.55,1.85) if current_clip in ["walk","run","carry"] else 1.0
+		animator.speed_scale=Motion.playback_rate(speed,current_clip,species)
 		animator.advance(delta)
-		if action_left>0 and walk_amount>.14 and action in ["harvest","deliver","collect"] and skeleton!=null:
-			var amount:=sin((1-action_left/action_duration)*PI)*.8
-			for arm in ["arm.L","arm.R"]:
-				var bone:=skeleton.find_bone(arm)
-				if bone>=0:skeleton.set_bone_pose_rotation(bone,skeleton.get_bone_pose_rotation(bone)*Quaternion(Vector3.RIGHT,-amount))
+		_secondary_motion(turn_error)
