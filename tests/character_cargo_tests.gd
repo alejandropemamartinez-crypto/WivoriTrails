@@ -29,20 +29,24 @@ func run_tests() -> void:
 	actors.add_child(customer)
 	check(customer.goods_root.get_child_count()==0 and customer.stolen_bundle.get_child_count()==0,"Empty-handed customer does not instantiate five unrelated fruits")
 	customer.set_cargo_kind("tomato")
+	check(customer.goods_root.get_child_count()==0,"Selecting tomatoes alone cannot create unpurchased customer merchandise")
 	customer.set_carry(3)
-	check(customer.goods_root.visible and customer.goods_root.get_child_count()==4,"Customer receiving tomatoes shows only real produce")
+	check(customer.goods_root.visible and customer.goods_root.get_child_count()==3,"Three purchased tomatoes display exactly three items")
 	for item in customer.goods_root.get_children():
 		check(item.scene_file_path=="res://assets/models/produce_tomato.glb","Single-product courier never shows incorrect goods")
+	customer.set_carry(1)
+	check(customer.goods_root.get_child_count()==1,"Selling two of three items leaves exactly one visible parcel")
 	customer.set_carry(0)
-	check(not customer.goods_root.visible,"After finishing delivery the customer's hands are visibly empty")
+	check(not customer.goods_root.visible and customer.goods_root.get_child_count()==0,"After finishing delivery the customer's hands contain no lingering hidden props")
 
 	var thief: MarketActor=ActorScript.new()
 	thief.setup("thief",Color("#7b8b8a"),"raccoon")
 	actors.add_child(thief)
 	check(thief.stolen_bundle.get_child_count()==0,"Raccoons do not spawn already holding imaginary tomatoes")
 	thief.set_cargo_kind("berry")
+	check(thief.stolen_bundle.get_child_count()==0,"Selecting future stolen berries does not create theft in advance")
 	thief.set_carry(2)
-	check(thief.stolen_bundle.visible and not thief.goods_root.visible and thief.stolen_bundle.get_child_count()==4,"Stolen berry merchandise uses thief bundle and proper item models")
+	check(thief.stolen_bundle.visible and not thief.goods_root.visible and thief.stolen_bundle.get_child_count()==2,"Two real stolen berries create exactly two visible units")
 
 	var hero: MarketActor=ActorScript.new()
 	hero.setup("player",Color("#5c8e8e"),"dog")
@@ -61,6 +65,13 @@ func run_tests() -> void:
 	hero.set_visible_cargo({"berry":3,"tomato":1})
 	check(hero.goods_root.get_child(0).get_instance_id()==original_mesh,"Harvesting one extra berry reuses the unchanged existing imported meshes")
 	check(hero.goods_root.get_child_count()==4,"An incremental berry harvest adds one model without a full basket rebuild")
+	var unchanged_ids:Dictionary={}
+	for item in hero.goods_root.get_children():unchanged_ids[item.get_instance_id()]=true
+	hero.set_visible_cargo({"tomato":1,"apple":1,"berry":3})
+	var reused:int=0
+	for item in hero.goods_root.get_children():
+		if unchanged_ids.has(item.get_instance_id()):reused+=1
+	check(reused==4 and hero.goods_root.get_child_count()==5,"Adding a new alphabetically earlier product preserves all four original meshes despite slot reorder")
 	hero.set_visible_cargo({"milk":1,"bread":1,"packaging":1,"kits":1,"preserves":1})
 	check(hero.goods_root.get_child_count()==5,"Five region supplies render five distinct visible goods")
 	rendered.clear()
