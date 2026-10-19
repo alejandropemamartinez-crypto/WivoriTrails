@@ -123,8 +123,6 @@ var sailing:=0.0
 var sail_target:=-1
 var clock:=0.0
 var ship_cargo: Node3D
-var cargo_visual: Node3D
-var cargo_visual_kind:=""
 
 func _ready() -> void:
 	name="Ruta al Faro · pueblos persistentes"
@@ -491,15 +489,9 @@ func _total_warehouse_stock() -> int:
 func _update_cargo() -> void:
 	if is_instance_valid(region_identity):
 		region_identity.set_warehouse_stock(_total_warehouse_stock() if region!=4 or built.has("dockworks") else 0)
-	g.player.set_carry(g._total_bag())
-	var key:=""
-	for item in bag:
-		if bag[item]>0:key=item;break
-	if key!=cargo_visual_kind:
-		if is_instance_valid(cargo_visual):cargo_visual.queue_free()
-		cargo_visual=null;cargo_visual_kind=key
-		if not key.is_empty():cargo_visual=Art.place(g.player,goods_model(key),Vector3(0,.85,.54),Vector3.ONE*.95)
-	if not key.is_empty():g.player.carrying=g._total_bag();g.player.goods_root.visible=false
+	# One exact shared player loadout: don't draw a guessed first ingredient
+	# in front of the hero while hiding everything actually in the bag.
+	g._sync_visible_cargo()
 func tick(delta: float) -> void:
 	clock+=delta
 	for animal in animals:
