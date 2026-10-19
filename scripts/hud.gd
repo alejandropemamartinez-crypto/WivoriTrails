@@ -55,6 +55,17 @@ var activity_button: Button
 var town_scroll: ScrollContainer
 var focused_building:=""
 
+func _fit_one_line(node: Label, value: String, available_width: float, ideal_size: int, minimum_size: int) -> void:
+	# Long mission names should shrink a little instead of being cut off.
+	# Quicksand remains consistent with the rest of the HUD.
+	var font: Font=Bold
+	var chosen: int=ideal_size
+	while chosen>minimum_size and font.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,chosen).x>available_width:
+		chosen-=1
+	node.add_theme_font_size_override("font_size",chosen)
+	node.text=value
+	node.tooltip_text=value
+
 func label(text_: String, size_: int, color_: Color=INK) -> Label:
 	var node := Label.new()
 	node.text=text_
@@ -181,10 +192,14 @@ func build(game: Node3D) -> void:
 	g.mission_label=label("Tu primera cosecha",21); mission_column.add_child(g.mission_label)
 	g.mission_label.clip_text=true
 	next_label.clip_text=true
-	mission_detail=label("",14,MUTED);mission_detail.clip_text=true
-	mission_detail.custom_minimum_size=Vector2(345,0); mission_column.add_child(mission_detail)
+	mission_detail=label("",14,MUTED)
+	mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	mission_detail.max_lines_visible=2
+	mission_detail.clip_text=true
+	mission_detail.custom_minimum_size=Vector2.ZERO
+	mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",TEAL,14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(145,96)
+	guide_button=button("GUIAR",TEAL,14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(119,76)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
@@ -508,8 +523,10 @@ func refresh() -> void:
 		g.route.route_button.text="RUTA %d/15" % g.route.stage if g.route.ferry else "RUTA AL FARO"
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
-	g.mission_label.text=objective["title"]
-	mission_detail.text=objective["detail"]
+	var mission_width: float=maxf(195.0,root.size.x-252.0)
+	_fit_one_line(g.mission_label,str(objective["title"]),mission_width,21,15)
+	mission_detail.text=str(objective["detail"])
+	mission_detail.tooltip_text=mission_detail.text
 	mission_progress.max_value=objective["goal"]; mission_progress.value=objective["value"]
 	guide_button.text=objective["button"]
 	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
@@ -526,14 +543,14 @@ func refresh() -> void:
 	if not alert.is_empty():
 		alert_title.text=alert["title"]; alert_detail.text=alert["detail"]; alert_button.text=alert["button"]
 		alert_title.add_theme_color_override("font_color",alert["color"])
-	pad_panel.visible=not g.route.away() and not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode and not g.work.board_visible()
+	pad_panel.visible=not g.route.away() and not g.active_pad.is_empty() and not g.shop_panel.visible and not city_mode and not g.work.board_visible() and g.run.threat().is_empty() and not rabbit_banner.visible
 	if not g.active_pad.is_empty():
 		var upgrade: Dictionary=g._upgrade(g.active_pad)
 		pad_title.text=upgrade["name"]
 		pad_detail.text=upgrade["benefit"]
 		pad_button.text="COMPRAR\n%d monedas" % upgrade["price"]
 		pad_button.disabled=g.coins<upgrade["price"] or upgrade["locked"]
-		if pad_button.disabled:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
+		if pad_button.disabled and g.coins<upgrade["price"]:pad_detail.text+=" Te faltan %d monedas." % (upgrade["price"]-g.coins)
 	var raiding: bool=not g.run.threat().is_empty()
 	intercept_button.visible=raiding and not g.shop_panel.visible and not city_mode
 	intercept_button.disabled=not g.run.can_intercept()
