@@ -186,6 +186,21 @@ Rama: `feat/v018-stage5b-transport-cash-qa-no-build`, derivada de la auditoría 
 - Añadida la suite `tests/cross_island_cash_tests.gd`, que define pruebas de visibilidad de monedas, viaje de Forja a Wivori, recarga durante dinero en vuelo y ausencia de duplicaciones. Ampliadas `tests/industrial_expansion_tests.gd` y `tests/region_identity_tests.gd` con huellas de colisión, liberación de obstáculos y anclaje de NPC.
 - **Estado:** fuente guardada; no se ha ejecutado Godot, las suites, una importación de escenas, Android ni la compilación de un APK. Las pruebas preparadas son especificaciones para la fase de validación, no aprobaciones. Siguen pendientes evaluación artística, capturas reales, rendimiento y localización física de posibles colisiones residuales.
 
+### Etapa 5C — arquitectura propia para la industria (código, sin compilación)
+
+- Rama de trabajo `feat/v018-stage5c-authored-factory-art-no-build`, derivada de la etapa 5B, separada de `main`.
+- Nuevo prefabricador visual `scripts/factory_facade.gd`: elimina la misma pareja de tanques genéricos que aparecía en **todas** las industrias; cada una recibe ahora silueta y acción identificables.
+- **Muelle industrial**: grúa pórtico cobriza con travesaño, riel, cable, gancho y carro deslizante.
+- **Empaquetadora**: tres cubiertas inclinadas de tipo diente de sierra, banda, paquetes y prensa vertical móvil.
+- **Conservera**: dos depósitos metálicos con chimeneas, puente de tuberías, conservas selladas y vapor translúcido suave (material compartido con transparencia real).
+- **Centro de logística**: dos portones enrollables con lamas y dinteles, cinta y palé animado, sin inventar stock real adicional.
+- **Centro comercial**: columnas, cornisas, reloj circular de fachada y manecilla giratoria; aspecto cívico diferente del industrial.
+- Cada fachada utiliza seis ventanas en una **MultiMesh** compartida para evitar dibujar seis mallas independientes. Los movimientos procedurales usan delta de fotogramas y no alteran inventario, dinero, progreso o obstáculos.
+- En la escena `scripts/archipelago.gd`, los componentes nuevos emergen con la animación de construcción; al volver a una isla se regeneran como decoración de las fábricas pagadas, conservando la lógica de guardado.
+- Nueva batería **preparada sin ejecutar**: `tests/factory_facade_tests.gd` para cinco firmas visuales diferentes, movimientos reales, ventanas instanciadas, aislamiento económico y presencia en construcciones adquiridas.
+- **Limitación de calidad**: son diseños 3D estilizados añadidos por código a los modelos GLB existentes; no equivalen por sí solos a arte comercial de nivel Township, ni fueron vistos en capturas de Godot. Falta revisar proporciones, sombras, materiales, interferencias con edificios y fluidez en Android.
+- **No se importó Godot, ejecutaron pruebas, generaron capturas ni compiló APK**. Próxima fase: auditoría visual verdadera, rediseño de elementos que continúen pareciendo bloques y pruebas de extremo a extremo antes de fusionar.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
