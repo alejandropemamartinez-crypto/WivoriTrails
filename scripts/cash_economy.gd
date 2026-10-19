@@ -98,12 +98,15 @@ func _refresh_register(index: int) -> void:
 		var piece: Node3D=coin_piles[index][j]
 		piece.visible=j<count;piece.scale=Vector3(.65,.65*growth,.65)
 
-func add_sale(amount: int) -> void:
+func add_sale(amount: int, origin: Vector3=Vector3.ZERO) -> void:
 	if amount<=0:return
 	var index:=sales_sequence%active_registers;sales_sequence+=1
 	pending[index]=mini(MAX_PENDING,pending[index]+amount)
 	_refresh_register(index)
-	_fly_money(REGISTERS[index]+Vector3(0,1,-1.25),REGISTERS[index]+Vector3(.35,1.22,0),mini(6,1+int(amount/12)),false)
+	# The coins now travel from the paying customer or delivery point to
+	# the register, instead of materializing immediately beside the register.
+	var source: Vector3=origin if origin!=Vector3.ZERO else REGISTERS[index]+Vector3(0,1,-1.25)
+	_fly_money(source,REGISTERS[index]+Vector3(.35,1.22,0),mini(6,1+int(amount/12)),false)
 
 func _coin_at(t: float, coin: Node3D, start: Vector3, finish: Vector3, follow_hero: bool) -> void:
 	if not is_instance_valid(coin):return
