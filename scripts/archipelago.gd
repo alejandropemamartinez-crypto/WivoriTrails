@@ -768,10 +768,20 @@ func load_state(data: Dictionary) -> void:
 
 func _guide_industry_order() -> void:
 	close_board()
-	if not fulfill_industry_order():
-		pinned=true
-		g._set_world_goal(MARKET if region==4 else (DOCK if away() else HOME_DOCK))
-		g._refresh_ui()
+	# The contract panel and the floating mission guide must agree: without
+	# supplies, guide the player to the relevant recipe or sailing destination,
+	# never to the empty cash register.
+	focused_sale=""
+	focused_recipe=""
+	focused_deposit=false
+	if fulfill_industry_order():return
+	pinned=true
+	var task: Dictionary=objective()
+	if task.get("action","")=="route:board":
+		open_board()
+	elif task.has("target"):
+		g._set_world_goal(task["target"])
+	g._refresh_ui()
 
 func _guide_deposit() -> void:
 	close_board();focused_recipe="";focused_deposit=true;pinned=true
