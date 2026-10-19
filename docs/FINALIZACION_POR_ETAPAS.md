@@ -226,6 +226,17 @@ Rama: `feat/v018-stage5e-character-motion-no-build`, basada en 5D y sin fusionar
 - Añadida `tests/character_motion_tests.gd` para verificar decisiones de clips, 5 especies diferenciadas, giro de operarios, ojos/orejas y carga visible. Preparada pero **sin ejecutar**. Es necesario observar 30+ minutos de navegación, idle/caminata y animación en Godot/Android para aprobar el acabado.
 - **Estado real:** cambios de fuente guardados en GitHub; sin importación de Godot, pruebas ejecutadas, render del personaje actualizado, exportación del modelo, APK ni modificación de `main`.
 
+### Etapa 5F — coherencia de mercancía en protagonista y NPC (solo código)
+- Rama de trabajo: `feat/v018-stage5f-character-cargo-coherence-no-build`, derivada de la etapa 5E y no fusionada a `main`.
+- Se detectó una incoherencia visual: los personajes cargaban inicialmente cinco frutas de demostración aunque no hubieran comprado, recogido o robado nada; el protagonista además podía mostrar únicamente el **primer** recurso de las islas mientras su mochila contenía otros productos diferentes.
+- Ahora los clientes, empleados y mapaches nacen con la carga visual **vacía**. Los clientes que realmente transportan verduras y los ladrones que se llevan productos reciben modelos correspondientes a ese tipo específico.
+- En `scripts/actor.gd`, `set_visible_cargo(contents)` acepta únicamente productos reconocidos, calcula una presentación proporcional a las **cantidades realmente disponibles**, y muestra un máximo de seis objetos importados. Combina frutos del mercado original con trigo, harina, leche, queso, pan, huevos, carne, provisiones y mercancías industriales; los modelos industriales nuevos se resuelven mediante los GLB existentes `goods_parcel`, `goods_provisions` y `goods_crate`.
+- `scripts/game.gd` incorpora una única sincronización de visuales al cosechar, entregar y cargar partidas. `scripts/archipelago.gd` utiliza esa función después de recoger, depositar, fabricar o vender; ya no añade un producto aislado delante del personaje mientras oculta los demás. **No cambia** el contenido de inventarios, precios, tiempos de fabricación, pagos, niveles ni el guardado de versión 8.
+- La representación usa una firma estable y conserva los nodos GLB cuya carga **sigue siendo la misma**, evitando liberar y reinstanciar toda la mochila tras cada recolección. La pantalla no dibuja seis objetos cuando el personaje solo lleva uno.
+- Preparada la suite `tests/character_cargo_tests.gd` (sin ejecutar) para cubrir manos vacías, productos realmente transportados, mezclas de frutas y mercancía industrial, cambios incrementales, reutilización de objetos 3D, ladrones, carga y restauración de partidas con inventarios procedentes de distintas islas, y ausencia de mutaciones económicas.
+- **No validado:** carga y parseo reales en Godot, importación de modelos, posiciones visuales durante animaciones, huellas de colisión, visualización en móviles y rendimiento. No se generó APK, no se ejecutó prueba, no se reexportó el héroe ni se tocó `main`.
+- **Próximo bloque:** auditar las transiciones de `AnimationPlayer` y `Skeleton3D` con escenas reales, revisar carga y parpadeos sobre cada NPC e inspeccionar la escultura nueva exportada solo en la etapa de validación autorizada.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
