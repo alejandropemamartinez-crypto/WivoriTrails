@@ -150,6 +150,14 @@ func start_batch(key: String,automatic: bool=false) -> bool:
 	if not automatic and (region!=recipe["region"] or g.player.position.distance_to(station(key))>2.8):return false
 	var job: Dictionary=jobs.get(key,{"remaining":0.0,"ready":0})
 	if job["remaining"]>0 or int(job["ready"])+int(recipe["count"])>9 or not has_needs(recipe["needs"],automatic):return false
+	if not automatic:
+		# A manual batch moves its actual ingredient types from the backpack
+		# or the ship warehouse to the workshop; automation stays economical.
+		for item in recipe["needs"]:
+			var needed: int=int(recipe["needs"][item])
+			var carried: int=mini(needed,int(bag[item]))
+			if carried>0:g._fly_model_goods("goods_"+item,g.player.position+Vector3(0,1.1,0),station(key)+Vector3(0,1.2,0),carried)
+			if needed>carried:g._fly_model_goods("goods_"+item,DOCK+Vector3(0,1.15,0),station(key)+Vector3(0,1.2,0),needed-carried)
 	consume(recipe["needs"],automatic);job["remaining"]=recipe["time"]*pow(.8,int(mastery.get(key,0)));jobs[key]=job
 	if not automatic:g.player.act("deliver");g._notice("Preparando "+GOODS[key]+" · Podés hacer otra tarea",2)
 	g._save_progress();return true
@@ -157,7 +165,9 @@ func pickup(key: String) -> bool:
 	if not jobs.has(key) or region!=RECIPES[key]["region"] or g.player.position.distance_to(station(key))>2.8:return false
 	var count:=mini(int(jobs[key]["ready"]),g.max_capacity-g._total_bag())
 	if count<=0:return false
-	jobs[key]["ready"]-=count;bag[key]+=count;g.player.act("collect");g._notice("+%d %s en tu mochila" % [count,GOODS[key]],1.8);g._save_progress();return true
+	jobs[key]["ready"]-=count;bag[key]+=count;g.player.act("collect")
+	g._fly_model_goods("goods_"+key,station(key)+Vector3(0,1.25,0),g.player.position+Vector3(0,1.25,0),count,g.player)
+	_update_cargo();g._notice("+%d %s en tu mochila" % [count,GOODS[key]],1.8);g._save_progress();return true
 func hire(key: String) -> bool:
 	if not RECIPES.has(key) or not built.has(RECIPES[key]["building"]) or employees.has(key) or g.coins<650:return false
 	g.coins-=650;employees[key]=true;_spawn_operator(key);g._notice("¡Empleado contratado!\nPrepara lotes con ingredientes guardados en el barco.",2.7);g._save_progress();refresh_board();return true
@@ -168,16 +178,24 @@ func improve(key: String) -> bool:
 func deposit() -> bool:
 	if g.player.position.distance_to(DOCK if away() else HOME_DOCK)>2.8 or bag_total()==0:return false
 	var transferred:=0
+	var remaining_visual:=8
 	for key in bag:
 		var count:=mini(int(bag[key]),100000-int(inventory[key]))
+		if count>0 and remaining_visual>0:
+			var shown: int=mini(count,remaining_visual)
+			g._fly_model_goods("goods_"+key,g.player.position+Vector3(0,1.2,0),(DOCK if away() else HOME_DOCK)+Vector3(0,1.4,0),shown)
+			remaining_visual-=shown
 		inventory[key]+=count;bag[key]-=count;transferred+=count
 	if transferred==0:g._notice("Ese producto ya llena el almacén. Vendé un lote para liberar espacio.",2);return false
 	_update_cargo()
 	focused_deposit=false;g.player.act("deliver");g._notice("¡CARGA GUARDADA EN EL BARCO!",1.8);g._save_progress();refresh_board();return true
 func sell_bundle(key: String) -> bool:
 	if not away() or not GOODS.has(key) or g.player.position.distance_to(MARKET)>2.8 or amount(key)<3:return false
+	var carried: int=mini(3,int(bag[key]))
 	consume({key:3});market_money[region]+=sale_value(key);contracts_done+=1
-	g.player.act("deliver");g._notice("Venta entregada · recogé las monedas en la caja",2);g._save_progress();return true
+	if carried>0:g._fly_model_goods("goods_"+key,g.player.position+Vector3(0,1.2,0),MARKET+Vector3(0,1.3,0),carried)
+	if carried<3:g._fly_model_goods("goods_"+key,DOCK+Vector3(0,1.2,0),MARKET+Vector3(0,1.3,0),3-carried)
+	g.player.act("deliver");_update_cargo();g._notice("Venta entregada · recogé las monedas en la caja",2);g._save_progress();return true
 func travel(destination: int) -> bool:
 	if destination<0 or destination>unlocked() or destination==region or sailing>0 or not ferry:return false
 	if not g.run.raiders.is_empty() or g.run.warning>0:
@@ -234,7 +252,10 @@ func _build_region() -> void:
 	g.world.make_label(scenery,"EMBARCAR",DOCK+Vector3(0,2.85,0),50,true)
 	Art.place(scenery,"market",Vector3(12,0,1.1),Vector3.ONE*.8);g.world.navigation.add_obstacle(Rect2(9.8,-.3,4.4,3))
 	local_money_label=g.world.make_label(scenery,"CAJA LOCAL",MARKET+Vector3(0,3.8,0),50,true)
-	local_coins=Art.place(scenery,"coin",MARKET+Vector3(.6,1.0,-.1),Vector3.ONE*1.4)
+	local_coins=Node3D.new();local_coins.name="Monedas acumuladas del pueblo";local_coins.position=MARKET+Vector3(.6,1.0,-.1);scenery.add_child(local_coins)
+	for i in range(12):
+		var coin:=Art.place(local_coins,"coin",Vector3(float(i%3)*.19,float(i/9)*.19,float((i/3)%3)*.18),Vector3.ONE*.58)
+		coin.visible=false
 	for p in PROJECTS:
 		if p["region"]==region and built.has(p["id"]) and not p["model"].is_empty():_place_project(p,false)
 	if region==1 and built.has("grain"):_make_wheat()
@@ -343,7 +364,9 @@ func tick(delta: float) -> void:
 	for crop in wheat:
 		crop["remaining"]=maxf(0,crop["remaining"]-delta);crop["node"].scale=Vector3.ONE*clampf(1-crop["remaining"]/8,.1,1);crop_timers.append(crop["remaining"])
 		if crop["remaining"]<=0 and harvest_wait<=0 and not board_visible() and g._total_bag()<g.max_capacity and g.player.position.distance_to(crop["node"].position)<1.5:
-			bag["wheat"]+=1;crop["remaining"]=8.0;harvest_wait=.22;g.player.act("harvest");g._notice("+1 TRIGO",.7)
+			bag["wheat"]+=1;crop["remaining"]=8.0;harvest_wait=.35;g.player.act("harvest")
+			g._fly_model_goods("goods_wheat",crop["node"].global_position+Vector3(0,.8,0),g.player.position+Vector3(0,1.3,0),1,g.player)
+			g._float_activity(crop["node"].global_position,"+1 TRIGO",Color("#e5c37c"));_update_cargo()
 	for resident in residents:
 		resident["wait"]-=delta
 		if resident["wait"]>0:continue
@@ -351,11 +374,14 @@ func tick(delta: float) -> void:
 		if g._move_actor(actor,resident["route"][resident["index"]],1.7,delta):resident["index"]=(resident["index"]+1)%3;resident["wait"]=2.5
 	g.cash._complete_player_flight(delta)
 	if market_money[region]>0 and g.player.position.distance_to(MARKET)<2.3:
-		g.cash.player_held+=market_money[region];g.cash.player_remaining=g.cash._fly_money(MARKET+Vector3(0,1,0),g.player.position,market_money[region],true);market_money[region]=0;g.player.act("collect");g._save_progress()
+		g.cash.player_held+=market_money[region];g.cash.player_remaining=maxf(g.cash.player_remaining,g.cash._fly_money(MARKET+Vector3(0,1,0),g.player.position,market_money[region],true));market_money[region]=0;g.player.act("collect")
+		local_coins.visible=false;g._save_progress()
 	visual_wait-=delta
 	if visual_wait<=0:
 		visual_wait=.25
 		local_money_label.text="CAJA · %d" % market_money[region];local_coins.visible=market_money[region]>0
+		var pile_count: int=mini(12,ceili(float(market_money[region])/20.0))
+		for i in range(local_coins.get_child_count()):local_coins.get_child(i).visible=i<pile_count
 		for key in RECIPES:
 			var root: Node3D=station_nodes.get(RECIPES[key]["building"])
 			if root==null:continue
