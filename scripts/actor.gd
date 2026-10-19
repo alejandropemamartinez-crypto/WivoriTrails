@@ -110,7 +110,7 @@ func face_direction_yaw(yaw: float) -> void:
 func _cache_motion_bones() -> void:
 	motion_bones.clear()
 	if skeleton==null:return
-	for name_ in ["head","ear.L","ear.R","tail","arm.L","arm.R"]:
+	for name_ in ["head","ear.L","ear.R","eye.L","eye.R","tail","arm.L","arm.R"]:
 		var index:int=skeleton.find_bone(name_)
 		if index>=0:motion_bones[name_]=index
 
@@ -119,11 +119,26 @@ func _pose_offset(bone_name: String, axis: Vector3, radians: float) -> void:
 	var index:int=motion_bones[bone_name]
 	skeleton.set_bone_pose_rotation(index,skeleton.get_bone_pose_rotation(index)*Quaternion(axis,radians))
 
+func _moving_blink() -> void:
+	# Preserve the keyed animation's natural idle blink. Walking, running
+	# and carrying clips lack that keyframe, so add a synchronized eyelid
+	# closure using the imported eye bones, not floating facial decals.
+	if skeleton==null:return
+	if current_clip not in ["walk","run","carry","turn"]:return
+	var blink:float=Motion.blink_factor(motion_clock,motion_phase)
+	if blink>.998:return
+	for eye in ["eye.L","eye.R"]:
+		if not motion_bones.has(eye):continue
+		var index:int=motion_bones[eye]
+		var existing:Vector3=skeleton.get_bone_pose_scale(index)
+		skeleton.set_bone_pose_scale(index,Vector3(existing.x,existing.y*blink,existing.z))
+
 func _secondary_motion(turn_error: float) -> void:
 	# The authored GLB still drives walking, ear flicks, blink and tail.
 	# Small pose offsets add alertness and turn anticipation after the
 	# animation has advanced; no unskinned props or replacement faces.
 	if skeleton==null:return
+	_moving_blink()
 	if current_clip in ["idle","walk","run","carry","turn"]:
 		var look:float=Motion.head_scan(motion_clock,motion_phase,walk_amount)
 		_pose_offset("head",Vector3.UP,look+clampf(turn_error,-.45,.45)*.12)
@@ -213,7 +228,10 @@ func _process(delta: float) -> void:
 	anim_t+=distance*3.8 if distance<3.0 else 0.0
 	var ground_y:float=ground_sampler.call(position) if ground_sampler.is_valid() else .03
 	ground_offset=lerpf(ground_offset,ground_y,1.0-exp(-20.0*delta))
-	body_root.position.y=ground_offset
+	# A little thoracic breathing makes waiting characters look alive without
+	# jumping the floor-contact shadow or moving the actual actor collider.
+	var breath:float=.011*sin(motion_clock*1.62+motion_phase)*(1.0-walk_amount)
+	body_root.position.y=ground_offset+breath
 	contact_shadow.position.y=ground_offset+.025
 	var bounce:float=sin(anim_t+motion_phase)*walk_amount*.025
 	goods_root.position.y=1.40+ground_offset+bounce
