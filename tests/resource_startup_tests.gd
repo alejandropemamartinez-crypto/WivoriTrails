@@ -113,10 +113,10 @@ func run_tests() -> void:
 		var exists:bool=ResourceLoader.exists(path)
 		check(exists,"Imported 3D resource exists: "+model)
 		if not exists:continue
-		var resource:Resource=load(path)
-		check(resource is PackedScene,"GLB loads as an instantiable 3D PackedScene: "+model)
-		if not resource is PackedScene:continue
-		var instance:Node=resource.instantiate()
+		var scene:PackedScene=load(path) as PackedScene
+		check(scene!=null,"GLB loads as an instantiable 3D PackedScene: "+model)
+		if scene==null:continue
+		var instance:Node=scene.instantiate()
 		check(instance is Node3D,"Imported GLB has a usable 3D scene root: "+model)
 		if instance!=null:
 			instance.free()
