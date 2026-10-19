@@ -185,7 +185,7 @@ func build_project() -> bool:
 	focused_recipe=""
 	if not p["model"].is_empty():_place_project(p,true)
 	if p["id"]=="grain":_make_wheat()
-	if industrial and region==4:_refresh_region_identity()
+	if region>0:_refresh_region_identity()
 	_update_project_marker()
 	var next:=active_project()
 	var new_forja:bool=not industrial and stage==PROJECTS.size()
