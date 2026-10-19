@@ -119,6 +119,15 @@ continúa el comercio opcional, no una monotonía de tareas repetidas.
 recompensas visibles. Viajar ida/vuelta y recuperar la partida no pierde stock,
 construcciones o trabajadores.
 
+### Avance técnico de la etapa 4 — primera entrega sin compilación
+- Rama de trabajo: `feat/v017-stage4-region-identity-no-build`, nacida de la etapa 3 y separada de `main`.
+- `scripts/region_identity.gd`: nueva composición visual por región, sin reconstruir los mapas persistentes ni alterar sus coordenadas de construcción. Villa Miga presenta surcos y pacas; Puerto Nata, praderas cercadas y barriles; Bahía Farol, carga, boyas, postes y luces de muelle.
+- Juncos litorales agrupados mediante `MultiMesh` (90 instancias por distrito) y banderines con movimiento ligero. La utilería costera no altera obstáculos ni rutas.
+- `scripts/archipelago.gd`: incorporación de la identidad al entrar en cada isla, destrucción al abandonarla, y líneas visuales de procesamiento con el producto correcto durante lotes activos de harina, alimento, pan, queso, carne y provisiones. Son accesorios visuales: el inventario y el tiempo de elaboración siguen usando el sistema original.
+- Los animales que **ya hayan sido desbloqueados** por construcción reciben pequeños desplazamientos al caminar y pastar; se conservan los modelos, tamaños y corrales previos. No aparecen animales de granja antes de edificar su proyecto.
+- `tests/region_identity_tests.gd`: suite añadida para revisar identidad de las tres islas, batching, presencia de maquinaria, animación animal, conservación de dinero e inventario y regreso al mercado.
+- **Estado real**: código guardado, **sin** importar Godot, ejecutar pruebas, tomar capturas ni compilar. Esta etapa es parcial: sigue pendiente inspeccionar las escenas con el motor, corregir interferencias de props, probar FPS en Android, enriquecer arquitectura authored y revisar el recorrido completo del Faro. La suite añadida no equivale a prueba superada.
+
 ## Etapa 5 — Calidad y publicación experimental
 - Importar Godot sin errores; correr todas las suites de regresión.
 - Exportar APK ARM64 con el mismo package/firma y un versionCode nuevo.
