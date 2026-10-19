@@ -207,7 +207,14 @@ func _find_animator(node: Node) -> AnimationPlayer:
 	return null
 
 func _find_mesh(node: Node) -> MeshInstance3D:
-	if node is MeshInstance3D:return node
+	# An imported creature may place its untextured eyes or metal parts
+	# before the actual painted fur mesh in the GLB hierarchy. Only
+	# select a genuine atlas-bearing surface for outfit recoloring.
+	if node is MeshInstance3D:
+		var imported_mesh:MeshInstance3D=node as MeshInstance3D
+		if imported_mesh.mesh!=null and imported_mesh.mesh.get_surface_count()>0:
+			var material:StandardMaterial3D=imported_mesh.mesh.surface_get_material(0) as StandardMaterial3D
+			if material!=null and material.albedo_texture!=null:return imported_mesh
 	for child in node.get_children():
 		var found:=_find_mesh(child)
 		if found!=null:return found
