@@ -237,6 +237,18 @@ Rama: `feat/v018-stage5e-character-motion-no-build`, basada en 5D y sin fusionar
 - **No validado:** carga y parseo reales en Godot, importación de modelos, posiciones visuales durante animaciones, huellas de colisión, visualización en móviles y rendimiento. No se generó APK, no se ejecutó prueba, no se reexportó el héroe ni se tocó `main`.
 - **Próximo bloque:** auditar las transiciones de `AnimationPlayer` y `Skeleton3D` con escenas reales, revisar carga y parpadeos sobre cada NPC e inspeccionar la escultura nueva exportada solo en la etapa de validación autorizada.
 
+### Etapa 5G — fallos reales detectados por auditoría de código (sin compilar)
+
+Rama: `feat/v018-stage5g-integration-fixes-no-build`, creada sobre la etapa 5F, sin fusionar a `main`. Esta etapa **no añade escenarios ni decoraciones**: corrige pérdida de progreso y coherencia entre inventario y personajes.
+
+1. **Cantidades falsas en NPC.** Antes, `set_cargo_kind()` creaba automáticamente cuatro modelos de productos aunque el comprador o mapache llevara cero, uno o dos; `set_carry()` únicamente ocultaba/mostraba el bloque. Ahora seleccionar el tipo no añade productos imaginarios y cada actualización dibuja `min(cantidad_real, 4)` unidades (0 = cero mallas). Se preserva el método usado por ayudantes, clientes y ladrones.
+2. **Reutilización entre reordenamientos de la mochila.** Antes se comparaba el recurso 3D con el índice anterior, de modo que añadir una nueva clase de mercancía podía destruir y reinstanciar modelos iguales desplazados de posición. Ahora se agrupan las escenas existentes por la ruta real de su GLB y se reutilizan por **tipo de producto**, sin importar su nueva posición; solo se importan unidades adicionales y se liberan sobrantes.
+3. **Riesgo de pérdida silenciosa al cargar.** La lectura `route.load_state()` aplicaba al inventario de mano de cada producto un máximo variable `max_capacity - _total_bag()`, a medida que iteraba las mercancías. Una partida legítima con cosecha principal y productos de varias islas podía perder unidades en el momento de restaurar. La carga respeta ahora todas las cantidades válidas persistidas (acotadas a 100 000 por producto); el límite de mochila se mantiene para **nuevas cosechas/recogidas** y una partida antigua temporalmente sobrecargada debe depositar mercancía antes de añadir más.
+4. **Modelos innecesarios por personaje.** Antes el protagonista, todos los clientes y mapaches importaban cada uno un modelo 3D de bolsa de dinero aun estando inactivos. Ahora solo se instancia `money_bag.glb` en el recaudador que llama a `set_money_carry()`. Su animación y el flujo de cobro continúan intactos.
+5. **Regresiones preparadas pero no ejecutadas.** Ampliado `tests/character_cargo_tests.gd` con pruebas de cantidades físicas de NPC, ausencia de productos antes de comprar/robar, preservación de nodos durante reordenamientos, importación diferida de bolsas y carga de un guardado v8 con contenido válido que excede temporalmente la capacidad. La batería `tests/production_tests.gd` sigue verificando el cobro real del recaudador cuando se autorice ejecutar pruebas.
+
+**Riesgos que quedan:** el código no ha pasado el parser ni el importador Godot 4.4.1; no se probaron animaciones, materiales, cruces de isla ni FPS reales. La nueva escultura del perrito sigue sin exportarse a `hero.glb`. Aún no se construyó APK y `main` permanece intacta.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
