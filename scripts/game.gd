@@ -944,10 +944,12 @@ func _load_progress() -> void:
 	pier_owned=data.get("pier_owned",false)==true
 	var bag_data: Dictionary=data["stash"] if data.get("stash") is Dictionary else {}
 	var stock_data: Dictionary=data["counter"] if data.get("counter") is Dictionary else {}
-	var available := max_capacity
+	# Loading is not a new harvest. Preserve every previously saved item,
+	# even if a legacy version or cross-island journey left the pouch above
+	# its current carrying capacity. New pickups still enforce that limit,
+	# while the player can freely deliver the valid excess.
 	for key in stash.keys():
-		stash[key]=int(SaveStore.number(bag_data,key,0,0,available))
-		available-=int(stash[key])
+		stash[key]=int(SaveStore.number(bag_data,key,0,0,100000))
 		counter[key]=int(SaveStore.number(stock_data,key,0,0,1000000))
 	player.position=world.navigation.nearest_free(SaveStore.position(data.get("player_pos"),player.position))
 	if orchard_owned:world.open_orchard()
