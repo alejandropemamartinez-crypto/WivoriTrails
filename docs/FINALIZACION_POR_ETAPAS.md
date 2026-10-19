@@ -249,6 +249,17 @@ Rama: `feat/v018-stage5g-integration-fixes-no-build`, creada sobre la etapa 5F, 
 
 **Riesgos que quedan:** el código no ha pasado el parser ni el importador Godot 4.4.1; no se probaron animaciones, materiales, cruces de isla ni FPS reales. La nueva escultura del perrito sigue sin exportarse a `hero.glb`. Aún no se construyó APK y `main` permanece intacta.
 
+### Etapa 5H — navegación y animaciones de efectivo entre islas (fuente, no compilado)
+
+Rama `feat/v018-stage5h-money-navigation-audit-no-build`, derivada de la etapa 5G. No se modifica `main`.
+
+- **Aislamiento visual de las monedas por destino:** el código anterior creaba las monedas animadas de las cajas, ventas y recogidas como hijas de la ruta global, visible en todos los escenarios. Si se viajaba con un pago todavía animándose, esas monedas podían aparecer flotando en las mismas coordenadas del pueblo siguiente. Ahora `scripts/cash_economy.gd` crea un contenedor transitorio por índice de región (Wivori, Villa Miga, Puerto Nata, Bahía Farol, Distrito Forja). Solo se muestra el contenedor del pueblo actual; el resto puede completar sus animaciones oculto.
+- **Los valores contables no cambian:** siguen siendo las cajas pendientes, los cobros en vuelo y la tesorería quienes determinan los saldos. Un viaje no duplica dinero, no adelanta pagos y tampoco borra cobros legítimos. Los contenedores de efectos son meramente visuales; no se serializan.
+- **Orden de restauración:** `scripts/game.gd` carga los datos del archipiélago antes de reconstruir el dinero en tránsito, para conocer la región donde debe aparecer el efecto. `scripts/archipelago.gd` limpia la indicación temporal `restore_region` una vez restaurado el destino y actualiza qué contenedor es visible después de cada travesía. Esto evita que al volver más tarde a Wivori se confundan las monedas nuevas con las del destino antiguo.
+- **Bancos sólidos en los pueblos:** las tres bancas decorativas de cada región incorporan huellas reales al mapa de navegación; antes eran mallas sin obstáculo, permitiendo a residentes y protagonista atravesarlas. Se reconstruyen con la navegación del propio pueblo y no afectan al mapa de Wivori.
+- Se extendió `tests/cross_island_cash_tests.gd` (no ejecutado) con escenarios de dinero retenido al cargar una partida desde Forja, cambio de visibilidad de los efectos al navegar a Villa Miga, colisiones de las bancas, retorno a Wivori y ventas realizadas después del regreso.
+- **Estado:** revisión del código fuente y tests preparados exclusivamente. Godot 4.4.1 aún no ha parseado/importado estos cambios; no se ejecutaron suites, no se tomaron capturas y no se generó APK. Sigue pendiente comprobar que las animaciones de efectivo y la navegación coincidan visualmente con sus modelos en Android.
+
 ## Regla de entrega
 Para cada etapa registrar: archivos modificados, capturas o video real,
 fallos reproducidos y corregidos, pruebas ejecutadas, APK reproducible y
