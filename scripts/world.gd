@@ -130,8 +130,8 @@ func _ready() -> void:
 	navigation.build()
 	var accents:=PackedVector3Array()
 	for i in range(90):
-		var at:=Vector3((-1 if i%2==0 else 1)*(3.6+float(i%3)*.24),.06,-19+float(i/2)*.91)
-		if navigation.is_walkable(at,.6) and absf(at.z)>3:accents.append(at)
+		var at:=Vector3((-1 if i%2==0 else 1)*(3.8+sin(float(i)*7.3)*.55),.06,-19+float(i/2)*.91+sin(float(i)*4.7)*.30)
+		if navigation.is_walkable(at,.6) and absf(at.z)>5.8 and absf(at.z-8.5)>1.4 and absf(at.z+9)>1.4:accents.append(at)
 	Finish.meadow(self,accents)
 
 func build_land() -> void:

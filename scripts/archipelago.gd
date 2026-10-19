@@ -15,11 +15,11 @@ const PROJECTS=[
 	{"region":1,"id":"grain","name":"Campos de Villa Miga","cost":380,"needs":{},"at":Vector3(-12,0,-16),"model":"greenhouse","why":"Abrí los campos de trigo. La harina alimentará a tres pueblos."},
 	{"region":1,"id":"grainmill","name":"Molino de grano","cost":600,"needs":{"wheat":8},"at":Vector3(-12,0,4),"model":"mill","why":"Convertí trigo en harina o alimento para animales."},
 	{"region":1,"id":"breadshop","name":"Panadería del puerto","cost":720,"needs":{"flour":4},"at":Vector3(0,0,-12),"model":"bakery","why":"El pan abre el comercio con el siguiente pueblo."},
-	{"region":1,"id":"henhouse","name":"Granja de gallinas","cost":520,"needs":{"bread":4,"feed":4},"at":Vector3(12,0,-12),"model":"house","why":"Alimentá las gallinas y recogé huevos para los pedidos."},
+	{"region":1,"id":"henhouse","name":"Granja de gallinas","cost":520,"needs":{"bread":4,"feed":4},"at":Vector3(12,0,-12),"model":"farm_coop","why":"Alimentá las gallinas y recogé huevos para los pedidos."},
 	{"region":1,"id":"nata_route","name":"Abrir Puerto Nata","cost":900,"needs":{"bread":10,"egg":6},"at":DOCK,"model":"","why":"Un pueblo ganadero necesita pan y huevos. Abre una nueva isla."},
-	{"region":2,"id":"cowbarn","name":"Establo de vacas","cost":900,"needs":{"feed":10},"at":Vector3(-12,0,-12),"model":"house","why":"Traé alimento de Villa Miga para producir leche."},
+	{"region":2,"id":"cowbarn","name":"Establo de vacas","cost":900,"needs":{"feed":10},"at":Vector3(-12,0,-12),"model":"farm_barn","why":"Traé alimento de Villa Miga para producir leche."},
 	{"region":2,"id":"dairy","name":"Quesería de Nata","cost":1100,"needs":{"milk":8},"at":Vector3(0,0,-12),"model":"cafe","why":"Transformá leche en queso. Cada pueblo aporta un ingrediente."},
-	{"region":2,"id":"pigpen","name":"Corral de cerdos","cost":1000,"needs":{"feed":12,"cheese":4},"at":Vector3(12,0,-12),"model":"depot","why":"Ampliá la granja para abastecer la carnicería del pueblo."},
+	{"region":2,"id":"pigpen","name":"Corral de cerdos","cost":1000,"needs":{"feed":12,"cheese":4},"at":Vector3(12,0,-12),"model":"farm_corral","why":"Ampliá la granja para abastecer la carnicería del pueblo."},
 	{"region":2,"id":"butcher","name":"Carnicería del puerto","cost":1200,"needs":{"feed":8,"milk":6},"at":Vector3(-12,0,4),"model":"workshop","why":"Prepará paquetes de carne para comerciar. Sin escenas violentas."},
 	{"region":2,"id":"farol_route","name":"Abrir Bahía Farol","cost":1500,"needs":{"cheese":10,"meat":8,"bread":10},"at":DOCK,"model":"","why":"Llevá suministros para reconstruir el último puerto de la ruta."},
 	{"region":3,"id":"harbor_depot","name":"Almacén de la bahía","cost":1200,"needs":{"bread":8,"milk":6},"at":Vector3(-12,0,-12),"model":"depot","why":"Uní la producción de los pueblos en un puerto de intercambio."},
@@ -251,7 +251,7 @@ func _build_region() -> void:
 	g.world.navigation.build();_update_project_marker()
 	var accents:=PackedVector3Array()
 	for i in range(100):
-		var at:=Vector3((-1 if i%2==0 else 1)*(3.1+float(i%3)*.16),.04,-22+float(i/2)*.88)
+		var at:=Vector3((-1 if i%2==0 else 1)*(3.4+sin(float(i)*7.3)*.45),.04,-22+float(i/2)*.88+sin(float(i)*4.7)*.24)
 		if g.world.navigation.is_walkable(at,.5) and absf(at.z+9)>2 and absf(at.z-7.2)>2:accents.append(at)
 	Finish.meadow(scenery,accents)
 func _place_project(p: Dictionary,animated: bool) -> void:
@@ -271,7 +271,9 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		for i in range(2):
 			var animal:=Art.place(root,"farm_"+kind,Vector3(-1.2+i*2.4,0,3.7),Vector3.ONE*(.8 if kind!="hen" else 1.0));animal.rotation.y=.12 if i==0 else -.25
 			animals.append({"node":animal,"at":animal.position,"yaw":animal.rotation.y,"phase":float(i)*1.8})
-		for x in [-2.8,2.8]:g.world.shape(root,"box",Vector3(x,.5,1.8),Vector3(.12,.9,7),Color("#f1d8a5"))
+		for x in [-2.8,2.8]:
+			Art.place(root,"farm_fence",Vector3(x,0,2.1))
+			g.world.navigation.add_obstacle(Rect2(p["at"].x+x-.13,p["at"].z-1, .26,6.2))
 	for key in RECIPES:
 		if RECIPES[key]["building"]==p["id"]:
 			var output:=Art.place(root,"goods_"+key,Vector3(-1.0 if key=="flour" else 1.1,.5,2.6),Vector3.ONE*1.3);output.name="Output_"+key
@@ -511,6 +513,7 @@ func ground_height(at: Vector3) -> float:
 	if absf(at.x)<2.6 and at.z>16:return .44
 	if absf(at.x)<2.3 or absf(at.z+9)<1.6 and absf(at.x)<15 or absf(at.z-7.2)<1.6 and absf(at.x)<15:return .25
 	if region==1 and built.has("grain") and absf(at.x+12)<3.5 and absf(at.z+8)<3:return .34
+	if (Vector2(at.x,at.z+3)/Vector2(28.5,27.5)).length_squared()>1:return -.05
 	return .04
 func _make_beam(root: Node3D) -> void:
 	lighthouse_beam=Node3D.new();root.add_child(lighthouse_beam);lighthouse_beam.position.y=5.5

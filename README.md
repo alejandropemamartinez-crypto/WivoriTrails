@@ -1,37 +1,28 @@
-# Wivori Trails · 0.14.1
+# Wivori Trails · 0.16.0
 
-Talleres con encargos y entregas manuales, doce capítulos, rondas de defensa,
-Scottie refinado e interfaz compacta. [Cambios y validación](docs/release-v0.14.md).
+Protagonista sin nombre, nuevo rostro original, granjas con arquitectura propia,
+agua animada y revisión de errores de viaje, carga y controles.
+[Cambios y validación](docs/release-v0.16.md).
 
 Juego 3D de aventura, comercio y construcción para Android, en Godot 4.4.1.
-Esta versión continúa íntegramente la rama de recaudación 0.12 (PR #9).
-El protagonista es un Scottish Terrier gris atigrado. Se conserva el nombre
-**Wivori Trails**.
+El jugador controla un perrito aventurero sin nombre: cara redondeada, pelaje
+carbón, hocico corto, ojos ámbar y pañuelo mostaza. Los NPC conservan sus cinco
+especies y modelos distintos. **Wivori Trails** sigue siendo el nombre del juego.
 
-## Cambios de esta versión
+## Esta versión
 
-- Tres personajes originales modelados en Blender: terrier, conejo y mapache.
-  Mallas orgánicas con piel ponderada, 17 huesos y 14 clips por personaje.
-  Barba, cejas y hocico del terrier integrados en la superficie de la cabeza.
-- Materiales PBR y atlas originales; tejados curvos con tejas individuales,
-  puertas y ventanas arqueadas, molduras, toldos, maceteros y utilería de oficio.
-  Nueve edificios económicos, diez puestos de mejoras y mercado reconstruidos.
-- Interfaz con Quicksand (SIL OFL), iconos propios, catálogo de edificios con
-  miniaturas renderizadas de los modelos y apartados Contratar / Mejorar.
-- Mensajera 3D animada: alerta, dirección del ataque y reacción de alivio.
-  El aviso no bloquea el joystick ni el botón de defensa.
-- Ventas → cajas físicas → monedas en tránsito → cartera. El dinero es
-  gastable únicamente al terminar su recorrido. La primera mejora de caja abre
-  la segunda. El conejo recoge, carga una bolsa visible y deposita en tesorería.
-- Guardado v7: conserva las partidas v1–v6, incluidas ventas pendientes,
-  dinero transportado, mejoras, cultivos, empleados, construcciones e incursiones.
-- Movimiento analógico, aceleración y frenado suaves, giro y cámara con seguimiento.
-  La guía marca el destino; el protagonista siempre se mueve con tus controles.
-- Barrios y construcciones por nivel; traslado de edificios a solares abiertos
-  sin volver a cobrarlos ni duplicar bonificaciones. Colisiones y rutas se
-  actualizan también al moverlos. Se mantienen los nueve efectos económicos.
-- Frutas reconocibles al cosechar, entregar, comprar y recuperar. Los mapaches
-  llevan el producto que realmente robaron. Más espacio entre incursiones.
+- Modelo original `hero.glb`: malla ponderada, 17 huesos, 14 clips, atlas PBR de
+  1024 px y fuente editable. Sustituye al antiguo personaje barbudo.
+- Establo, gallinero y corral propios; cercas de madera abiertas con colisión.
+- Sombras de contacto, luz equilibrada, caminos con relieve visual, agua con
+  ondas y espuma de costa, vegetación ligera agrupada y molino animado.
+- Operarios trabajan visualmente durante sus lotes. Movimiento del jugador
+  siempre manual, con inclinación suave al girar y animaciones por actividad.
+- Corregidos límites de islas, amarre del ferry, puerto visible en otra isla,
+  altura del muelle, regeneración del trigo, carga visual y desbordes del almacén.
+- El joystick ya no captura toques a través de menús o avisos abiertos.
+- Se conservan doce capítulos del mercado, defensas, encargos, quince proyectos
+  marítimos y los pueblos persistentes. Guardado v8 compatible con versiones v1–v8.
 
 ## Jugar
 
@@ -94,7 +85,7 @@ a una producción de Playrix. Todos los recursos nuevos tienen identidad propia.
 
 ## 0.15.0 — Ruta del Faro
 
-Scottie es el único terrier; los NPC tienen cinco siluetas distintas. Los oficios
+El protagonista es exclusivo; los NPC tienen cinco siluetas distintas. Los oficios
 separados, carteles opacos y avisos grandes enseñan la siguiente tarea.
 Desde nivel 6, muelle y 900 monedas, el transbordador conecta tres pueblos nuevos.
 Quince proyectos y doce construcciones conducen al Faro. Trigo, granjas de vacas,

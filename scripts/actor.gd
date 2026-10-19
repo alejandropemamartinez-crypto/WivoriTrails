@@ -161,6 +161,8 @@ func _process(delta: float) -> void:
 	last_position=position
 	var speed:=distance/maxf(delta,.001) if distance<3 else 0.0
 	walk_amount=lerpf(walk_amount,minf(speed/4.2,1),1-exp(-14*delta))
+	var turn_lean: float=clampf(angle_difference(rotation.y,facing),-.35,.35)*walk_amount*.22
+	body_root.rotation.z=lerpf(body_root.rotation.z,-turn_lean,1-exp(-10*delta))
 	rotation.y=lerp_angle(rotation.y,facing,1-exp(-12*delta))
 	anim_t+=distance*3.8 if distance<3 else 0
 	var ground_y: float=ground_sampler.call(position) if ground_sampler.is_valid() else .03

@@ -109,8 +109,6 @@ func _ready() -> void:
 	player.setup("player",Color("#3c827b"),"dog")
 	add_child(player)
 	player.position = Vector3(0,0,4)
-	world.shape(player,"cylinder",Vector3(0,.06,0),Vector3(1.05,.025,1.05),Color("#328c87"),"Tu personaje")
-	world.shape(player,"cylinder",Vector3(0,.08,0),Vector3(.78,.025,.78),Color("#d5eadb"))
 	cashier=ActorScript.new()
 	cashier.ground_sampler=Callable(world,"ground_height")
 	cashier.setup("vendor",Color("#b66242"),"pig")
@@ -148,7 +146,7 @@ func _engine_world() -> void:
 	sky.background_color = Color("#b8dce1")
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	sky.ambient_light_color = Color("#d8e3e8")
-	sky.ambient_light_energy = .62
+	sky.ambient_light_energy = .56
 	sky.tonemap_mode = Environment.TONE_MAPPER_AGX
 	sky.tonemap_exposure = .94
 	environment.environment = sky
@@ -156,7 +154,7 @@ func _engine_world() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52,-37,0)
 	sun.light_color = Color("#fff3e5")
-	sun.light_energy = .70
+	sun.light_energy = .52
 	sun.directional_shadow_max_distance=36.0
 	sun.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur=3.0
