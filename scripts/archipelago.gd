@@ -432,7 +432,26 @@ func build_board() -> void:
 	listing=VBoxContainer.new();listing.size_flags_horizontal=Control.SIZE_EXPAND_FILL;listing.add_theme_constant_override("separation",14);scroll.add_child(listing)
 	var resume: Button=g.hud.button("SEGUIR JUGANDO",Color("#248f91"),22);resume.custom_minimum_size.y=86;column.add_child(resume);resume.pressed.connect(close_board)
 func _text(message: String,size_: int=20,color_: Color=Color("#285269")) -> Label:
-	var label: Label=g.hud.label(message,size_,color_);label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;listing.add_child(label);return label
+	var text_node: Label=g.hud.label(message,size_,color_)
+	text_node.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	if size_>=23:
+		# Section headings live in lightly embossed cards rather than mixing
+		# with all body copy; route projects, villages and production are distinct.
+		var section:=g.hud.panel(Color("#fff8e4"))
+		var skin:=g.hud.style(Color("#fff8e4"),15)
+		skin.border_color=Color("#bfd3b7")
+		skin.border_width_left=7
+		skin.border_width_right=1
+		skin.content_margin_left=14
+		skin.content_margin_right=12
+		skin.content_margin_top=10
+		skin.content_margin_bottom=10
+		section.add_theme_stylebox_override("panel",skin)
+		listing.add_child(section)
+		section.add_child(text_node)
+	else:
+		listing.add_child(text_node)
+	return text_node
 func _button(message: String,callback: Callable,disabled: bool=false) -> Button:
 	var b: Button=g.hud.button(message,Color("#388b98"),18);b.custom_minimum_size.y=76;b.disabled=disabled;listing.add_child(b);b.pressed.connect(callback);return b
 func refresh_board() -> void:
