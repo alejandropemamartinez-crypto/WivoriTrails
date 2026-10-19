@@ -25,8 +25,10 @@ static func place(parent: Node3D, asset: String, at: Vector3=Vector3.ZERO, size_
 			push_error("Wivori Trails: el modelo 3D no es una escena válida: "+path)
 			return _missing_model(parent,asset,at,size_)
 		packed[asset]=resource
-	var node:Node3D=packed[asset].instantiate() as Node3D
+	var instance:Node=packed[asset].instantiate()
+	var node:Node3D=instance as Node3D
 	if node==null:
+		if instance!=null:instance.free()
 		push_error("Wivori Trails: escena 3D sin raíz Node3D: "+path)
 		return _missing_model(parent,asset,at,size_)
 	optimize(node)
