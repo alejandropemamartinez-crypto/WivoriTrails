@@ -357,7 +357,11 @@ func _build_region() -> void:
 			Art.place(scenery,"tree",Vector3(x,0,z),Vector3.ONE*.78)
 			g.world.navigation.add_obstacle(Rect2(x-.55,z-.55,1.1,1.1))
 	for i in range(3):
-		var a: MarketActor=g.ActorScript.new();a.setup("resident",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][i],["duck","pig","fox"][i]);scenery.add_child(a);a.position=Vector3(-2+i*3,0,11)
+		var a: MarketActor=g.ActorScript.new()
+		a.ground_sampler=Callable(self,"ground_height")
+		a.setup("resident",[Color("#db9d4c"),Color("#aa7bc5"),Color("#70a368")][i],["duck","pig","fox"][i])
+		scenery.add_child(a)
+		a.position=Vector3(-2+i*3,0,11)
 		residents.append({"actor":a,"index":i,"wait":float(i),"route":[Vector3(-5,0,12),Vector3(5,0,13),Vector3(8,0,7)]})
 	for at in [Vector3(-21,0,-17),Vector3(21,0,-17),Vector3(-21,0,10),Vector3(21,0,12)]:
 		Art.place(scenery,("depot" if at.z<0 else "workshop") if region==4 else "house",at,Vector3.ONE*.72)
@@ -446,11 +450,23 @@ func _decorate_industry_facility(root: Node3D, id: String) -> void:
 	if id=="trade_center":
 		g.world.shape(root,"box",Vector3(0,3.55,0),Vector3(2.5,.25,1.10),Color("#f2d28c"),"Emblema del comercio isleño")
 
+func _station_ground_height(local_at: Vector3, station_root: Node3D) -> float:
+	# Workshop actors live under a translated root; sample terrain at their
+	# *global* position, not their local offset from the factory origin.
+	return ground_height(station_root.to_global(local_at))
+
 func _spawn_operator(key: String) -> void:
 	if scenery==null or region!=RECIPES[key]["region"]:return
 	var root: Node3D=station_nodes.get(RECIPES[key]["building"])
 	if root==null or root.has_node("Operator_"+key):return
-	var a: MarketActor=g.ActorScript.new();a.setup("helper",Color("#dfad64"),"rabbit" if key in ["flour","milk","provisions"] else "duck");root.add_child(a);a.name="Operator_"+key;a.position=Vector3(-1.8,0,2.4);a.rotation.y=PI;a.act("build")
+	var a: MarketActor=g.ActorScript.new()
+	a.ground_sampler=Callable(self,"_station_ground_height").bind(root)
+	a.setup("helper",Color("#dfad64"),"rabbit" if key in ["flour","milk","provisions"] else "duck")
+	root.add_child(a)
+	a.name="Operator_"+key
+	a.position=Vector3(-1.8,0,2.4)
+	a.rotation.y=PI
+	a.act("build")
 func _make_wheat() -> void:
 	if not wheat.is_empty() or scenery==null:return
 	g.world.shape(scenery,"box",Vector3(-12,.22,-8),Vector3(7,.2,6),Color("#a98251"))
