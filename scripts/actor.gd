@@ -32,6 +32,8 @@ var last_speed := 0.0
 var motion_clock:=0.0
 var motion_phase:=0.0
 var motion_bones: Dictionary={}
+var secondary_base_rotations:Dictionary={}
+var secondary_base_scales:Dictionary={}
 var is_money_courier := false
 var cargo_kind := ""
 var visual_cargo_signature:=""
@@ -108,10 +110,24 @@ func _cache_motion_bones() -> void:
 		var index:int=skeleton.find_bone(name_)
 		if index>=0:motion_bones[name_]=index
 
+func _restore_secondary_pose() -> void:
+	# AnimationPlayer can omit tracks for a bone in individual clips. Without
+	# restoring our last additive offsets, each frame would rotate those
+	# unkeyed bones again: tails spiral, heads twist, and eyelids shrink.
+	if skeleton==null:return
+	for index in secondary_base_rotations:
+		skeleton.set_bone_pose_rotation(int(index),secondary_base_rotations[index])
+	for index in secondary_base_scales:
+		skeleton.set_bone_pose_scale(int(index),secondary_base_scales[index])
+	secondary_base_rotations.clear()
+	secondary_base_scales.clear()
+
 func _pose_offset(bone_name: String, axis: Vector3, radians: float) -> void:
 	if skeleton==null or not motion_bones.has(bone_name) or absf(radians)<.0001:return
 	var index:int=motion_bones[bone_name]
-	skeleton.set_bone_pose_rotation(index,skeleton.get_bone_pose_rotation(index)*Quaternion(axis,radians))
+	if not secondary_base_rotations.has(index):
+		secondary_base_rotations[index]=skeleton.get_bone_pose_rotation(index)
+	skeleton.set_bone_pose_rotation(index,secondary_base_rotations[index]*Quaternion(axis,radians))
 
 func _moving_blink() -> void:
 	# Preserve the keyed animation's natural idle blink. Walking, running
@@ -124,7 +140,9 @@ func _moving_blink() -> void:
 	for eye in ["eye.L","eye.R"]:
 		if not motion_bones.has(eye):continue
 		var index:int=motion_bones[eye]
-		var existing:Vector3=skeleton.get_bone_pose_scale(index)
+		if not secondary_base_scales.has(index):
+			secondary_base_scales[index]=skeleton.get_bone_pose_scale(index)
+		var existing:Vector3=secondary_base_scales[index]
 		skeleton.set_bone_pose_scale(index,Vector3(existing.x,existing.y*blink,existing.z))
 
 func _secondary_motion(turn_error: float) -> void:
@@ -315,6 +333,7 @@ func _process(delta: float) -> void:
 	if action_left>0 and walk_amount>.14 and action in ["harvest","deliver","collect"]:
 		_play(Motion.choose_clip(walk_amount,speed,carrying,turn_error))
 	if animator!=null:
+		_restore_secondary_pose()
 		animator.speed_scale=Motion.playback_rate(speed,current_clip,species)
 		animator.advance(delta)
 		_secondary_motion(turn_error)
