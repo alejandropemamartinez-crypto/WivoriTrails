@@ -559,7 +559,7 @@ func build_security() -> void:
 func update_security(run) -> void:
 	premium_root.visible=true
 	premium_board.update_order(run)
-	premium_board.visible=run.g.player.position.distance_to(premium_root.position)<18.0
+	premium_board.visible=run.level>=4 and run.g.player.position.distance_to(premium_root.position)<18.0
 	lock_root.visible=run.lock_level>0
 	alarm_root.visible=run.alarm_level>0
 	security_active=not run.raiders.is_empty() or run.warning>0

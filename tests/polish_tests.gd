@@ -15,6 +15,17 @@ func go(region: int) -> void:
 func run() -> void:
 	game=load("res://Main.tscn").instantiate();game.save_path=path;root.add_child(game);game.set_process(false);game.world.set_process(false);await process_frame
 	var r=game.route
+	var start_at: Vector3=game.player.position
+	game.player.position=game.world.premium_root.position+Vector3(0,0,4)
+	game.run.level=3;game.world.update_security(game.run)
+	check(not game.world.premium_board.visible,"Locked premium orders remain hidden even when nearby")
+	game.run.level=4;game.world.update_security(game.run)
+	check(game.world.premium_board.visible,"Unlocked premium orders appear nearby")
+	game.player.position=game.world.premium_root.position+Vector3(30,0,0);game.world.update_security(game.run)
+	check(not game.world.premium_board.visible,"Distant premium orders do not clutter the market")
+	game.player.position=game.world.premium_root.position+Vector3(0,0,4);game.world.update_security(game.run)
+	check(game.world.premium_board.visible,"Returning restores an unlocked board even with cached order text")
+	game.run.level=1;game.player.position=start_at;game.world.update_security(game.run)
 	r.open_board()
 	var touch:=InputEventScreenTouch.new();touch.index=0;touch.pressed=true;touch.position=game.input_stick.get_global_rect().get_center()+Vector2(55,0)
 	game.input_stick._input(touch)
