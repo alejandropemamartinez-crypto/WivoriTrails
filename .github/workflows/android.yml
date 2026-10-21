@@ -123,16 +123,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr release/Wivori_Trails_Art_Source_v0.18.1.zip art assets/fonts assets/models assets/ui -x '*.import' '*.blend[0-9]'
+          zip -qr release/Wivori_Trails_Art_Source_v0.19.0.zip art assets/fonts assets/models assets/ui assets/textures scripts -x '*.import' '*.blend[0-9]'
       - name: Publish verified Android preview
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view v0.18.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v0.18.1 release/*.apk release/Wivori_Trails_Art_Source_v0.18.1.zip \
+          if ! gh release view v0.19.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.19.0 release/*.apk release/Wivori_Trails_Art_Source_v0.19.0.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "Wivori Trails 0.18.1 — avisos legibles" \
-              --notes-file docs/release-v0.18.1.md
+              --title "Wivori Trails 0.19.0 — mercado costero" \
+              --notes-file docs/release-v0.19.0.md
           fi

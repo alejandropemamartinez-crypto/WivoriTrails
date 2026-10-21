@@ -143,19 +143,28 @@ func _engine_world() -> void:
 	var environment := WorldEnvironment.new()
 	environment.name = "WivoriEnvironment"
 	var sky := Environment.new()
-	sky.background_mode = Environment.BG_COLOR
-	sky.background_color = Color("#b8dce1")
+	sky.background_mode = Environment.BG_SKY
+	sky.background_color = Color("#b8dce9")
+	var sky_resource:=Sky.new()
+	sky_resource.radiance_size=Sky.RADIANCE_SIZE_64
+	sky_resource.process_mode=Sky.PROCESS_MODE_INCREMENTAL
+	var sky_paint:=ProceduralSkyMaterial.new()
+	sky_paint.sky_top_color=Color("#81bedc");sky_paint.sky_horizon_color=Color("#d5e6dc")
+	sky_paint.ground_bottom_color=Color("#688f83");sky_paint.ground_horizon_color=Color("#cbded3")
+	sky_paint.sky_curve=.21;sky_paint.ground_curve=.16
+	sky_resource.sky_material=sky_paint;sky.sky=sky_resource
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	sky.ambient_light_color = Color("#d8e3e8")
-	sky.ambient_light_energy = .56
+	sky.ambient_light_color = Color("#c3dce3")
+	sky.ambient_light_energy = .62
+	sky.reflected_light_source=Environment.REFLECTED_SOURCE_DISABLED
 	sky.tonemap_mode = Environment.TONE_MAPPER_AGX
 	sky.tonemap_exposure = .94
 	environment.environment = sky
 	add_child(environment)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-52,-37,0)
-	sun.light_color = Color("#fff3e5")
-	sun.light_energy = .52
+	sun.rotation_degrees = Vector3(-63,-28,0)
+	sun.light_color = Color("#ffe8c7")
+	sun.light_energy = .73
 	sun.directional_shadow_max_distance=36.0
 	sun.directional_shadow_mode=DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur=3.0
@@ -165,8 +174,9 @@ func _engine_world() -> void:
 func _setup_camera() -> void:
 	camera = Camera3D.new()
 	camera.name = "Cámara suave que sigue al jugador"
-	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.keep_aspect = Camera3D.KEEP_WIDTH
+	camera.size = 17.5
 	camera.fov = 43.0
 	camera.near = .1
 	camera.far = 110.0
@@ -779,6 +789,7 @@ func _spawn_pickup_fx(at: Vector3, kind: String, amount: int=1) -> void:
 
 func _update_camera(delta: float) -> void:
 	if town!=null and town.in_build_mode:
+		camera.size=lerpf(camera.size,48.0,1.0-exp(-5*delta))
 		var city_center: Vector3=town.camera_center
 		camera_follow=camera_follow.lerp(city_center,1.0-exp(-4*delta))
 		var overview:=camera_follow+Vector3(0,30,29)
@@ -790,10 +801,11 @@ func _update_camera(delta: float) -> void:
 	var desired_lead := last_player_heading * 1.25 if player.walk_amount > .12 else Vector3.ZERO
 	camera_lead = camera_lead.lerp(desired_lead,1.0-exp(-2.6*delta))
 	camera_follow=camera_follow.lerp(player.position + camera_lead,smooth)
-	var camera_offset := Vector3(0,13.7,13.6).rotated(Vector3.UP,camera_yaw)*camera_distance
+	var camera_offset := Vector3(0,12.8,15.1).rotated(Vector3.UP,camera_yaw)*camera_distance
+	camera.size=lerpf(camera.size,17.5*camera_distance,1.0-exp(-7.7*delta))
 	var goal := camera_follow+camera_offset
 	camera.position=camera.position.lerp(goal,1.0-exp(-7.7*delta))
-	camera.look_at(camera_follow+Vector3(0,1.0,0),Vector3.UP)
+	camera.look_at(camera_follow+Vector3(0,1.0,-2.4),Vector3.UP)
 	if destination_marker != null and destination_marker.visible:
 		destination_marker.rotation.y += delta*1.8
 

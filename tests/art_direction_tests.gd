@@ -51,7 +51,7 @@ func run() -> void:
 
 	var first_pad: Dictionary=game.world.upgrade_pads["helper"]
 	var buy_label: Label3D=first_pad["label"]
-	var raised: bool=buy_label.position.y>3.2 and first_pad["board"] is Sprite3D
+	var raised: bool=buy_label.global_position.y>3.2 and first_pad["board"] is Sprite3D
 	check(raised and buy_label.no_depth_test, "Purchase labels are elevated above the stalls and cannot be hidden behind the roof")
 	check(buy_label.font_size>=50 and first_pad["price"].font_size>=43 and first_pad["emblem"] is Sprite3D,
 		"Each upgrade has a raised, larger headline, distinct icon and visible price")

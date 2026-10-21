@@ -23,11 +23,40 @@ func _ready() -> void:
 	pictogram=Sprite3D.new();pictogram.texture=load(symbol_path);pictogram.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	pictogram.shaded=false;pictogram.no_depth_test=true;pictogram.render_priority=3;pictogram.position.z=.02;add_child(pictogram)
 	_update_plate()
+	if text=="WIVORI":hide()
+
+func _fit_distance() -> void:
+	var camera:=get_viewport().get_camera_3d()
+	if camera==null:return
+	# Perspective used to turn foreground plaques into enormous billboards.
+	# Cap their apparent size while keeping the world anchor above its target.
+	var distance: float=camera.global_position.distance_to(global_position)
+	var long_name: float=minf(1.0,14.0/maxf(14.0,float(text.length())))
+	var perspective_scale: float=clampf(distance/18.0,.22,1.0) if camera.projection==Camera3D.PROJECTION_PERSPECTIVE else .88
+	scale=Vector3.ONE*perspective_scale*long_name
+	_fit_distance_visibility(camera)
+
+func _fit_distance_visibility(camera: Camera3D) -> void:
+	# The player can read the closest signs; distant roofs remain visible.
+	var player: Node3D=get_tree().get_first_node_in_group("wivori_player") as Node3D
+	var from: Vector3=player.global_position if player!=null else camera.global_position-Vector3(0,12.8,15.1)
+	var planar: float=Vector2(global_position.x-from.x,global_position.z-from.z).length()
+	var crop: bool=text.to_upper() in ["TOMATES","ZANAHORIAS","ARANDANOS","ARÁNDANOS"]
+	modulate.a=1.0 if text!="WIVORI" and planar<=(8.0 if crop or text=="ENTREGAR" else 10.0) else 0.0
+	if player!=null:
+		var sign_at:=camera.unproject_position(global_position)
+		var player_at:=camera.unproject_position(player.global_position+Vector3.UP*1.1)
+		if absf(sign_at.x-player_at.x)<100 and absf(sign_at.y-player_at.y)<65:modulate.a=0.0
+	if modulate.a<.2:modulate.a=0.0
+	if plate!=null:plate.modulate.a=modulate.a
+	if pictogram!=null:pictogram.modulate.a=modulate.a
+	outline_modulate.a=modulate.a
 func _process(delta: float) -> void:
 	wait-=delta
 	if wait>0:return
 	wait=.2
 	if old_text!=text or not is_equal_approx(old_pixel,pixel_size) or old_font!=font_size:_update_plate()
+	_fit_distance()
 func _update_plate() -> void:
 	old_text=text;old_pixel=pixel_size;old_font=font_size
 	if plate==null:return
@@ -35,9 +64,9 @@ func _update_plate() -> void:
 	var line_width:=0.0
 	var lines: PackedStringArray=text.split("\n")
 	for line in lines:line_width=maxf(line_width,font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x*pixel_size)
-	var width:=maxf(2.8,line_width+1.3)
+	var width:=maxf(2.0,line_width+1.05)
 	plate.pixel_size=width/512.0
-	var required_height: float=maxf(.95,float(lines.size())*float(font_size)*pixel_size*1.25+.30)
+	var required_height: float=maxf(.72,float(lines.size())*float(font_size)*pixel_size*1.16+.22)
 	plate.scale.y=maxf(1.0,required_height/(160*plate.pixel_size))
 	pictogram.pixel_size=.0072
 	pictogram.position.x=-width*.5+.50

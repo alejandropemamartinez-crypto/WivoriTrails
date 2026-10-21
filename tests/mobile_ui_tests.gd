@@ -66,7 +66,7 @@ func run() -> void:
 	check(game.player.head_mesh.skin!=null and game.player.skeleton.get_bone_count()>=17, "The hero uses a weighted skin and anatomical skeleton")
 	check(game.player.skeleton.find_bone("ear.L")>=0 and game.player.skeleton.find_bone("ear.R")>=0, "Both terrier ears are animated by actual deform bones")
 	check(game.hud.rabbit_banner.portrait.texture!=null, "An actual rendered 3D rabbit portrait is installed")
-	check(game.world.upgrade_pads["helper"]["label"].position.y>3.4 and game.world.upgrade_pads["helper"]["board"] is Sprite3D, "Upgrade labels and prices are raised above their roofs on billboards")
+	check(game.world.upgrade_pads["helper"]["label"].global_position.y>3.4 and game.world.upgrade_pads["helper"]["board"] is Sprite3D, "Upgrade labels and prices remain above their roofs as their common display pivot scales")
 	check(game.player.head_mesh.mesh.surface_get_material(0).albedo_texture!=null and game.player.head_mesh.mesh.get_surface_count()<=4 and game.player.animator.has_animation("collect"), "An authored texture atlas and batched PBR surfaces preserve detail with few character draws")
 	check(game.get_node("WivoriEnvironment").environment.tonemap_mode==Environment.TONE_MAPPER_AGX, "AgX tone mapping preserves the authored palette without clipped highlights")
 	check(game.camera.keep_aspect==Camera3D.KEEP_WIDTH, "Portrait camera preserves the horizontal view of the market")

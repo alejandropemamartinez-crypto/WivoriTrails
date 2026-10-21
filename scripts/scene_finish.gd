@@ -4,7 +4,8 @@ const Water=preload("res://scripts/water.gdshader")
 static var shadow_material: ShaderMaterial
 static var grass_mesh: ArrayMesh
 static func ground(node: MeshInstance3D,color: Color,cobbled: bool=false) -> void:
-	var material:=ShaderMaterial.new();material.shader=Ground;material.set_shader_parameter("base_color",color);material.set_shader_parameter("cobbled",cobbled);node.material_override=material
+	var material:=ShaderMaterial.new();material.shader=Ground;material.set_shader_parameter("base_color",color);material.set_shader_parameter("cobbled",cobbled)
+	material.set_shader_parameter("stone_atlas",preload("res://assets/textures/coastal_atlas.png"));material.set_shader_parameter("painted",true);node.material_override=material
 static func water(node: MeshInstance3D,island: bool=false) -> void:
 	var material:=ShaderMaterial.new();material.shader=Water;material.set_shader_parameter("island",island);node.material_override=material
 static func contact(parent: Node3D) -> MeshInstance3D:

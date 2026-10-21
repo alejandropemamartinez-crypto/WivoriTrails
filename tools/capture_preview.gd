@@ -74,6 +74,7 @@ func capture() -> void:
 		game.add_child(actor)
 		actor.position=Vector3((i-1)*1.13,0,0)
 		gallery.append(actor)
+	game.camera.projection=Camera3D.PROJECTION_PERSPECTIVE
 	game.camera.position=Vector3(0,2.75,6.6);game.camera.fov=48
 	game.camera.look_at(Vector3(0,1.37,0))
 	await frames(12);await shot("faces")
@@ -97,6 +98,7 @@ func capture() -> void:
 	game.world.visible=true
 	photo_stage.queue_free()
 	game.hud.root.visible=true
+	game.camera.projection=Camera3D.PROJECTION_ORTHOGONAL
 	game.camera.fov=43;game.player.position=Vector3(0,0,4);camera_reset()
 	game.input_stick.axis=Vector2.LEFT
 	for frame in range(22):

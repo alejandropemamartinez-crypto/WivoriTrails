@@ -39,6 +39,7 @@ func run() -> void:
 	game.route.start_expedition(0);game.route.tick(.1);camera(Vector3(10,0,12))
 	await shot("09_astillero_en_viaje")
 	game.route._arrive(0);game.hud.root.visible=false;game.player.set_process(false)
+	game.camera.projection=Camera3D.PROJECTION_PERSPECTIVE
 	game.player.position=Vector3(0,0,45);game.player.rotation.y=0
 	# The review teleports a frozen actor; apply the new ground height rather
 	# than preserving the previous island's smoothed vertical offset.
