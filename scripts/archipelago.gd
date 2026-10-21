@@ -458,7 +458,7 @@ func _refresh_region_identity() -> void:
 func _place_project(p: Dictionary,animated: bool) -> void:
 	if scenery==null or station_nodes.has(p["id"]):return
 	var root:=Node3D.new();root.position=p["at"];scenery.add_child(root);station_nodes[p["id"]]=root
-	var model:=Art.place(root,p["model"])
+	var model:=Art.place(root,"coastal_"+p["id"] if p["region"] in [4,5] else p["model"])
 	if p["id"]=="beacon":_make_beam(root)
 	var authored: Node3D
 	if p["region"] in [4,5]:
@@ -471,6 +471,10 @@ func _place_project(p: Dictionary,animated: bool) -> void:
 		authored=town_facade
 	if authored!=null:
 		root.add_child(authored)
+		if authored is WivoriFactoryFacade:
+			# The new complete buildings already own their roof glazing. The old
+			# extra window rows were positioned for much taller imported cottages.
+			for windows in authored.window_batches:windows.visible=false
 		# Decorative details arrive with purchased projects; neither
 		# the actual models nor any saved economy state are replaced.
 		if animated:
@@ -883,7 +887,7 @@ func open_board() -> void:
 	board_scrim.visible=true
 	refresh_board()
 func build_board() -> void:
-	route_button=g.hud.button("DISTRITO FORJA" if stage>=PROJECTS.size() else "RUTA AL FARO",Color("#3d88a6"),17);g.hud.root.add_child(route_button);route_button.offset_left=24;route_button.offset_right=242;route_button.offset_top=224;route_button.offset_bottom=288;route_button.pressed.connect(open_board)
+	route_button=g.hud.button("MAPAS",Color("#3b788c"),15);g.hud.root.add_child(route_button);route_button.offset_left=24;route_button.offset_right=208;route_button.offset_top=200;route_button.offset_bottom=248;route_button.pressed.connect(open_board)
 	board_scrim=ColorRect.new();board_scrim.color=Color(.04,.14,.22,.78);board_scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);g.hud.root.add_child(board_scrim);board_scrim.visible=false
 	board=g.hud.panel(Color("#fff1d0"));board_scrim.add_child(board);board.anchor_left=.04;board.anchor_right=.96;board.anchor_top=.04;board.anchor_bottom=.96
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",12);board.add_child(column)

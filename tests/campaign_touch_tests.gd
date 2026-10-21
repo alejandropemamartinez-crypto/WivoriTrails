@@ -16,13 +16,16 @@ func touch(at: Vector2,pressed: bool) -> void:
 	var event:=InputEventScreenTouch.new();event.index=0;event.position=at;event.pressed=pressed
 	root.push_input(event,true);await process_frame
 func run() -> void:
+	print("CAMPAIGN_TOUCH: creating production scene")
 	game=load("res://Main.tscn").instantiate();game.save_path=save_path;root.add_child(game)
+	print("CAMPAIGN_TOUCH: production scene ready")
 	game.set_process(false);game.world.set_process(false)
 	game.route.ferry=true;game.route.access_floor=5
 	game.route.stage=game.route.PROJECTS.size();game.route.industry_stage=game.route.INDUSTRY_PROJECTS.size()
 	game.route.aurora_stage=game.route.AURORA_PROJECTS.size()
 	for project in game.route.PROJECTS+game.route.INDUSTRY_PROJECTS+game.route.AURORA_PROJECTS:game.route.built.append(project["id"])
 	for region in range(6):
+		print("CAMPAIGN_TOUCH: entering map ",region+1)
 		game.route._arrive(region)
 		game.player.position=Vector3(0,0,12) if region>0 else Vector3(0,0,4)
 		game.move_velocity=Vector3.ZERO;game._refresh_ui()

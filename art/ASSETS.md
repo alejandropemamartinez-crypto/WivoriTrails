@@ -1,4 +1,4 @@
-# Arte de Wivori Trails 0.16
+# Arte de Wivori Trails
 
 Se creó específicamente para este proyecto. No se utilizaron personajes,
 edificios, texturas ni recursos de Township/Playrix ni de otros juegos.
@@ -73,6 +73,26 @@ y las cercas de madera abiertas. Los shaders de agua, suelo y contacto son
 originales del proyecto y funcionan con el renderizador Compatibility.
 Los modelos antiguos se conservan como fuentes históricas; el juego carga
 `hero.glb` exclusivamente para el jugador.
+
+## Arquitectura costera de 0.19.0
+
+`scripts/coastal_building.gd` es la fuente editable de la arquitectura actual.
+Construye y comparte mallas con bordes biselados, tejados curvos, ventanas,
+carpintería, puestos abiertos y naves industriales. `scripts/coastal_scenery.gd`
+agrupa jardines y muros; `scripts/coastal_surface.gdshader` aplica el acabado.
+Los GLB anteriores se conservan como originales históricos y para recursos que
+siguen utilizándose, incluidos personajes, animales, productos y mobiliario.
+
+`assets/textures/coastal_atlas.png` es un atlas nuevo generado con IA para este
+proyecto, con seis materiales en una cuadrícula 3 × 2: madera, estuco, cerámica,
+piedra, hojas y tierra. La geometría, UV, iluminación, cámara e interacción son
+del juego ejecutándose en Godot. La imagen conceptual de referencia no se usa
+como fondo que sustituya al escenario jugable.
+
+`tools/render_thumbnails.gd` vuelve a crear las nueve imágenes del catálogo a
+partir de los edificios actuales, con fondo transparente. No necesita Blender.
+Las fachadas mecánicas conservan sus animaciones y las ventanas duplicadas para
+los edificios históricos se ocultan al integrarlas en la arquitectura nueva.
 
 ## Etapa 7: exportación e inspección del protagonista
 

@@ -79,6 +79,7 @@ static func model(kind: String) -> Node3D:
 	return instance
 
 func _ready() -> void:
+	if character_role=="player":add_to_group("wivori_player")
 	var animal: String="hero" if character_role=="player" else {"scottie":"fox","dog":"fox","human":"pig","cat":"duck"}.get(species,species)
 	if animal not in ["hero","fox","pig","duck","rabbit","raccoon"]:animal="rabbit"
 	motion_phase=Motion.phase_for(animal)

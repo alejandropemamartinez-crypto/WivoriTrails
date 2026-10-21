@@ -12,14 +12,16 @@ var last_signature:=""
 
 func _ready() -> void:
 	name="Tablero de pedidos · tamaño fijo"
+	scale=Vector3.ONE*.82
+	visible=false
 	var panel:=Sprite3D.new()
 	panel.texture=BOARD;panel.pixel_size=.008
 	panel.billboard=BaseMaterial3D.BILLBOARD_ENABLED
 	panel.shaded=false;panel.render_priority=1
 	add_child(panel)
-	heading=_line("PEDIDOS ×2",.49,42,Color("#fff5d7"))
-	product=_line("SE ABRE EN NIVEL 4",-.11,31,Color("#285269"))
-	quantity=_line("",-.48,30,Color("#a26927"))
+	heading=_line("PEDIDOS ×2",.49,52,Color("#fff5d7"))
+	product=_line("",-.11,40,Color("#285269"))
+	quantity=_line("",-.48,38,Color("#a26927"))
 
 func _line(message: String,y: float,size_: int,color_: Color) -> Label3D:
 	var label:=Label3D.new()
@@ -35,10 +37,11 @@ func update_order(run) -> void:
 	var signature: String="%d:%d:%s" % [run.level,run.contract_done,run.contract_kind()]
 	if signature==last_signature:return
 	last_signature=signature
+	visible=run.level>=4
 	if run.level<4:
-		product.text="SE ABRE EN NIVEL 4";quantity.text="VENDÉ · MEJORÁ · AVANZÁ"
+		product.text="";quantity.text=""
 		return
 	var complete: bool=run.contract_done>=run.contract_goal()
 	product.text="¡PEDIDO COMPLETADO!" if complete else str(run.g.CROP_NAMES[run.contract_kind()]).to_upper()
 	quantity.text="%d / %d" % [run.contract_done,run.contract_goal()]
-	product.font_size=31 if complete else 36
+	product.font_size=40 if complete else 44

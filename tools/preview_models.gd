@@ -19,6 +19,7 @@ func render_models() -> void:
 		actor.rotation.y=-.16
 		actor.facing=-.16
 	game.camera.position=Vector3(0,3.4,26.8)
+	game.camera.projection=Camera3D.PROJECTION_PERSPECTIVE
 	game.camera.fov=42
 	game.camera.look_at(Vector3(0,1.25,20))
 	for frame in range(20):await process_frame

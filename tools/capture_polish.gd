@@ -24,11 +24,12 @@ func capture() -> void:
 	var cast: Array[MarketActor]=[]
 	for i in range(5):
 		var a: MarketActor=game.ActorScript.new();a.setup("customer",[Color("#549d99"),Color("#d79968"),Color("#779cae")][i%3],["fox","pig","duck","rabbit","raccoon"][i]);game.add_child(a);a.position=Vector3((i-2)*1.25,0,45);cast.append(a)
+	game.camera.projection=Camera3D.PROJECTION_PERSPECTIVE
 	game.camera.position=Vector3(0,3.3,55);game.camera.fov=47;game.camera.look_at(Vector3(0,1.4,45));await shot("05_npc_distintos")
 	for a in cast:a.queue_free()
 	game.player.visible=true;game.player.position=Vector3(0,0,45);game.player.facing=-.14;game.player.rotation.y=-.14
 	game.camera.position=Vector3(.35,2.55,50.2);game.camera.fov=34;game.camera.look_at(Vector3(0,1.23,45));await shot("00_hero_closeup")
-	game.hud.root.visible=true;game.camera.fov=43
+	game.hud.root.visible=true;game.camera.fov=43;game.camera.projection=Camera3D.PROJECTION_ORTHOGONAL
 	game.coins=20000;game.run.level=6;game.pier_owned=true;game.world.open_pier();game.route.ferry=true
 	camera(game.route.HOME_DOCK+Vector3(-2,0,-1));await shot("06_barco_wivori")
 	game.route.open_board();await shot("07_mapa_ruta");game.route.close_board()

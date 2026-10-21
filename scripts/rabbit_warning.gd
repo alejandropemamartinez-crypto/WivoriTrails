@@ -127,7 +127,7 @@ func _announce(title: String, explanation: String, clip: String) -> void:
 	modulate.a=0;slide_offset=-760
 	active_tween=create_tween().set_parallel(true)
 	active_tween.tween_property(self,"modulate:a",1.0,.18)
-	active_tween.tween_property(self,"slide_offset",0.0,.46).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	active_tween.tween_property(self,"slide_offset",0.0,.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _process(delta: float) -> void:
 	lifetime-=delta;phase_time+=delta

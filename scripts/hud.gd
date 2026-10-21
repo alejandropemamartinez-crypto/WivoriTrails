@@ -198,43 +198,50 @@ func build(game: Node3D) -> void:
 	root.theme=ui_theme
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(root)
 
-	var header:=panel(Color("#28565b"));root.add_child(header);position_top(header,16,80)
-	var header_style:=style(Color("#28565b"),25);header_style.content_margin_top=8;header_style.content_margin_bottom=8;header.add_theme_stylebox_override("panel",header_style)
-	var row:=HBoxContainer.new();row.add_theme_constant_override("separation",14);header.add_child(row)
-	row.add_child(icon("coin",GOLD,Vector2(43,43)))
-	var wallet:=VBoxContainer.new();wallet.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(wallet)
+	var row:=HBoxContainer.new();root.add_child(row);position_top(row,16,76)
+	row.add_theme_constant_override("separation",12)
+	var coin_card:=panel(Color("#254956"));coin_card.custom_minimum_size=Vector2(234,0);row.add_child(coin_card)
+	var coin_style:=style(Color("#254956"),28);coin_style.content_margin_top=7;coin_style.content_margin_bottom=7;coin_style.content_margin_left=12;coin_style.content_margin_right=12;coin_card.add_theme_stylebox_override("panel",coin_style)
+	var coins:=HBoxContainer.new();coins.add_theme_constant_override("separation",10);coin_card.add_child(coins)
+	coins.add_child(icon("coin",GOLD,Vector2(43,43)))
+	var wallet:=VBoxContainer.new();wallet.size_flags_horizontal=Control.SIZE_EXPAND_FILL;coins.add_child(wallet)
 	g.total_label=label("50",29,Color("#fff5d7"));wallet.add_child(g.total_label)
 	uncollected_label=label("En cajas  0",12,Color("#bed9c9"));uncollected_label.clip_text=true;wallet.add_child(uncollected_label)
+	var gap_left:=Control.new();gap_left.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(gap_left)
 	var badge:=panel(Color("#e8b95e"));badge.custom_minimum_size=Vector2(76,0);row.add_child(badge)
 	var badge_style:=style(Color("#e8b95e"),19);badge_style.content_margin_top=5;badge_style.content_margin_bottom=5;badge_style.content_margin_left=12;badge_style.content_margin_right=12;badge.add_theme_stylebox_override("panel",badge_style)
 	var level:=VBoxContainer.new();badge.add_child(level)
 	var small:=label("NIVEL",11,Color("#76532b"));small.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(small);level_caption=small
 	level_label=label("01",23,Color("#fff5dc"));level_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;level.add_child(level_label)
 	level_progress=progress(Color("#fdf0c5"));level_progress.custom_minimum_size.y=5;level.add_child(level_progress)
-	row.add_child(icon("bag",Color("#e8cb9b"),Vector2(35,45)))
-	var bag:=VBoxContainer.new();bag.custom_minimum_size=Vector2(111,0);row.add_child(bag)
+	var gap_right:=Control.new();gap_right.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(gap_right)
+	var bag_card:=panel(Color("#254956"));bag_card.custom_minimum_size=Vector2(182,0);row.add_child(bag_card)
+	bag_card.add_theme_stylebox_override("panel",coin_style)
+	var bag_row:=HBoxContainer.new();bag_row.add_theme_constant_override("separation",9);bag_card.add_child(bag_row)
+	bag_row.add_child(icon("bag",Color("#e8cb9b"),Vector2(31,42)))
+	var bag:=VBoxContainer.new();bag.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bag_row.add_child(bag)
 	bag.add_child(label("MOCHILA",11,Color("#bed9c9")))
 	g.backpack_label=label("0 / 12",24,Color("#fff4d9"));bag.add_child(g.backpack_label)
 	bag_progress=progress(GOLD);bag.add_child(bag_progress)
 
-	var mission := panel(); root.add_child(mission); position_top(mission,106,108)
+	var mission := panel(); root.add_child(mission); position_top(mission,102,88)
 	var mission_style:=style(PAPER,22);mission_style.content_margin_top=6;mission_style.content_margin_bottom=6;mission.add_theme_stylebox_override("panel",mission_style)
 	mission_panel=mission
 	var mission_row := HBoxContainer.new(); mission_row.add_theme_constant_override("separation",12); mission.add_child(mission_row)
 	var mission_column := VBoxContainer.new(); mission_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	mission_column.add_theme_constant_override("separation",3); mission_row.add_child(mission_column)
-	next_label=label("TU PRIMER MERCADO",12,TEAL); mission_column.add_child(next_label)
+	next_label=label("TU PRIMER MERCADO",12,TEAL); mission_column.add_child(next_label);next_label.visible=false
 	g.mission_label=label("Tu primera cosecha",21); mission_column.add_child(g.mission_label)
 	g.mission_label.clip_text=true
 	next_label.clip_text=true
-	mission_detail=label("",14,MUTED)
+	mission_detail=label("",13,MUTED)
 	mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	mission_detail.max_lines_visible=2
+	mission_detail.max_lines_visible=1
 	mission_detail.clip_text=true
 	mission_detail.custom_minimum_size=Vector2.ZERO
 	mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",TEAL,14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(119,76)
+	guide_button=button("GUIAR",Color("#b67c36"),14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(119,72)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
@@ -261,7 +268,7 @@ func build(game: Node3D) -> void:
 	view_button=view
 	view.add_theme_color_override("font_color",INK); view.add_theme_color_override("font_hover_color",INK)
 	view.anchor_left=1; view.anchor_right=1
-	view.offset_left=-108; view.offset_right=-24; view.offset_top=224; view.offset_bottom=270
+	view.offset_left=-108; view.offset_right=-24; view.offset_top=200; view.offset_bottom=248
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
@@ -273,28 +280,28 @@ func build(game: Node3D) -> void:
 	run_button=run
 	run.icon=action_icon(2);run.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	run.anchor_left=1; run.anchor_right=1; run.anchor_top=1; run.anchor_bottom=1
-	run.offset_left=-182; run.offset_right=-24; run.offset_top=-272; run.offset_bottom=-176
+	run.offset_left=-168; run.offset_right=-24; run.offset_top=-235; run.offset_bottom=-163
 	run.button_down.connect(func():g.boost_active=true)
 	run.button_up.connect(func():g.boost_active=false)
 	g.shop_button=button("MEJORAS",TEAL,17); g.shop_button.icon=action_icon(1);g.shop_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT; root.add_child(g.shop_button)
 	g.shop_button.anchor_left=1; g.shop_button.anchor_right=1
 	g.shop_button.anchor_top=1; g.shop_button.anchor_bottom=1
 	g.shop_button.offset_left=-154; g.shop_button.offset_right=-24
-	g.shop_button.offset_top=-160; g.shop_button.offset_bottom=-64
+	g.shop_button.offset_top=-148; g.shop_button.offset_bottom=-60
 	g.shop_button.pressed.connect(func():g._toggle_shop())
 	town_button=button("PUEBLO",Color("#5d8490"),17);town_button.icon=action_icon(0);town_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(town_button)
 	town_button.anchor_left=1; town_button.anchor_right=1; town_button.anchor_top=1; town_button.anchor_bottom=1
 	town_button.offset_left=-286; town_button.offset_right=-163
-	town_button.offset_top=-160; town_button.offset_bottom=-64
+	town_button.offset_top=-148; town_button.offset_bottom=-60
 	town_button.pressed.connect(func():g._toggle_build_mode())
 	activity_button=button("PEDIDOS",Color("#5d8490"),17);root.add_child(activity_button)
 	activity_button.anchor_top=1;activity_button.anchor_bottom=1
-	activity_button.offset_left=242;activity_button.offset_right=425;activity_button.offset_top=-160;activity_button.offset_bottom=-64
+	activity_button.offset_left=242;activity_button.offset_right=425;activity_button.offset_top=-148;activity_button.offset_bottom=-60
 	activity_button.pressed.connect(func():g.work.toggle_board());activity_button.visible=false
 
 	intercept_button=button("AHUYENTAR",Color("#b55d50"),19);intercept_button.icon=action_icon(4);intercept_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;root.add_child(intercept_button)
 	intercept_button.anchor_left=1; intercept_button.anchor_right=1; intercept_button.anchor_top=1; intercept_button.anchor_bottom=1
-	intercept_button.offset_left=-286; intercept_button.offset_right=-24; intercept_button.offset_top=-384; intercept_button.offset_bottom=-288
+	intercept_button.offset_left=-266; intercept_button.offset_right=-24; intercept_button.offset_top=-333; intercept_button.offset_bottom=-247
 	intercept_button.pressed.connect(func():g._intercept())
 	intercept_button.visible=false
 	intercept_button.add_theme_color_override("font_disabled_color",INK)

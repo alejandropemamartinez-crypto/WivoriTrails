@@ -166,7 +166,6 @@ func _repel(raid: Dictionary, by_player: bool) -> void:
 	raid["actor"].set_carry(0); blocked+=1
 	if by_player:manual_blocked+=1
 	if g.hud!=null:g.hud.rabbit_banner.recovered(amount)
-	g._notice(("¡RECUPERASTE %d PRODUCTOS!" % amount) if amount>0 else ("¡MAPACHE AHUYENTADO!" if by_player else "¡EL GUARDIA LO FRENÓ!"),1.8)
 	g._save_progress()
 
 func _spawn_raider(entry: Vector3, saved: Dictionary={}) -> void:
@@ -188,7 +187,7 @@ func _spawn_wave() -> void:
 	for i in range(count):_spawn_raider(ENTRIES[(wave_index+i)%ENTRIES.size()])
 	wave_index+=1
 	g.player.act("surprise")
-	g._notice("¡LLEGARON LOS MAPACHES!\nAcercate y tocá AHUYENTAR.",2.5)
+	# The messenger is the single nonblocking warning for this phase.
 	g._save_progress()
 
 func _tick_guard(delta: float) -> void:
@@ -235,7 +234,6 @@ func tick(delta: float) -> void:
 					g._animate_goods(STOCK,actor.position,amount,Color("#d88c55"),chosen)
 					g._float_activity(actor.position,"¡ROBO! -%d" % amount,Color("#cf5e51"))
 					actor.set_cargo_kind(chosen);actor.set_carry(amount); raid["state"]="escape"; raid["label"].text="¡LLEVA %d!" % amount
-					g._notice("¡SE LLEVA %d PRODUCTOS!\nInterceptalo para recuperarlos." % amount,2.4)
 				else:raid["state"]="retreat"
 				g._save_progress()
 		else:
@@ -249,7 +247,7 @@ func tick(delta: float) -> void:
 			if warning<=0:_spawn_wave(); next_raid=maxf(44,78-level*3)
 		else:
 			next_raid-=delta
-			if next_raid<=0:warning=6+alarm_level*2+g.town.warning_seconds(); g._notice("¡MAPACHES EN CAMINO!\nPrepará las defensas o salí a interceptar.",2.8)
+			if next_raid<=0:warning=6+alarm_level*2+g.town.warning_seconds()
 	if complete() and not completion_shown:
 		completion_shown=true; g._notice("¡NIVEL SUPERADO!\nCobrá el premio para abrir la siguiente meta.",3)
 

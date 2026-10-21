@@ -1,6 +1,8 @@
 extends RefCounted
 class_name WivoriArt
 
+const Coastal=preload("res://scripts/coastal_building.gd")
+
 static var packed := {}
 static var optimized := {}
 
@@ -15,6 +17,7 @@ static func _missing_model(parent: Node3D, asset: String, at: Vector3, size_: Ve
 	return replacement
 
 static func place(parent: Node3D, asset: String, at: Vector3=Vector3.ZERO, size_: Vector3=Vector3.ONE) -> Node3D:
+	if Coastal.supports(asset):return Coastal.create(parent,asset,at,size_)
 	var path:String="res://assets/models/"+asset+".glb"
 	if not packed.has(asset):
 		if not ResourceLoader.exists(path):

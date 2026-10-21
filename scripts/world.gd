@@ -128,6 +128,7 @@ func _ready() -> void:
 	var quarters:=preload("res://scripts/village_scenery.gd").new()
 	quarters.w=self
 	add_child(quarters)
+	var gardens:=preload("res://scripts/coastal_scenery.gd").new();gardens.world=self;add_child(gardens)
 	navigation.build()
 	var accents:=PackedVector3Array()
 	for i in range(90):
@@ -136,9 +137,11 @@ func _ready() -> void:
 	Finish.meadow(self,accents)
 
 func build_land() -> void:
-	var grass:=shape(self,"box",Vector3(0,-.42,0),Vector3(150,.8,150),GREEN,"Base de isla")
+	var sea:=shape(self,"box",Vector3(0,-.71,0),Vector3(240,.12,240),BLUE,"Mar de Wivori");Finish.water(sea,true);sea.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# CylinderMesh's unit height is two metres, unlike BoxMesh's one metre.
+	var grass:=shape(self,"cylinder",Vector3(0,-.42,0),Vector3(104,.4,104),GREEN,"Base de isla")
 	var lawn:=ShaderMaterial.new();lawn.shader=preload("res://scripts/ground.gdshader");lawn.set_shader_parameter("base_color",Color("#6d9e72"));grass.material_override=lawn
-	shape(self,"box",Vector3(0,-.84,0),Vector3(151,.35,151),Color("#c6aa72"),"Corte de isla")
+	shape(self,"cylinder",Vector3(0,-.84,0),Vector3(105,.175,105),Color("#c6aa72"),"Corte de isla")
 	# Broad quiet surfaces give the arrows, produce and interaction pads priority.
 	shape(self,"box",Vector3(0,.02,0),Vector3(5.0,.12,43),Color("#b9a887"),"Paseo principal")
 	shape(self,"box",Vector3(4.8,.035,-.4),Vector3(12.5,.14,10),Color("#b9a887"),"Plaza comercial")
@@ -152,7 +155,7 @@ func build_land() -> void:
 	batch_paving(stones)
 	for child in get_children():
 		if child is MeshInstance3D and child.name in ["Paseo principal","Plaza comercial","Zona de fila"]:
-			var cobble:=ShaderMaterial.new();cobble.shader=preload("res://scripts/ground.gdshader");cobble.set_shader_parameter("cobbled",true);cobble.set_shader_parameter("base_color",Color("#d2c3a1"));child.material_override=cobble
+			Finish.ground(child,Color("#bcb097"),true)
 	for i in range(6):
 		var at := Vector3(8.3,.14,.6) if i==0 else Vector3(9.5+(.55 if i%2==0 else 0),.14,.8+float(i)*1.4)
 		shape(self,"cylinder",at,Vector3(.85,.035,.85),Color("#e1cfaa"),"Lugar de cliente %d" % i)
@@ -176,7 +179,7 @@ func build_market() -> void:
 	var paint:=ShaderMaterial.new();paint.shader=preload("res://scripts/ground.gdshader");paint.set_shader_parameter("cobbled",true);paint.set_shader_parameter("base_color",Color("#e0c89a"));rug.material_override=paint
 	# Keep the manual delivery point readable without covering the hero on
 	# the central approach. The rug remains the actual interaction target.
-	var sign:=make_label(self,"ENTREGAR",Vector3(4,2.7,2.5),46)
+	var sign:=make_label(self,"ENTREGAR",Vector3(4,.85,3.0),46)
 	sign.pixel_size=.008
 
 func build_farms() -> void:
@@ -187,12 +190,7 @@ func build_farms() -> void:
 
 func make_bed(title: String, pos: Vector3, tint: Color, resource: String, enabled_: bool) -> void:
 	var bed:=Node3D.new();bed.name=title;bed.position=pos;farm_root.add_child(bed)
-	shape(bed,"box",Vector3.ZERO,Vector3(5.5,.5,4.4),Color("#a97e52"))
-	shape(bed,"box",Vector3(0,.28,0),Vector3(5.06,.11,3.96),Color("#725941"))
-	for z in [-2.16,2.16]:
-		shape(bed,"box",Vector3(0,.34,z),Vector3(5.6,.18,.16),Color("#c79e69"))
-	for x in [-2.72,2.72]:
-		shape(bed,"box",Vector3(x,.34,0),Vector3(.16,.18,4.4),Color("#c79e69"))
+	Art.place(bed,"coastal_bed")
 	for row in range(3):
 		for col in range(3):
 			var at:=Vector3((float(col)-1)*1.55,.40,(float(row)-1)*1.25)
@@ -389,7 +387,9 @@ func build_upgrade_pads() -> void:
 		var price:=make_label(stall,"",Vector3(.29,3.25,-.84),43)
 		price.pixel_size=.0071;price.modulate=Color("#7a5035");price.outline_size=3;price.outline_modulate=Color("#fff0d2");price.no_depth_test=true;price.render_priority=7
 		var face:=shape(stall,"box",Vector3(0,.09,.10),Vector3(1.65,.10,.65),Color("#dbceaa"),"Escalón de compra")
-		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"emblem":emblem,"short":names[kind],"afford":false}
+		var sign_group:=Node3D.new();sign_group.name="Señal de oficio compacta";sign_group.position=Vector3(0,3.55,-1.15);stall.add_child(sign_group)
+		for part: Node3D in [label,price,badge,emblem]:part.reparent(sign_group,true)
+		upgrade_pads[kind]={"node":stall,"face":face,"label":label,"price":price,"board":badge,"emblem":emblem,"sign":sign_group,"short":names[kind],"afford":false}
 
 func update_upgrade_pads(upgrades: Dictionary, coins: int, recommended: String) -> void:
 	for kind in upgrade_pads:
@@ -425,6 +425,10 @@ func focus_upgrade_labels(player_pos: Vector3, building: bool, recommended: Stri
 	for kind in upgrade_pads:
 		var pad: Dictionary=upgrade_pads[kind]
 		var show_label: bool=readable.has(kind)
+		var camera:=get_viewport().get_camera_3d()
+		if camera!=null:
+			var distance: float=camera.global_position.distance_to(pad["sign"].global_position)
+			pad["sign"].scale=Vector3.ONE*clampf(distance/22.0,.30,.77)
 		pad["label"].visible=show_label
 		pad["price"].visible=show_label
 		pad["board"].visible=show_label

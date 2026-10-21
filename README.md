@@ -1,4 +1,4 @@
-# Wivori Trails · 0.18.1
+# Wivori Trails · 0.19.0
 
 Juego 3D de aventura, comercio y construcción para Android, en Godot **4.4.1**.
 Controlás un perrito sin nombre; contratás trabajadores, defendés el mercado y
@@ -57,7 +57,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.18.1 usa código 20, el paquete
+verifica paquete, versión y certificado. 0.19.0 usa código 21, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
@@ -65,7 +65,9 @@ actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md
 los generadores, atlas y archivos Blender en `art/source/`. Blender no es
 necesario para ejecutar o compilar el juego.
 
-[Corrección de avisos en 0.18.1](docs/release-v0.18.1.md).
+[Renovación visual de 0.19.0](docs/release-v0.19.0.md): arquitectura costera,
+materiales pintados, cámara ortográfica, tejados que dejan ver al protagonista,
+catálogo con imágenes de los modelos actuales y avisos de robo sin duplicados.
 Las pruebas de escritorio y de exportación no miden FPS, calentamiento, batería
 ni sensación de control en un teléfono físico. El arte y el balance siguen
 siendo los de una versión de prueba; la comparación de diseño con otros juegos

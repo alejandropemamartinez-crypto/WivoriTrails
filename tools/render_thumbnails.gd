@@ -13,10 +13,11 @@ func render_cards() -> void:
 	var camera:=Camera3D.new();viewport.add_child(camera);camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=8.2;camera.position=Vector3(7,6,10);camera.look_at(Vector3(0,1.7,0));camera.current=true
 	DirAccess.make_dir_recursive_absolute("res://assets/ui/buildings")
 	for kind in ["house","cafe","depot","bakery","greenhouse","workshop","park","watchtower","mill"]:
-		var model=load("res://assets/models/"+kind+".glb").instantiate();viewport.add_child(model)
+		var stage:=Node3D.new();viewport.add_child(stage)
+		var model=preload("res://scripts/art_library.gd").place(stage,kind)
 		for frame in range(8):await process_frame
 		await RenderingServer.frame_post_draw
 		viewport.get_texture().get_image().save_png("res://assets/ui/buildings/"+kind+".png")
-		model.queue_free();await process_frame
+		stage.queue_free();await process_frame
 	print("THUMBNAILS: nine actual model renders")
 	viewport.queue_free();await process_frame;quit()
