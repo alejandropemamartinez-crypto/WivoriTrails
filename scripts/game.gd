@@ -156,7 +156,6 @@ func _engine_world() -> void:
 	sky.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	sky.ambient_light_color = Color("#c3dce3")
 	sky.ambient_light_energy = .62
-	sky.reflected_light_source=Environment.REFLECTED_SOURCE_DISABLED
 	sky.tonemap_mode = Environment.TONE_MAPPER_AGX
 	sky.tonemap_exposure = .94
 	environment.environment = sky
