@@ -11,6 +11,10 @@ jobs:
   snapshots:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        review: [preview, controls, campaign-720x1280, campaign-720x1600, coastal-720x1280, coastal-720x1600]
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -30,52 +34,59 @@ jobs:
       - name: Render actual game captures, not mockups
         shell: bash
         env:
+          REVIEW_GROUP: ${{ matrix.review }}
           LIBGL_ALWAYS_SOFTWARE: "1"
           MESA_GL_VERSION_OVERRIDE: "3.3"
           LP_NUM_THREADS: "2"
         run: |
           set -euo pipefail
           mkdir -p previews
-          timeout 180 xvfb-run -a -s "-screen 0 720x1280x24" \
-            godot --path . --rendering-driver opengl3 --resolution 720x1280 \
-            --script res://tools/capture_preview.gd -- "$PWD/previews"
-          test -s previews/start.png
-          test -s previews/faces.png
-          test -s previews/hero_closeup.png
-          test -s previews/rabbit_robbery_alert.png
-          test -s previews/cash_collection_flight.png
-          test -s previews/town_overview.png
-          for suite in mobile_ui_tests factory_facade_tests campaign_touch_tests hud_overlap_tests terrain_surface_tests; do
-            timeout 120 xvfb-run -a -s "-screen 0 720x1280x24" \
-              godot --path . --audio-driver Dummy --resolution 720x1280 \
-              --script "res://tests/$suite.gd" 2>&1 | tee "previews/$suite.log"
-          done
-          for resolution in 720x1280 720x1600; do
-            mkdir -p "previews/$resolution"
-            timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
-              godot --path . --audio-driver Dummy --resolution "$resolution" \
-              --script res://tools/capture_campaign.gd -- "$PWD/previews/$resolution" \
-              2>&1 | tee "previews/campaign-$resolution.log"
-            test -s "previews/$resolution/07_puerto_aurora.png"
-            mkdir -p "previews/$resolution/coastal"
-            timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
-              godot --path . --audio-driver Dummy --resolution "$resolution" \
-              --script res://tools/capture_coastal.gd -- "$PWD/previews/$resolution/coastal" \
-              2>&1 | tee "previews/coastal-$resolution.log"
-            test -s "previews/$resolution/coastal/08_distrito_forja.png"
-          done
-          mkdir -p previews/journey
-          timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
-            godot --path . --audio-driver Dummy --resolution 720x1600 \
-            --script res://tests/journey_ui_tests.gd -- "$PWD/previews/journey" \
-            2>&1 | tee "previews/journey-ui.log"
-          test -s previews/journey/06_siguiente_pueblo.png
+          # Software-rendered galleries can exceed three minutes on hosted
+          # runners. Keep every capture and assertion, with independent jobs
+          # and bounded commands rather than one long sequential gallery.
+          case "$REVIEW_GROUP" in
+            preview)
+              timeout 360 xvfb-run -a -s "-screen 0 720x1280x24" \
+                godot --path . --audio-driver Dummy --resolution 720x1280 \
+                --script res://tools/capture_preview.gd -- "$PWD/previews" \
+                2>&1 | tee previews/preview.log
+              for image in start faces hero_closeup rabbit_robbery_alert cash_collection_flight town_overview; do
+                test -s "previews/$image.png"
+              done
+              ;;
+            controls)
+              for suite in mobile_ui_tests factory_facade_tests campaign_touch_tests hud_overlap_tests terrain_surface_tests; do
+                timeout 180 xvfb-run -a -s "-screen 0 720x1280x24" \
+                  godot --path . --audio-driver Dummy --resolution 720x1280 \
+                  --script "res://tests/$suite.gd" 2>&1 | tee "previews/$suite.log"
+              done
+              mkdir -p previews/journey
+              timeout 240 xvfb-run -a -s "-screen 0 720x1600x24" \
+                godot --path . --audio-driver Dummy --resolution 720x1600 \
+                --script res://tests/journey_ui_tests.gd -- "$PWD/previews/journey" \
+                2>&1 | tee previews/journey-ui.log
+              test -s previews/journey/06_siguiente_pueblo.png
+              ;;
+            campaign-*|coastal-*)
+              capture="${REVIEW_GROUP%%-*}"
+              resolution="${REVIEW_GROUP#*-}"
+              timeout 360 xvfb-run -a -s "-screen 0 720x1600x24" \
+                godot --path . --audio-driver Dummy --resolution "$resolution" \
+                --script "res://tools/capture_$capture.gd" -- "$PWD/previews" \
+                2>&1 | tee "previews/$REVIEW_GROUP.log"
+              if [[ "$capture" == campaign ]]; then
+                test -s previews/07_puerto_aurora.png
+              else
+                test -s previews/08_distrito_forja.png
+              fi
+              ;;
+          esac
           if grep -RE 'SCRIPT ERROR:|Parse Error|FAIL:' previews/*.log; then exit 1; fi
       - name: Publish visual screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: WivoriTrails_Visual_Snapshots
+          name: WivoriTrails_Visual_${{ matrix.review }}
           path: previews/
           if-no-files-found: warn
           retention-days: 14
