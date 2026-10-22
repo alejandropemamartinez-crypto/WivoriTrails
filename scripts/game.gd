@@ -316,6 +316,9 @@ func _follow_alert() -> void:
 	_refresh_ui()
 
 func _current_objective() -> Dictionary:
+	# A live attack remains actionable even while a voyage is pinned.
+	if route!=null and not route.away() and not run.threat().is_empty():return director.objective()
+	if route!=null and not route.away() and not route.ferry and run.complete():return director.objective()
 	if route!=null and (route.away() or route.pinned):return route.objective()
 	if not guide_override.is_empty():
 		var alert: Dictionary=director.alert()
@@ -323,6 +326,8 @@ func _current_objective() -> Dictionary:
 			if alert["id"]=="raid":guide_override["target"]=alert["target"]
 			return guide_override
 		guide_override={}
+	if route!=null and (route.market_focus or not work.active.is_empty()):return director.objective()
+	if route!=null and (not route.ferry or route.stage==0):return route.objective()
 	return director.objective()
 
 func _follow_objective() -> void:
@@ -359,7 +364,7 @@ func _harvest_kind(kind: String) -> Vector3:
 
 func _toggle_build_mode() -> void:
 	if route.sailing>0 or milestone!=null and milestone.is_open():return
-	if route.away():route.open_board();return
+	if route.away():route.open_production();return
 	route.close_board()
 	work.close_board()
 	if shop_panel.visible:_toggle_shop()

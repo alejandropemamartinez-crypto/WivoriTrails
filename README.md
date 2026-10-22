@@ -1,4 +1,4 @@
-# Wivori Trails · 0.19.1
+# Wivori Trails · 0.20.0
 
 Juego 3D de aventura, comercio y construcción para Android, en Godot **4.4.1**.
 Controlás un perrito sin nombre; contratás trabajadores, defendés el mercado y
@@ -11,7 +11,10 @@ Bahía Farol → Distrito Forja → astillero de Puerto Aurora.
 
 Hay 24 proyectos marítimos, 11 recetas, mejoras locales, seis contratos mixtos
 de industria y tres rutas de expedición. Para pasar al siguiente escenario hay
-que desarrollar las instalaciones del anterior. Las partidas antiguas conservan
+que completar una lista visible de hitos. El primer viaje requiere entregar
+6 productos, contratar un ayudante, mejorar la caja una vez, vender 18 productos
+y preparar el barco por 250 monedas. El primer trigal está incluido. Más
+empleados y niveles avanzados de mejora son opcionales. Las partidas antiguas conservan
 sus destinos, inventario y edificios. [Diseño de la campaña](docs/CAMPANA-SECUENCIAL.md).
 
 - Joystick o WASD/flechas para caminar; mantener **Correr** para acelerar.
@@ -22,6 +25,9 @@ sus destinos, inventario y edificios. [Diseño de la campaña](docs/CAMPANA-SECU
 - Desde nivel 3 podés acercarte a un mapache y **Ahuyentarlo**.
 - **Pueblo** permite construir y mover edificios entre solares.
 - **Continuar** cobra el premio del nivel una sola vez.
+- La tarjeta del **próximo mapa** muestra su nombre, los hitos completados y
+  cuándo está listo. Al tocarla ves cada requisito y el botón para señalarlo.
+- Elegir un destino abierto lo conserva hasta el muelle; allí tocás **Embarcar**.
 - **Mapas** muestra destinos, metas y mejoras pendientes; **Granja y carga**
   permite gestionar recetas y operarios. En Aurora, **Flota** prepara expediciones.
 - Las novedades se abren voluntariamente desde el mapa. Las colas, cosechas y
@@ -57,13 +63,15 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.19.1 usa código 22, el paquete
+verifica paquete, versión y certificado. 0.20.0 usa código 23, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
 [Licencias y fuentes editables](art/ASSETS.md). Los GLB están en `assets/models/`;
 los generadores, atlas y archivos Blender en `art/source/`. Blender no es
 necesario para ejecutar o compilar el juego.
+
+[Cambios y pruebas de 0.20.0](docs/release-v0.20.0.md).
 
 [Renovación visual de 0.19.1](docs/release-v0.19.1.md): arquitectura costera,
 materiales pintados, cámara ortográfica, tejados que dejan ver al protagonista,

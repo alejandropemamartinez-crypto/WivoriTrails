@@ -1,9 +1,8 @@
 # Campaña secuencial — seis mapas
 
-La implementación de la etapa 6 ya pasó por la revisión de ejecución de 0.18.0:
-importación, pruebas funcionales y capturas nativas de Godot. Se revisaron los
-seis mapas y controles; Android se exporta y verifica en CI. Los resultados y
-límites se documentan en [release-v0.18.md](release-v0.18.md).
+La revisión 0.20.0 hace visibles los requisitos y separa el avance de las
+mejoras opcionales. La misma lista alimenta el acceso, la guía y la tarjeta
+de progreso. [Cambios y validación](release-v0.20.0.md).
 
 ## Propósito y avance
 
@@ -13,17 +12,17 @@ El progreso abre otra actividad; no se limita a subir el precio del mismo puesto
 
 | Escenario | Decisión principal | Requisito de salida |
 |---|---|---|
-| Wivori | Atender, contratar y defender el mercado | Nivel 6; equipo base de cuatro ayudantes; caja, huerto, muelle, recaudación y defensas completas; reparar ferry por 900 |
-| Villa Miga | Distribuir trigo entre harina, alimento, pan y huevos | Construcciones; cuatro operarios contratados; tres mejoras de cada receta; abastecer la ruta a Nata |
-| Puerto Nata | Repartir alimento, vender leche o transformarla | Construcciones; operarios y tres mejoras de leche, queso y carne; abastecer la ruta a Farol |
-| Bahía Farol | Combinar suministros de otras islas | Construcciones del puerto y Faro; operario y tres mejoras de provisiones; inaugurar la ruta |
-| Distrito Forja | Equilibrar empaques, conservas y kits | Cinco proyectos industriales; tres operarios y todas sus mejoras; ronda de seis contratos mixtos |
+| Wivori | Atender, contratar y defender el mercado | Entregar 6 productos, contratar un ayudante, mejorar caja una vez, vender 18 productos y preparar barco por 250 |
+| Villa Miga | Distribuir trigo entre harina, alimento, pan y huevos | Construcciones; operario de harina y primera mejora; abastecer la ruta a Nata |
+| Puerto Nata | Repartir alimento, vender leche o transformarla | Construcciones; operario de leche y primera mejora; abastecer la ruta a Farol |
+| Bahía Farol | Combinar suministros de otras islas | Construcciones del puerto y Faro; operario de provisiones y primera mejora; inaugurar la ruta |
+| Distrito Forja | Equilibrar empaques, conservas y kits | Cinco proyectos industriales; operario de empaques y primera mejora; ronda de seis contratos mixtos |
 | Puerto Aurora | Elegir carga y duración de una expedición | Cuatro proyectos del astillero y completar una expedición de cada una de las tres rutas |
 
 La mochila y velocidad son mejoras personales globales y no bloquean un mapa.
-Los ayudantes adicionales al equipo base de cuatro siguen siendo expansión
-opcional; no se exige pagar doce contrataciones de precio exponencial antes de
-ver la primera granja. Los talleres tienen tres niveles finitos. Un empleado
+El segundo ayudante y los siguientes son expansión opcional. El viaje no
+exige un nivel del mercado, el muelle de exportación ni defensas al máximo.
+Villa Miga incluye su primer trigal para poder empezar incluso sin monedas. Los talleres tienen tres niveles finitos. Un empleado
 pagado y después pausado sigue contando como contratado.
 
 Hay **24 proyectos** marítimos (15 históricos, 5 de Forja y 4 de Aurora) y
@@ -91,24 +90,11 @@ inventario, empleados, mejoras, dinero en caja y carga en tránsito. Los nuevos
 requisitos se aplican a futuras aperturas; no retiran un pueblo ganado.
 No cambian el paquete Android, la firma ni el nombre que determina `user://`.
 
-Análisis estático efectuado: gramática con gdtoolkit, referencias literales a
-recursos, XML de SVG, dependencias de proyectos/recetas y diferencias Git.
-Eso no comprueba tipos de Godot, importación GLB, animación, colisiones reales,
-FPS, persistencia en un teléfono ni calidad artística.
+Las regresiones verifican progreso, inventario, caja, guardado y controles reales.
+La primera travesía se simula desde cero con joystick, compras y cobros del juego,
+sin conceder dinero ni desbloqueos. Las capturas nativas usan estados preparados
+para evaluar texto, botones y ambos formatos verticales.
 
-Se preparó `tests/campaign_flow_tests.gd` y se adaptaron las expectativas
-anteriores que exigían popups automáticos. No se ejecutaron. Quedan:
-
-1. Importar y ejecutar en Godot 4.4.1; corregir los fallos reales que aparezcan.
-2. Recorrer una partida desde cero y migrar partidas anteriores.
-3. Revisar carteles, objetivos, tres pestañas, gestos y navegación a
-   720×1280 y 720×1600, con capturas del motor.
-4. Reimportar y evaluar el protagonista dentro de Godot. La etapa 7 ya exportó
-   el GLB, integró los ojos y revisó ocho vistas del recurso en Blender.
-5. Medir manejo, FPS, memoria, temperatura y ritmo económico en Android.
-6. Alinear versión Android, notas y publicación antes de compilar; la
-   discrepancia heredada 0.16.1/0.16.0 no se presenta como un lanzamiento nuevo.
-
-Hasta entonces no corresponde decir «sin bugs», «gráficos profesionales»
-ni «juego terminado». Esta entrega cierra el diseño y código de esta etapa;
-la aprobación visual y funcional permanece abierta por la modalidad sin ejecución.
+Queda la evaluación en un teléfono físico: sensación de control, FPS,
+calentamiento, batería y duración humana de cada etapa. Una simulación económica
+no mide diversión ni garantiza una duración para todas las personas.

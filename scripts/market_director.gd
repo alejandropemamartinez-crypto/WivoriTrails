@@ -25,6 +25,11 @@ func recommended() -> String:
 	return kind
 
 func _next_investment() -> String:
+	# Early recommendations must agree with the visible first-voyage checklist.
+	if g.route!=null and not g.route.ferry and not g.route.market_focus:
+		if g.worker_count==0:return "helper"
+		if g.checkout_level==0:return "checkout"
+		return ""
 	if g.worker_count<mini(2,g.run.level):return "helper"
 	if g.run.level>=3 and g.run.lock_level==0:return "lock"
 	if g.run.level>=4 and not g.orchard_owned:return "expand"

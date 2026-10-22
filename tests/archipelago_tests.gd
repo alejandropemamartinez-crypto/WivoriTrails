@@ -69,10 +69,11 @@ func run_tests() -> void:
 	game.milestone.dismiss();check(game.input_stick.axis==Vector2.ZERO,"Dismissing a mission clears held movement")
 	game.run.level=6;game.coins=100000;game.pier_owned=true;game.world.open_pier();game.player.position=Vector3.ZERO
 	game.worker_count=4;game.checkout_level=3;game.orchard_owned=true;game.world.open_orchard()
+	game.manual_delivered=6;game.sold=18
 	game.cash.collector_hired=true;game.run.lock_level=3;game.run.alarm_level=3;game.run.guard_level=3
 	check(not game.route.repair_ferry(),"Ferry repair requires physically reaching the port")
 	game.player.position=game.route.HOME_DOCK;price=game.coins
-	check(game.route.repair_ferry() and game.coins==price-900,"Ferry repair spends the displayed amount exactly once")
+	check(game.route.repair_ferry() and game.coins==price-game.route.Campaign.FERRY_COST,"Ferry repair spends the displayed amount exactly once")
 	check(not game.route.repair_ferry() and not game.route.travel(2),"Repair cannot repeat and later towns stay locked")
 	await go(1);check(not game.world.visible and game.route.scenery.visible,"Only the active town is rendered")
 	check(game.route.wheat.is_empty(),"Wheat fields require their actual construction project")

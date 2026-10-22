@@ -64,6 +64,12 @@ jobs:
               2>&1 | tee "previews/coastal-$resolution.log"
             test -s "previews/$resolution/coastal/08_distrito_forja.png"
           done
+          mkdir -p previews/journey
+          timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
+            godot --path . --audio-driver Dummy --resolution 720x1600 \
+            --script res://tests/journey_ui_tests.gd -- "$PWD/previews/journey" \
+            2>&1 | tee "previews/journey-ui.log"
+          test -s previews/journey/06_siguiente_pueblo.png
           if grep -RE 'SCRIPT ERROR:|Parse Error|FAIL:' previews/*.log; then exit 1; fi
       - name: Publish visual screenshots
         if: always()
