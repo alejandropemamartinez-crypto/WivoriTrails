@@ -65,6 +65,7 @@ func cargo_total() -> int:
 func accept(kind: String,express: bool=false) -> bool:
 	if not RECIPES.has(kind) or not active.is_empty() or g.run.level<RECIPES[kind]["level"] or express and g.run.level<8:return false
 	active={"recipe":kind,"express":express,"remaining":100.0,"late":false};close_board()
+	g.route.pinned=false;g.route.market_focus=true;g.route.pending_destination=-1;g.guide_override={}
 	g._notice("ENCARGO ELEGIDO\n"+RECIPES[kind]["name"],2);g._save_progress();g._refresh_ui();return true
 func start_batch(kind: String) -> bool:
 	if not RECIPES.has(kind) or jobs.has(kind) or g.run.level<RECIPES[kind]["level"]:return false

@@ -312,7 +312,7 @@ El carro premium paga más por un pedido concreto. Llevá los ingredientes con e
 Los excedentes viajan en barco y dejan más monedas en las cajas. Reservá productos para el mercado.""",
 		"""Protegé tus ventas con alarma y guardia.
 
-También se abre la RUTA AL FARO: restaurar un barco te permite construir otros pueblos.""",
+El viaje a Villa Miga tiene sus propios cinco hitos en MAPAS. Podés abrirlo antes de este nivel.""",
 		"""Construí una panadería y prepará tu primera compota.
 
 Tomá el encargo, reuní ingredientes, prepará el lote y entregalo. La ruta marítima también está disponible.""",

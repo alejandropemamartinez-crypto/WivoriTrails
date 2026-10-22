@@ -224,24 +224,24 @@ func build(game: Node3D) -> void:
 	g.backpack_label=label("0 / 12",24,Color("#fff4d9"));bag.add_child(g.backpack_label)
 	bag_progress=progress(GOLD);bag.add_child(bag_progress)
 
-	var mission := panel(); root.add_child(mission); position_top(mission,102,88)
+	var mission := panel(); root.add_child(mission); position_top(mission,102,124)
 	var mission_style:=style(PAPER,22);mission_style.content_margin_top=6;mission_style.content_margin_bottom=6;mission.add_theme_stylebox_override("panel",mission_style)
 	mission_panel=mission
 	var mission_row := HBoxContainer.new(); mission_row.add_theme_constant_override("separation",12); mission.add_child(mission_row)
 	var mission_column := VBoxContainer.new(); mission_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	mission_column.add_theme_constant_override("separation",3); mission_row.add_child(mission_column)
-	next_label=label("TU PRIMER MERCADO",12,TEAL); mission_column.add_child(next_label);next_label.visible=false
+	next_label=label("TU PRIMER VIAJE",12,TEAL); mission_column.add_child(next_label);next_label.clip_text=true
 	g.mission_label=label("Tu primera cosecha",21); mission_column.add_child(g.mission_label)
 	g.mission_label.clip_text=true
 	next_label.clip_text=true
-	mission_detail=label("",13,MUTED)
+	mission_detail=label("",16,MUTED)
 	mission_detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	mission_detail.max_lines_visible=1
+	mission_detail.max_lines_visible=2
 	mission_detail.clip_text=true
-	mission_detail.custom_minimum_size=Vector2.ZERO
+	mission_detail.custom_minimum_size=Vector2(0,44)
 	mission_column.add_child(mission_detail)
 	mission_progress=progress(); mission_column.add_child(mission_progress)
-	guide_button=button("GUIAR",Color("#b67c36"),14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(119,72)
+	guide_button=button("GUIAR",Color("#b67c36"),14); guide_button.icon=action_icon(3);guide_button.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT;guide_button.custom_minimum_size=Vector2(119,100)
 	guide_button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	guide_button.pressed.connect(func():g._follow_objective()); mission_row.add_child(guide_button)
 
@@ -268,7 +268,7 @@ func build(game: Node3D) -> void:
 	view_button=view
 	view.add_theme_color_override("font_color",INK); view.add_theme_color_override("font_hover_color",INK)
 	view.anchor_left=1; view.anchor_right=1
-	view.offset_left=-108; view.offset_right=-24; view.offset_top=200; view.offset_bottom=248
+	view.offset_left=-108; view.offset_right=-24; view.offset_top=238; view.offset_bottom=304
 	view.pressed.connect(func():g._toggle_camera_view())
 	view.tooltip_text="Acercar o alejar la cámara"
 
@@ -613,7 +613,7 @@ func refresh() -> void:
 	activity_button.text="PEDIDO LISTO" if g.work.has_ready() else "PEDIDOS"
 	if g.work.board_visible():g.work.refresh_board()
 	town_panel.visible=city_mode
-	town_button.text="VOLVER" if city_mode else "GRANJA" if g.route.away() else "PUEBLO"
+	town_button.text="VOLVER" if city_mode else "TALLERES" if g.route.region>=3 else "GRANJA" if g.route.away() else "PUEBLO"
 	if city_mode:
 		if not g.town.focus_kind.is_empty() and focused_building!=g.town.focus_kind:
 			focused_building=g.town.focus_kind;town_scroll.set_deferred("scroll_horizontal",maxi(0,g.town.TYPES.keys().find(focused_building))*196)
@@ -649,7 +649,8 @@ func refresh() -> void:
 	level_progress.max_value=1.0; level_progress.value=g.route.campaign.progress(g.route.region) if g.route.away() else g.run.progress()
 	if g.route.route_button!=null:
 		g.route.route_button.visible=not city_mode
-		g.route.route_button.text=g.route.route_caption()
+		g.route.route_progress.visible=not city_mode
+		g.route.update_journey_ui()
 	objective=g._current_objective()
 	next_label.text=objective["tag"]
 	var mission_width: float=maxf(195.0,root.size.x-252.0)
@@ -658,6 +659,8 @@ func refresh() -> void:
 	mission_detail.tooltip_text=mission_detail.text
 	mission_progress.max_value=objective["goal"]; mission_progress.value=objective["value"]
 	guide_button.text=objective["button"]
+	if objective.has("target") and g.player.position.distance_to(objective["target"])>2.8 and str(objective["button"]) in ["COMPRAR","CONSTRUIR","ENTREGAR","CONTRATAR","MEJORAR","RESTAURAR","PREPARAR","RECOGER","VENDER","DESPACHAR","EMBARCAR"]:
+		guide_button.text="SEÑALAR"
 	guide_button.modulate=Color("#ffe3a2") if objective.get("ready",false) else Color.WHITE
 	wayfinder.objective=objective
 	var alert: Dictionary={} if g.route.away() else g.director.alert()
