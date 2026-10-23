@@ -29,6 +29,7 @@ jobs:
           set -euo pipefail
           test -f project.godot
           test -f Main.tscn
+          test -f Refuge.tscn
           test -f scripts/game.gd
 
       - name: Setup Godot templates and Android debug signing
@@ -123,16 +124,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr release/Wivori_Trails_Art_Source_v0.20.0.zip art assets/fonts assets/models assets/ui assets/textures scripts -x '*.import' '*.blend[0-9]'
+          zip -qr release/Wivori_Trails_Art_Source_v0.21.0.zip art assets/fonts assets/models assets/ui assets/textures scripts -x '*.import' '*.blend[0-9]'
       - name: Publish verified Android preview
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view v0.20.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v0.20.0 release/*.apk release/Wivori_Trails_Art_Source_v0.20.0.zip \
+          if ! gh release view v0.21.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.21.0 release/*.apk release/Wivori_Trails_Art_Source_v0.21.0.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "Wivori Trails 0.20.0 — siguiente destino claro" \
-              --notes-file docs/release-v0.20.0.md
+              --title "Wivori Trails 0.21.0 — Refugios del Norte" \
+              --notes-file docs/release-v0.21.0.md
           fi
