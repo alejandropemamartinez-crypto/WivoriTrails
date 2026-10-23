@@ -1,10 +1,41 @@
-# Wivori Trails · 0.20.0
+# Wivori Trails · 0.21.0 · Refugios del Norte
 
-Juego 3D de aventura, comercio y construcción para Android, en Godot **4.4.1**.
-Controlás un perrito sin nombre; contratás trabajadores, defendés el mercado y
-conectás seis pueblos con producción y objetivos propios.
+Juego de gestión de refugios en la nieve para Android, en Godot **4.4.1**.
+Encendés un corazón térmico, construís hogares y asignás habitantes para producir
+madera, comida, carbón y metal. Una lista visible abre cada nuevo refugio.
 
-## Campaña
+## Refugios del Norte
+
+La aplicación comienza en `Refuge.tscn`. Tocá edificios para construir, mejorar
+y asignar trabajadores; arrastrá el terreno para desplazar la cámara y pellizcá
+para acercarla. **Equipo** muestra habitantes, plazas y puestos de trabajo.
+**Ruta** muestra cada requisito, el cargamento que falta y la acción para viajar.
+
+| Refugio | Nueva decisión |
+| --- | --- |
+| Paso Bruma | Calor, hogares y asignación de habitantes |
+| Valle Ámbar | Enfermería e invernaderos con 25 % más de comida |
+| Costa Cristal | Expediciones con 20 % menos tiempo de viaje |
+| Cumbre Cobre | Cantera con 30 % más de producción de metal |
+| Distrito Forja | Fundición con 35 % más de producción |
+| Puerto Aurora | Tres expediciones distintas y producción de la red al 45 % |
+
+- Diez clases de edificios, hasta ocho niveles, una obra a la vez y costos visibles.
+- El primer aserradero está incluido: gastar mal al empezar no elimina la fuente de madera.
+- Los habitantes trabajan solo cuando los asignás. **−** libera una persona para otro puesto.
+- El carbón mantiene el calor; las noches y ventiscas exigen preparar el refugio.
+- Las guardias reducen las señales necesarias para ahuyentar mapaches.
+- Las expediciones reservan dos habitantes y entregan la recompensa una sola vez.
+- Los otros refugios siguen produciendo al 35 %; Aurora mejora esa red al 45 %.
+- Hasta dos horas de producción al volver, sin robos ni ventiscas fuera de pantalla.
+- La guía indica el recurso concreto que falta y la cuenta regresiva de las obras.
+- **··· → Pasear** activa el joystick manual. Ninguna misión mueve al protagonista.
+
+La partida anterior sigue en **··· → Continuar mi archipiélago**. Desde su
+**Mapa y meta** podés volver al refugio. Usa su archivo original de guardado v8;
+el refugio guarda en un archivo separado y no convierte ni descuenta ese progreso.
+
+## Archipiélago anterior
 
 Mercado de Wivori → campos de Villa Miga → granjas de Puerto Nata →
 Bahía Farol → Distrito Forja → astillero de Puerto Aurora.
@@ -35,7 +66,8 @@ sus destinos, inventario y edificios. [Diseño de la campaña](docs/CAMPANA-SECU
 
 ## Ejecutar y verificar
 
-Abrí `project.godot` con Godot 4.4.1 y ejecutá `Main.tscn`.
+Abrí `project.godot` con Godot 4.4.1 y ejecutá el proyecto. La escena de inicio
+es `Refuge.tscn`; `Main.tscn` conserva el archipiélago anterior.
 
 ```sh
 godot --headless --path . --import
@@ -47,6 +79,10 @@ done
 Para las comprobaciones con gráficos activos:
 
 ```sh
+godot --path . --resolution 720x1600 --audio-driver Dummy \
+  --script res://tests/refuge_ui_tests.gd
+godot --path . --resolution 720x1280 --audio-driver Dummy \
+  --script res://tools/capture_refuge.gd -- /tmp/refugio-capturas
 godot --path . --resolution 720x1280 --audio-driver Dummy \
   --script res://tests/mobile_ui_tests.gd
 godot --path . --resolution 720x1280 --audio-driver Dummy \
@@ -63,7 +99,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.20.0 usa código 23, el paquete
+verifica paquete, versión y certificado. 0.21.0 usa código 24, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
@@ -71,7 +107,11 @@ actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md
 los generadores, atlas y archivos Blender en `art/source/`. Blender no es
 necesario para ejecutar o compilar el juego.
 
-[Cambios y pruebas de 0.20.0](docs/release-v0.20.0.md).
+[Cambios y pruebas de 0.21.0](docs/release-v0.21.0.md).
+
+La arquitectura nevada, los iconos y los materiales están en `scripts/refuge_*`.
+Son fuentes propias; no se incluyen imágenes, personajes ni interfaces de
+Whiteout Survival. [Referencia de diseño y alcance](docs/REFUGIOS-DEL-NORTE.md).
 
 [Renovación visual de 0.19.1](docs/release-v0.19.1.md): arquitectura costera,
 materiales pintados, cámara ortográfica, tejados que dejan ver al protagonista,

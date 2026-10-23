@@ -58,6 +58,7 @@ func render(source: Node3D) -> void:
 		elif index==route.region:route._text("ESTÁS AQUÍ · "+route.campaign.status(index),16,Color("#28736b"))
 		else:route._button("VIAJAR A "+route.NAMES[index].to_upper(),Callable(route,"plan_travel").bind(index))
 	if route.region==0:route._button("MISIONES OPCIONALES DEL MERCADO",Callable(route,"guide_market"))
+	route._button("VOLVER A REFUGIOS DEL NORTE",func():route.g._save_progress();route.g.get_tree().change_scene_to_file("res://Refuge.tscn"))
 	if route.g.milestone!=null and not route.g.milestone.pending.is_empty():route._button("DIARIO DE DESCUBRIMIENTOS",func():route.close_board();route.g.milestone.show_next())
 	refresh()
 
