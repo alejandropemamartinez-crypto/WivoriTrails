@@ -58,6 +58,8 @@ func run() -> void:
 	await tap(game.ui.task_button);game._process(.1);game.set_process(false)
 	check(game.state.lit and not game.ui.modal.visible,"A real touch ignites the central heater without an unsolicited popup")
 	check(game.hero.position==initial_hero,"Following a city objective never sends the protagonist running by itself")
+	await frames(3)
+	if DisplayServer.get_name()!="headless":check(game.ui.toast.is_visible_in_tree() and game.ui.toast.size.y>=game.ui.toast.get_line_height()*mini(2,game.ui.toast.get_line_count()),"A live activity notice has enough rendered height to display its text")
 	game.ui.show_building("lumber");await frames(3);await tap(game.ui.refs["upgrade"])
 	check(not game.state.construction.is_empty() and game.state.construction["id"]=="lumber","A real touch starts construction of the included sawmill")
 	check(game.ui.refs["upgrade"].disabled,"An active construction cannot be purchased again from the same panel")
@@ -107,10 +109,13 @@ func run() -> void:
 	check(game.state.city==1 and not game.ui.modal.visible,"A deliberate real touch enters the next prepared settlement")
 	check(game.state.worker_count("lumber")==1 and game.models["kitchen"].building=="kitchen","The new zone starts with its own staffed buildings and correct scene")
 	await shot("05_valle_ambar")
-	game.ui.close();game.toggle_walk();await frames(2);var before_walk: Vector3=game.hero.position
-	game.stick.axis=Vector2(1,0);game._process(.2);game.set_process(false)
-	check(game.hero.position.distance_to(before_walk)>.5,"Optional walking responds to the player's joystick input")
-	game.stick.axis=Vector2.ZERO;before_walk=game.hero.position;game._process(.2);game.set_process(false)
+	game.ui.close();game.center_camera();await frames(2);var before_walk: Vector3=game.hero.position
+	var stick_center: Vector2=game.stick.get_global_transform_with_canvas()*(game.stick.size*.5)
+	await touch_at(stick_center,true,6)
+	var move_event:=InputEventScreenDrag.new();move_event.index=6;move_event.position=stick_center+Vector2(65,0);viewport.push_input(move_event,true);await process_frame
+	game._process(.2);game.set_process(false)
+	check(game.hero.position.distance_to(before_walk)>.5,"The visible joystick responds to an actual touch and drag")
+	await touch_at(move_event.position,false,6);before_walk=game.hero.position;game._process(.2);game.set_process(false)
 	check(game.hero.position==before_walk,"The protagonist stops as soon as the joystick is released")
 	game._notification(Node.NOTIFICATION_APPLICATION_PAUSED)
 	var stored: Dictionary=preload("res://scripts/save_store.gd").load_data(path);stored["last_saved"]=Time.get_unix_time_from_system()-40
@@ -118,7 +123,7 @@ func run() -> void:
 	var resume_wood: float=float(game.state.resources["wood"])
 	game._notification(Node.NOTIFICATION_APPLICATION_RESUMED);game.set_process(false);await frames(3)
 	check(float(game.state.resources["wood"])>resume_wood and game.ui.state==game.state,"Returning from Android pause credits production and binds the visible UI to the resumed state")
-	check(not game.walk_mode and not game.stick.visible,"Resuming clears held movement and returns to city management")
+	check(game.stick.visible and game.stick.axis==Vector2.ZERO and not game.sprinting,"Resuming restores the visible movement control with no held movement")
 	game.queue_free();await frames(2);viewport.queue_free();await frames(2);await create_timer(.1).timeout
 	for suffix in ["",".bak",".tmp",".bak.tmp"]:DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
 	print("RESULT: %d refuge UI checks, %d failures" % [checks,failures]);quit(1 if failures else 0)

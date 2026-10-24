@@ -228,6 +228,7 @@ func _resource_task(key: String,missing: int,purpose: String) -> Dictionary:
 		return {"id":producer,"title":"Reasigná alguien a "+BUILDINGS[producer]["name"],"detail":"Retirá una persona de otro trabajo con − y asignala al recurso que falta.","action":"team","button":"EQUIPO"}
 	return {"id":producer,"title":"Reuní %d %s para %s" % [missing,RESOURCE_NAMES[key].to_lower(),purpose],"detail":"Producción actual: +%.1f/min. Asigná habitantes o mejorá ese edificio." % (production(producer)*60.0),"action":"building","button":"PRODUCCIÓN"}
 func cost_text(price: Dictionary) -> String:
+	if price.is_empty():return "Kit incluido · Sin costo"
 	var parts: PackedStringArray=[]
 	for key in price:parts.append("%d %s" % [int(price[key]),RESOURCE_NAMES[key].to_lower()])
 	return " · ".join(parts)

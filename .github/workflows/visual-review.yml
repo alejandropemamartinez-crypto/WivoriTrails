@@ -79,6 +79,11 @@ jobs:
                 2>&1 | tee previews/refuge-ui.log
               test -s previews/09_expediciones.png
               test -s previews/touch/05_valle_ambar.png
+              timeout 180 xvfb-run -a -s "-screen 0 720x1600x24" \
+                godot --path . --audio-driver Dummy --resolution "$resolution" \
+                --script res://tests/refuge_movement_tests.gd -- "$PWD/previews/movement" \
+                2>&1 | tee previews/refuge-movement.log
+              test -s previews/movement/03_despues_de_reanudar.png
               ;;
             campaign-*|coastal-*)
               capture="${REVIEW_GROUP%%-*}"
