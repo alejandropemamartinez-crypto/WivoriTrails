@@ -1,4 +1,4 @@
-# Wivori Trails · 0.21.0 · Refugios del Norte
+# Wivori Trails · 0.21.1 · Refugios del Norte
 
 Juego de gestión de refugios en la nieve para Android, en Godot **4.4.1**.
 Encendés un corazón térmico, construís hogares y asignás habitantes para producir
@@ -29,7 +29,10 @@ para acercarla. **Equipo** muestra habitantes, plazas y puestos de trabajo.
 - Los otros refugios siguen produciendo al 35 %; Aurora mejora esa red al 45 %.
 - Hasta dos horas de producción al volver, sin robos ni ventiscas fuera de pantalla.
 - La guía indica el recurso concreto que falta y la cuenta regresiva de las obras.
-- **··· → Pasear** activa el joystick manual. Ninguna misión mueve al protagonista.
+- El joystick está visible desde el inicio. **Correr** funciona al mantener otro dedo.
+- **Ver pueblo** abre la vista general; **Centrar** vuelve al protagonista. Ambas permiten seguir caminando.
+- Viajar, cerrar un menú o volver a la app conserva el movimiento manual y la posición del personaje.
+- Ninguna misión mueve al protagonista automáticamente.
 
 La partida anterior sigue en **··· → Continuar mi archipiélago**. Desde su
 **Mapa y meta** podés volver al refugio. Usa su archivo original de guardado v8;
@@ -80,6 +83,8 @@ Para las comprobaciones con gráficos activos:
 
 ```sh
 godot --path . --resolution 720x1600 --audio-driver Dummy \
+  --script res://tests/refuge_movement_tests.gd
+godot --path . --resolution 720x1600 --audio-driver Dummy \
   --script res://tests/refuge_ui_tests.gd
 godot --path . --resolution 720x1280 --audio-driver Dummy \
   --script res://tools/capture_refuge.gd -- /tmp/refugio-capturas
@@ -99,7 +104,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.21.0 usa código 24, el paquete
+verifica paquete, versión y certificado. 0.21.1 usa código 25, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
@@ -107,7 +112,7 @@ actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md
 los generadores, atlas y archivos Blender en `art/source/`. Blender no es
 necesario para ejecutar o compilar el juego.
 
-[Cambios y pruebas de 0.21.0](docs/release-v0.21.0.md).
+[Corrección de movimiento en 0.21.1](docs/release-v0.21.1.md).
 
 La arquitectura nevada, los iconos y los materiales están en `scripts/refuge_*`.
 Son fuentes propias; no se incluyen imágenes, personajes ni interfaces de

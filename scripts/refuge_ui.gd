@@ -40,6 +40,11 @@ var worker_rows: Dictionary={}
 var route_rows: Array[Dictionary]=[]
 var build_bar: ProgressBar
 var pending_building:=""
+var task_card: PanelContainer
+var camera_button: Button
+var run_button: Button
+var move_hint: Control
+var nav_buttons: Dictionary={}
 
 func _label(text_: String,size_: int=20,color_: Color=INK) -> Label:
 	var label:=Label.new();label.text=text_;label.add_theme_font_override("font",BOLD if size_>=19 else MEDIUM)
@@ -76,6 +81,7 @@ func _bottom(node: Control,left: float,top: float,right: float,bottom: float) ->
 func build(source: Node3D) -> void:
 	game=source;state=game.state
 	var layer:=CanvasLayer.new();game.add_child(layer);root=Control.new();root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_IGNORE;layer.add_child(root)
+	var header_backdrop:=ColorRect.new();header_backdrop.color=Color("#d5e6eb");header_backdrop.anchor_right=1;header_backdrop.offset_bottom=214;root.add_child(header_backdrop)
 	var header:=HBoxContainer.new();header.add_theme_constant_override("separation",14);_place(header,22,18,-22,74)
 	var names:=_column(header,0);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	names.add_child(_label("WIVORI  /  REFUGIOS DEL NORTE",12,Color("#486777")))
@@ -92,14 +98,16 @@ func build(source: Node3D) -> void:
 		card.gui_input.connect(func(event: InputEvent):
 			if event is InputEventScreenTouch and event.pressed or event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
 				card.accept_event();show_building({"wood":"lumber","food":"kitchen","coal":"coal","iron":"mine"}[key]))
-	var status:=HBoxContainer.new();_place(status,24,167,-24,203)
+	var status_card:=_panel(PAPER);var status_style:=_style(PAPER,12);status_style.content_margin_left=12;status_style.content_margin_right=12;status_style.content_margin_top=5;status_style.content_margin_bottom=5;status_style.shadow_size=2
+	status_card.add_theme_stylebox_override("panel",status_style);_place(status_card,20,164,-20,208)
+	var status:=_row(status_card,10)
 	weather=_label("",17,Color("#355c70"));weather.size_flags_horizontal=Control.SIZE_EXPAND_FILL;status.add_child(weather)
 	comfort=_label("",17,Color("#355c70"));status.add_child(comfort)
 	toast=_wrap("",17,Color("#fff4d9"));toast.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	toast.max_lines_visible=2;toast.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
 	var toast_card:=_panel(Color("#38596c"));var toast_style:=_style(Color("#38596c"));toast_style.content_margin_top=8;toast_style.content_margin_bottom=8;toast_card.add_theme_stylebox_override("panel",toast_style)
 	toast_card.mouse_filter=Control.MOUSE_FILTER_IGNORE;toast_card.add_child(toast);_place(toast_card,35,216,-35,273);toast_card.visible=false
-	var task_card:=_panel(PAPER);_bottom(task_card,20,-306,-20,-114)
+	task_card=_panel(PAPER);_bottom(task_card,20,-306,-20,-114)
 	var col:=_column(task_card,7);var heading:=_row(col,10)
 	task_count=_label("",13,Color("#54847e"));task_count.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(task_count)
 	progress=ProgressBar.new();progress.show_percentage=false;progress.custom_minimum_size=Vector2(120,7);progress.size_flags_vertical=Control.SIZE_SHRINK_CENTER;heading.add_child(progress);_progress_skin(progress)
@@ -108,9 +116,20 @@ func build(source: Node3D) -> void:
 	task_detail=_wrap("",16,MUTED);task_detail.max_lines_visible=2;text.add_child(task_detail)
 	task_button=_button("IR",game.follow_task,GOLD,18);task_button.custom_minimum_size=Vector2(156,79);task_row.add_child(task_button)
 	var nav:=HBoxContainer.new();nav.add_theme_constant_override("separation",10);_bottom(nav,20,-94,-20,-20)
-	for item in [["REFUGIO",Callable(self,"home"),"core"],["EQUIPO",Callable(self,"show_team"),"people"],["RUTA",Callable(self,"show_route"),"route"]]:
+	for item in [["CENTRAR",Callable(self,"home"),"home"],["EQUIPO",Callable(self,"show_team"),"team"],["RUTA",Callable(self,"show_route"),"route"]]:
 		var button:=_button(item[0],item[1],NAVY,18);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;nav.add_child(button)
+		nav_buttons[item[2]]=button
 		if item[0]=="RUTA":route_button=button
+	move_hint=_panel(PAPER);var hint_style:=_style(PAPER,10);hint_style.content_margin_left=8;hint_style.content_margin_right=8;hint_style.content_margin_top=4;hint_style.content_margin_bottom=4;hint_style.shadow_size=2
+	move_hint.add_theme_stylebox_override("panel",hint_style);move_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(move_hint);move_hint.add_child(_label("DESLIZÁ PARA MOVERTE",12,INK))
+	move_hint.anchor_top=1;move_hint.anchor_bottom=1;move_hint.offset_left=22;move_hint.offset_right=212;move_hint.offset_top=-548;move_hint.offset_bottom=-520
+	camera_button=_button("VER PUEBLO",game.toggle_camera_view,NAVY,16);root.add_child(camera_button)
+	camera_button.anchor_left=1;camera_button.anchor_right=1;camera_button.anchor_top=1;camera_button.anchor_bottom=1
+	camera_button.offset_left=-188;camera_button.offset_right=-22;camera_button.offset_top=-516;camera_button.offset_bottom=-452
+	run_button=_button("CORRER",func():pass,GOLD,17);root.add_child(run_button)
+	run_button.anchor_left=1;run_button.anchor_right=1;run_button.anchor_top=1;run_button.anchor_bottom=1
+	run_button.offset_left=-188;run_button.offset_right=-22;run_button.offset_top=-430;run_button.offset_bottom=-366
+	run_button.button_down.connect(game.begin_sprint);run_button.button_up.connect(game.end_sprint)
 	for id in state.BUILDINGS:
 		var button:=_button("",Callable(self,"show_building").bind(id),Color("#e8efec"),13)
 		button.add_theme_color_override("font_color",INK);button.custom_minimum_size=Vector2(146,37);button.size=Vector2(146,37)
@@ -130,7 +149,7 @@ func _progress_skin(bar: ProgressBar) -> void:
 func notice(text: String) -> void:
 	toast.text=text;toast.get_parent().visible=true;toast_time=4.0
 func close() -> void:
-	modal.visible=false;view="";selected="";pending_building="";game.input_active=false
+	modal.visible=false;view="";selected="";pending_building="";game.clear_controls();game.sync_controls()
 func home() -> void:
 	close();game.center_camera()
 
@@ -145,7 +164,7 @@ func _sheet(title: String,subtitle: String="") -> void:
 	var scroll:=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;col.add_child(scroll)
 	listing=_column(scroll,14);listing.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	var footer:=_button("VOLVER AL REFUGIO",close,TEAL,19);col.add_child(footer)
-	modal.visible=true;game.input_active=false
+	modal.visible=true;game.clear_controls();game.sync_controls()
 func _info_card(title: String,detail: String="",color_: Color=Color("#e1e9e4")) -> VBoxContainer:
 	var card:=_panel(color_);listing.add_child(card);var col:=_column(card,7)
 	col.add_child(_wrap(title,22));if not detail.is_empty():col.add_child(_wrap(detail,17,MUTED))
@@ -249,9 +268,9 @@ func _send_route(index: int) -> void:
 	if state.start_expedition(index):game.save();refresh(0)
 
 func show_menu() -> void:
-	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Refugios del Norte · 0.21.0")
-	_info_card("Gestión directa","Tocá un edificio para mejorarlo o asignar habitantes. Arrastrá el terreno para mover la cámara. La meta de abajo indica tu próximo paso.")
-	listing.add_child(_button("PASEAR CON EL PERSONAJE",func():close();game.toggle_walk(),TEAL,18))
+	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Refugios del Norte · 0.21.1")
+	_info_card("Movete y construí","Usá el joystick de la izquierda para caminar. Mantené CORRER con otro dedo para acelerar. Tocá un edificio para mejorarlo o asignar habitantes.")
+	_info_card("Cámara libre","Arrastrá el terreno para mirar otra zona y pellizcá para acercarte. CENTRAR vuelve a seguir al personaje. VER PUEBLO abre la vista general; el joystick sigue disponible.")
 	listing.add_child(_button("EXPEDICIONES",show_fleet,NAVY,19))
 	_info_card("Tu archipiélago anterior","Tus monedas, edificios y mapas de la partida anterior se conservan. Podés seguir jugándola y volver al refugio desde MAPA Y META.")
 	listing.add_child(_button("CONTINUAR MI ARCHIPIÉLAGO",game.open_archipelago,NAVY,18))
@@ -271,6 +290,7 @@ func refresh(delta: float) -> void:
 	progress.value=float(state.goal_progress())/float(state.goals().size())
 	task_title.text=task["title"];task_detail.text=task["detail"];task_button.text=task["button"]
 	route_button.text="RUTA · %d/6" % (state.unlocked+1)
+	camera_button.text="SEGUIRME" if game.camera_detached else "VER PUEBLO"
 	if not modal.visible:return
 	if not pending_building.is_empty():
 		var held: bool=Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)

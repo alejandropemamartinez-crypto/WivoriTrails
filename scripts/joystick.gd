@@ -35,7 +35,9 @@ func _input(event: InputEvent) -> void:
 		_clear()
 	if event is InputEventScreenTouch:
 		var local: Vector2 = get_global_transform_with_canvas().affine_inverse() * event.position
-		if event.pressed and active_finger == -1 and Rect2(Vector2.ZERO, size).has_point(local):
+		if event.canceled and event.index==active_finger:
+			_clear();get_viewport().set_input_as_handled();return
+		if event.pressed and not event.canceled and active_finger == -1 and Rect2(Vector2.ZERO, size).has_point(local):
 			active_finger=event.index
 			pressed=true
 			_apply_local(local)
@@ -64,6 +66,7 @@ func _clear() -> void:
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]:
 		_clear()
+	elif what==NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():_clear()
 
 func _draw() -> void:
 	var center: Vector2 = size * .5

@@ -7,6 +7,8 @@ const Actor=preload("res://scripts/actor.gd")
 const Nav=preload("res://scripts/navigation.gd")
 const Store=preload("res://scripts/save_store.gd")
 const SAVE_PATH="user://wivori_refuge_save.json"
+const WALK_SPEED=6.8
+const RUN_SPEED=8.6
 var save_path:=SAVE_PATH
 var state=State.new()
 var ui=UI.new()
@@ -23,8 +25,11 @@ var hero: MarketActor
 var residents: Array[Dictionary]=[]
 var focus:=Vector3(0,0,1.8)
 var camera_follow:=Vector3(0,0,1.8)
-var zoom:=32.0
-var walk_mode:=false
+var zoom:=26.0
+var follow_zoom:=26.0
+var camera_detached:=false
+var camera_overview:=false
+var sprinting:=false
 var stick: MarketJoystick
 var input_active:=false
 var drag_origin:=Vector2.ZERO
@@ -38,9 +43,12 @@ var saving_enabled:=true
 var last_lit:=false
 var last_city:=0
 var suspended:=false
+var world_city:=-1
+var player_positions: Array[Vector3]=[]
 
 func _ready() -> void:
-	state.restore(Store.load_data(save_path))
+	var saved: Dictionary=Store.load_data(save_path)
+	_restore_player_positions(saved);state.restore(saved)
 	_lighting();_build_world();ui.build(self);_make_stick()
 	_connect_state()
 	last_lit=state.lit;last_city=state.city
@@ -62,7 +70,8 @@ func _lighting() -> void:
 	sun.shadow_enabled=true;sun.directional_shadow_mode=DirectionalLight3D.SHADOW_ORTHOGONAL;sun.directional_shadow_max_distance=70;sun.shadow_blur=2.0;add_child(sun)
 	camera=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.keep_aspect=Camera3D.KEEP_WIDTH;camera.size=zoom;camera.far=220;add_child(camera);camera.current=true
 
-func _build_world() -> void:
+func _build_world(capture_position: bool=true) -> void:
+	if capture_position:_capture_player_position()
 	models.clear();residents.clear()
 	if scenery!=null:remove_child(scenery);scenery.queue_free()
 	scenery=Node3D.new();scenery.name="Refugio nevado · "+state.NAMES[state.city];add_child(scenery)
@@ -78,10 +87,14 @@ func _build_world() -> void:
 	navigation.build()
 	_trees();_mountains();_details();_weather()
 	core_light=OmniLight3D.new();core_light.position=Vector3(0,2.1,0);core_light.light_color=Color("#ffb362");core_light.light_energy=1.2;core_light.omni_range=9.0;core_light.shadow_enabled=false;core_light.visible=state.lit;scenery.add_child(core_light)
-	hero=Actor.new();hero.setup("player",Color("#3c827b"),"dog");scenery.add_child(hero);hero.position=Vector3(0,0,4.1);hero.last_position=hero.position
+	hero=Actor.new();hero.setup("player",Color("#3c827b"),"dog");scenery.add_child(hero)
+	hero.position=navigation.nearest_free(player_positions[state.city]);hero.last_position=hero.position;world_city=state.city
+	var ring:=MeshInstance3D.new();var halo:=TorusMesh.new();halo.inner_radius=.44;halo.outer_radius=.49;halo.rings=24;halo.ring_segments=6
+	var gold:=StandardMaterial3D.new();gold.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;gold.albedo_color=Color("#efbe71")
+	ring.mesh=halo;ring.material_override=gold;ring.position.y=.035;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;hero.add_child(ring)
 	var count: int=mini(14,int(state.town()["people"]))
 	for index in range(count):_spawn_resident(index)
-	focus=Vector3(0,0,1.8);camera_follow=focus
+	camera_detached=false;camera_overview=false;zoom=follow_zoom;focus=hero.position+Vector3(0,0,-1.5);camera_follow=focus
 
 func _spawn_resident(index: int,arriving: bool=false) -> void:
 	var actor:=Actor.new();actor.setup("worker",[Color("#a57651"),Color("#527a86"),Color("#657b66"),Color("#9a6f60")][index%4],["rabbit","fox","duck","pig"][index%4]);scenery.add_child(actor)
@@ -158,9 +171,31 @@ func _weather() -> void:
 
 func _make_stick() -> void:
 	stick=preload("res://scripts/joystick.gd").new();ui.root.add_child(stick);stick.anchor_top=1;stick.anchor_bottom=1
-	stick.offset_left=22;stick.offset_right=212;stick.offset_top=-477;stick.offset_bottom=-287
-	stick.input_allowed=func():return walk_mode and not ui.modal.visible
-	stick.visible=false
+	stick.offset_left=22;stick.offset_right=212;stick.offset_top=-516;stick.offset_bottom=-326
+	ui.root.move_child(stick,ui.modal.get_index())
+	stick.input_allowed=controls_allowed
+	sync_controls()
+
+func controls_allowed() -> bool:return not suspended and ui.modal!=null and not ui.modal.visible
+func clear_controls() -> void:
+	input_active=false;fingers.clear();sprinting=false
+	if stick!=null:stick._clear()
+	if ui.run_button!=null:ui.run_button._release_touch()
+func sync_controls() -> void:
+	var enabled: bool=controls_allowed()
+	if stick!=null:stick.visible=enabled
+	for node in [ui.camera_button,ui.run_button,ui.move_hint]:
+		if node!=null:node.visible=enabled
+func begin_sprint() -> void:
+	if controls_allowed():sprinting=true
+func end_sprint() -> void:sprinting=false
+
+func _restore_player_positions(saved: Dictionary) -> void:
+	player_positions.clear()
+	var positions: Array=saved.get("hero_positions",[]) if saved.get("hero_positions") is Array else []
+	for area in range(state.NAMES.size()):player_positions.append(Store.position(positions[area] if area<positions.size() else null,Vector3(0,0,4.1)))
+func _capture_player_position() -> void:
+	if is_instance_valid(hero) and world_city>=0 and world_city<player_positions.size():player_positions[world_city]=hero.position
 
 func _process(delta: float) -> void:
 	var step: float=minf(delta,.25);elapsed+=step;state.tick(step)
@@ -173,16 +208,21 @@ func _process(delta: float) -> void:
 	sun.light_energy=lerpf(sun.light_energy,lerpf(.68,.28,night)*(.8 if state.storm() else 1.0),step*2.0)
 	environment.ambient_light_color=Color("#c3d7e8").lerp(Color("#7898c8"),night*.65)
 	if snow!=null:snow.speed_scale=1.75 if state.storm() else 1.0
-	if walk_mode and not ui.modal.visible:
+	if controls_allowed():
 		var direction:=Vector3(stick.axis.x,0,stick.axis.y)
 		var keyboard:=Vector3(float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),0,float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 		if keyboard.length_squared()>0:direction=keyboard.normalized()
 		var right: Vector3=camera.global_basis.x;right.y=0;right=right.normalized()
 		var forward: Vector3=camera.global_basis.z;forward.y=0;forward=forward.normalized()
 		var move: Vector3=(right*direction.x+forward*direction.z)
-		hero.position=navigation.slide(hero.position,move*6.8*step)
-		if move.length()>.03:hero.walk_to(move,move.length()*6.8)
-		focus=hero.position
+		var speed: float=RUN_SPEED if sprinting else WALK_SPEED
+		hero.position=navigation.slide(hero.position,move*speed*step)
+		if move.length()>.03:
+			hero.walk_to(move,move.length()*speed)
+			if not input_active and fingers.is_empty():
+				camera_detached=false
+				if camera_overview:camera_overview=false;zoom=follow_zoom
+		if not camera_detached:focus=hero.position+Vector3(0,0,-1.5)
 	while residents.size()<mini(14,int(state.town()["people"])):_spawn_resident(residents.size(),true)
 	_npc_tick(step);_camera(step);_placards()
 	hud_clock-=step
@@ -226,7 +266,7 @@ func _npc_tick(delta: float) -> void:
 		if int(record["visit"])%2==1:actor.act("deliver")
 
 func _camera(delta: float) -> void:
-	camera_follow=camera_follow.lerp(focus,1.0-exp(-delta*6.0));camera.size=lerpf(camera.size,22.0 if walk_mode else zoom,1.0-exp(-delta*6.0))
+	camera_follow=camera_follow.lerp(focus,1.0-exp(-delta*6.0));camera.size=lerpf(camera.size,zoom,1.0-exp(-delta*6.0))
 	camera.position=camera_follow+Vector3(22,31,35);camera.look_at(camera_follow)
 
 func _placards() -> void:
@@ -240,20 +280,24 @@ func _placards() -> void:
 		var point: Vector2=camera.unproject_position(at)-button.size*.5
 		point.x=clampf(point.x,14,ui.root.size.x-button.size.x-14);button.position=point
 		button.visible=not ui.modal.visible and discovered and point.y>278 and point.y+button.size.y<height-321 and point.x>-30 and point.x+button.size.x<ui.root.size.x+30
+		for control in [stick,ui.camera_button,ui.run_button,ui.move_hint]:
+			if control!=null and control.visible and button.get_global_rect().intersects(control.get_global_rect().grow(8)):button.visible=false;break
 		var building: bool=not state.construction.is_empty() and state.construction["id"]==id and int(state.construction["city"])==state.city
 		button.text=("%s · %d s" % [state.BUILDINGS[id]["short"],ceili(float(state.construction["remaining"]))]) if building else ("%s · %d" % [state.BUILDINGS[id]["short"],state.level(id)]) if state.level(id)>0 else "+ "+state.BUILDINGS[id]["short"]
 		button.self_modulate=Color("#ffe0a3") if id==task["id"] else Color.WHITE
 
 func focus_building(id: String) -> void:
 	if not state.BUILDINGS.has(id):return
-	if not walk_mode:focus=state.BUILDINGS[id]["at"]+Vector3(0,0,3.5)
+	camera_detached=true;camera_overview=false;focus=state.BUILDINGS[id]["at"]+Vector3(0,0,3.5)
 func center_camera() -> void:
-	walk_mode=false;if stick!=null:stick.visible=false;stick._clear()
-	focus=Vector3(0,0,1.8);zoom=32
-func toggle_walk() -> void:
-	walk_mode=not walk_mode;stick.visible=walk_mode;stick._clear()
-	if walk_mode:ui.notice("Movete con el joystick. Tocá REFUGIO para volver a la vista de la ciudad.")
-	else:center_camera()
+	clear_controls();camera_detached=false;camera_overview=false;zoom=follow_zoom
+	if is_instance_valid(hero):focus=hero.position+Vector3(0,0,-1.5)
+	sync_controls()
+func show_overview() -> void:
+	clear_controls();camera_detached=true;camera_overview=true;zoom=36;focus=Vector3(0,0,1.8);sync_controls()
+func toggle_camera_view() -> void:
+	if camera_detached:center_camera()
+	else:show_overview()
 
 func follow_task() -> void:
 	var task: Dictionary=state.next_task()
@@ -275,27 +319,32 @@ func _on_built(id: String,area: int) -> void:
 func _on_opened(index: int) -> void:
 	ui.notice("¡"+state.NAMES[index]+" disponible! Entrá a RUTA para viajar.");save()
 func travel(destination: int) -> void:
+	_capture_player_position()
 	if state.travel(destination):
-		ui.close();walk_mode=false;stick.visible=false;stick._clear();_build_world();save()
+		ui.close();clear_controls();_build_world();sync_controls();save()
 		ui.notice(state.NAMES[destination]+" · "+state.LESSONS[destination])
 	else:ui.notice("Protegé el almacén antes de salir del refugio.")
 func open_archipelago() -> void:
 	save();get_tree().change_scene_to_file("res://Main.tscn")
 func save() -> bool:
 	if not saving_enabled:return true
-	var ok: bool=Store.write_data(save_path,state.snapshot())
+	_capture_player_position()
+	var data: Dictionary=state.snapshot();var positions: Array=[]
+	for at in player_positions:positions.append([at.x,at.z])
+	data["hero_positions"]=positions
+	var ok: bool=Store.write_data(save_path,data)
 	if not ok and ui.root!=null:ui.notice("No se pudo guardar. Revisá el espacio del dispositivo.")
 	return ok
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED,NOTIFICATION_APPLICATION_FOCUS_OUT,NOTIFICATION_WM_CLOSE_REQUEST]:
 		if is_inside_tree():save()
-		input_active=false;fingers.clear()
-		if stick!=null:stick._clear()
-		if what==NOTIFICATION_APPLICATION_PAUSED:suspended=true;set_process(false)
+		clear_controls()
+		if what==NOTIFICATION_APPLICATION_PAUSED:suspended=true;set_process(false);sync_controls()
 	elif what==NOTIFICATION_APPLICATION_RESUMED and suspended:
 		suspended=false
-		var resumed=State.new();resumed.restore(Store.load_data(save_path));state=resumed;ui.state=resumed;_connect_state()
-		ui.close();center_camera();_build_world();last_lit=state.lit;save();set_process(true)
+		var saved: Dictionary=Store.load_data(save_path)
+		var resumed=State.new();resumed.restore(saved);state=resumed;ui.state=resumed;_connect_state();_restore_player_positions(saved)
+		ui.close();_build_world(false);center_camera();last_lit=state.lit;save();set_process(true)
 		if not state.offline_gains.is_empty():ui.notice("Durante tu ausencia: +"+state.cost_text(state.offline_gains))
 	elif what==NOTIFICATION_WM_GO_BACK_REQUEST:
 		if ui.modal!=null and ui.modal.visible:ui.close()
@@ -306,6 +355,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN] and event.pressed:
 			zoom=clampf(zoom*(.9 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1.1),23,44)
+			if not camera_overview:follow_zoom=zoom
 		elif event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:input_active=true;drag_origin=event.position;drag_previous=event.position;drag_distance=0
 			else:
@@ -313,22 +363,32 @@ func _unhandled_input(event: InputEvent) -> void:
 				input_active=false
 	elif event is InputEventMouseMotion and input_active:_drag(event.position)
 	elif event is InputEventScreenTouch:
-		if event.pressed:
+		if event.pressed and not event.canceled:
 			fingers[event.index]=event.position
 			if fingers.size()==1:input_active=true;drag_origin=event.position;drag_previous=event.position;drag_distance=0
+			else:input_active=false;drag_distance=100
 		else:
+			if not fingers.has(event.index):return
+			var was_multi: bool=fingers.size()>1
 			fingers.erase(event.index)
 			if input_active and drag_distance<14 and fingers.is_empty() and not event.canceled:_tap(event.position)
 			input_active=false
+			if was_multi and fingers.size()==1:
+				var remaining: Vector2=fingers.values()[0]
+				drag_origin=remaining;drag_previous=remaining;drag_distance=100;input_active=true
 	elif event is InputEventScreenDrag and fingers.has(event.index):
-		if fingers.size()==2:
+		if fingers.size()>=2:
 			var points: Array=fingers.values();var old_distance: float=points[0].distance_to(points[1]);fingers[event.index]=event.position;points=fingers.values()
-			var new_distance: float=points[0].distance_to(points[1]);if new_distance>10:zoom=clampf(zoom*old_distance/new_distance,23,44)
+			var new_distance: float=points[0].distance_to(points[1])
+			if new_distance>10:
+				zoom=clampf(zoom*old_distance/new_distance,23,44)
+				if not camera_overview:follow_zoom=zoom
 			drag_distance=100;input_active=false
 		else:fingers[event.index]=event.position;_drag(event.position)
 func _drag(point: Vector2) -> void:
-	drag_distance=point.distance_to(drag_origin)
-	if not walk_mode:
+	drag_distance=maxf(drag_distance,point.distance_to(drag_origin))
+	if drag_distance>=14:
+		camera_detached=true
 		var relative: Vector2=point-drag_previous
 		var right: Vector3=camera.global_basis.x;right.y=0;right=right.normalized()
 		var down: Vector3=camera.global_basis.z;down.y=0;down=down.normalized()

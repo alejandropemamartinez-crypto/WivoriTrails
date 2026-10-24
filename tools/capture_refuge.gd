@@ -25,13 +25,13 @@ func run() -> void:
 	game.state.town()["levels"]["core"]=5;game.state.town()["people"]=12
 	for id in ["lumber","kitchen","coal","mine"]:game.state.town()["workers"][id]=2
 	game.state.town()["storms"]=1;game._build_world();game.ground.set_shader_parameter("warm_radius",11.3);game.ground.set_shader_parameter("warmth",1.0)
-	game.center_camera();await shot("04_pueblo")
+	game.show_overview();await shot("04_pueblo")
 	game.ui.show_team();await shot("05_equipo")
 	game.ui.show_route();await shot("06_siguiente_refugio")
 	game.ui.close();game.state.unlocked=4;game.state.city=4
 	for id in game.state.BUILDINGS:game.state.town()["levels"][id]=3
 	game.state.town()["levels"]["core"]=7;game.state.town()["people"]=16
-	game._build_world();game.ground.set_shader_parameter("warm_radius",13.3);game.ground.set_shader_parameter("warmth",1.0);game.center_camera();await shot("07_distrito_forja")
+	game._build_world();game.ground.set_shader_parameter("warm_radius",13.3);game.ground.set_shader_parameter("warmth",1.0);game.show_overview();await shot("07_distrito_forja")
 	game.state.town()["storm_clock"]=130;game.ui.show_building("core");await shot("08_calefaccion")
 	game.ui.close();game.ui.show_fleet();await shot("09_expediciones")
 	game.queue_free();await frames(2);await create_timer(.08).timeout

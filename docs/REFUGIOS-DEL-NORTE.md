@@ -46,9 +46,12 @@ no implementa alianzas, chat, PvP, servidores ni compras.
 sobrescribe al guardar el refugio. Ambos utilizan la escritura atómica y respaldo
 del guardado v8. Se mantiene el paquete y certificado Android de pruebas.
 
-El inicio usa la cámara de gestión. Se puede desplazar con un dedo y acercar con
-dos. El menú permite pasear con joystick, WASD o flechas; elegir una tarea solo
-abre su edificio o panel. Las obras actualizan las cifras sin sustituir un botón
+Desde 0.21.1 el joystick está disponible desde el inicio, después de viajar y al
+reanudar la app. WASD o flechas también permiten caminar. Correr se mantiene con
+otro dedo. La cámara puede arrastrarse con un dedo y acercarse con dos. Ver pueblo
+cambia el encuadre y Centrar vuelve al personaje, sin deshabilitar el movimiento.
+La posición se guarda por refugio en un campo opcional del mismo guardado v8.
+Elegir una tarea solo abre su edificio o panel. Las obras actualizan las cifras sin sustituir un botón
 mientras un dedo lo mantiene pulsado. Las noticias nunca abren un panel solas.
 
 ## Validación y límites
@@ -58,8 +61,10 @@ las tres expediciones, sin asignar recursos o niveles artificiales. Otras prueba
 preparan estados para verificar daños de guardado, doble cobro, pausa de Android,
 tiempos fuera de pantalla, reservas de materiales y requisitos de viaje.
 
-La interfaz se prueba con eventos táctiles reales del motor en 720×1280 y
-720×1600. Las capturas visuales usan estados preparados y muestran la escena
+La interfaz y el movimiento se prueban con secuencias completas de pulsar,
+arrastrar y soltar en 720×1280 y 720×1600, incluyendo varios dedos, escalado,
+menús, seis refugios y pausa/reanudación. Las pruebas no asignan el eje del
+joystick directamente. Las capturas visuales usan estados preparados y muestran la escena
 que se exporta, no ilustraciones de una futura versión. La revisión por software
 de escritorio no mide FPS, batería, temperatura o sensación de uso en Android
 físico. La simulación tampoco demuestra retención o diversión de personas reales.
