@@ -15,6 +15,8 @@ desde el inicio y sigue disponible al volver de esas acciones.
 - Posición del personaje guardada por refugio y restaurada después de pausar.
 - Controles con áreas separadas del objetivo y sin rótulos de edificios superpuestos.
 - Fondo legible para el estado del tiempo al mover la cámara.
+- Avisos de actividad con altura suficiente para mostrar el texto, en lugar de una barra vacía.
+- El proyecto gratuito muestra «Kit incluido · Sin costo» también en la guía.
 
 ## Validación
 

@@ -58,6 +58,8 @@ func run() -> void:
 	await tap(game.ui.task_button);game._process(.1);game.set_process(false)
 	check(game.state.lit and not game.ui.modal.visible,"A real touch ignites the central heater without an unsolicited popup")
 	check(game.hero.position==initial_hero,"Following a city objective never sends the protagonist running by itself")
+	await frames(3)
+	if DisplayServer.get_name()!="headless":check(game.ui.toast.is_visible_in_tree() and game.ui.toast.size.y>=game.ui.toast.get_line_height()*mini(2,game.ui.toast.get_line_count()),"A live activity notice has enough rendered height to display its text")
 	game.ui.show_building("lumber");await frames(3);await tap(game.ui.refs["upgrade"])
 	check(not game.state.construction.is_empty() and game.state.construction["id"]=="lumber","A real touch starts construction of the included sawmill")
 	check(game.ui.refs["upgrade"].disabled,"An active construction cannot be purchased again from the same panel")
