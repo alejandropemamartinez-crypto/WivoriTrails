@@ -37,8 +37,24 @@ var pack_level:=1
 var markets: Array[Dictionary]=[]
 var offline_coins:=0
 var clock:=0.0
+static var worker_paths: Array=[]
+static var worker_seconds: Array[float]=[]
+static var carrier_paths: Dictionary={}
+static var carrier_seconds: Dictionary={}
 
 func _init() -> void:
+	if worker_paths.is_empty():
+		for product in PRODUCTS:
+			for point in positions(product):
+				var destination: Vector3=point+Vector3(0,0,-1.5)
+				var route: Array[Vector3]=[]
+				route.assign([DEPOT,Vector3(-17.6,0,20.1),destination] if product=="wood" else [DEPOT,Vector3(-12,0,20.0),Vector3(6.2,0,20.0),Vector3(6.2,0,22.3),destination])
+				worker_paths.append(route);worker_seconds.append(path_length(route)/4.2)
+		for origin in ["depot","wood","meat"]:
+			for target in ["depot","wood","meat"]:
+				var start: Vector3=DEPOT if origin=="depot" else COUNTERS[origin];var finish: Vector3=DEPOT if target=="depot" else COUNTERS[target]
+				var route: Array[Vector3]=[];route.assign([start,Vector3(-12,0,20.0),finish] if origin=="depot" or target=="depot" else [start,finish])
+				carrier_paths[origin+":"+target]=route;carrier_seconds[origin+":"+target]=path_length(route)/4.6
 	for area in range(6):markets.append(_new_market())
 
 func _new_market() -> Dictionary:
@@ -273,10 +289,9 @@ func worker_job(role: String,area: int,slot: int=0) -> Dictionary:
 	return town(area)["workers"][role] if slot==0 else town(area)["extras"][role][slot-1]
 func worker_route(role: String,area: int,slot: int=0) -> Array[Vector3]:
 	var worker: Dictionary=worker_job(role,area,slot)
-	var product: String="wood" if role=="lumberjack" else "meat"
-	var target: Vector3=positions(product)[int(worker["target"])%positions(product).size()]+Vector3(0,0,-1.5)
-	if role=="lumberjack":return [DEPOT,Vector3(-17.6,0,20.1),target]
-	return [DEPOT,Vector3(-12,0,20.0),Vector3(6.2,0,20.0),Vector3(6.2,0,22.3),target]
+	# These map routes are immutable. Reuse them during offline catch-up
+	# instead of allocating and measuring a route for every worker step.
+	return worker_paths[int(worker["target"])+(TREE_POSITIONS.size() if role=="hunter" else 0)]
 func path_length(points: Array[Vector3]) -> float:
 	var length:=0.0
 	for index in range(points.size()-1):length+=points[index].distance_to(points[index+1])
@@ -336,7 +351,7 @@ func _tick_town(delta: float,area: int,player_area: int,player_at: Vector3,defen
 func _tick_worker(delta: float,role: String,area: int,slot: int=0) -> void:
 	var data: Dictionary=town(area);var worker: Dictionary=worker_job(role,area,slot)
 	var product: String="wood" if role=="lumberjack" else "meat"
-	var duration: float=path_length(worker_route(role,area,slot))/4.2
+	var duration: float=worker_seconds[int(worker["target"])+(TREE_POSITIONS.size() if role=="hunter" else 0)]
 	if worker["phase"] in ["out","back"]:
 		worker["progress"]=minf(1,float(worker["progress"])+delta/maxf(.1,duration))
 		if float(worker["progress"])<1:return
@@ -362,10 +377,7 @@ func _tick_worker(delta: float,role: String,area: int,slot: int=0) -> void:
 
 func carrier_route(area: int) -> Array[Vector3]:
 	var job: Dictionary=town(area)["carrier"]
-	var start: Vector3=DEPOT if job["from"]=="depot" else COUNTERS[job["from"]]
-	var finish: Vector3=DEPOT if job["to"]=="depot" else COUNTERS[job["to"]]
-	if job["from"]=="depot" or job["to"]=="depot":return [start,Vector3(-12,0,20.0),finish]
-	return [start,finish]
+	return carrier_paths[job["from"]+":"+job["to"]]
 func carrier_position(area: int) -> Vector3:
 	var job: Dictionary=town(area)["carrier"]
 	if job["phase"]=="load":return DEPOT
@@ -384,7 +396,7 @@ func _tick_carrier(delta: float,area: int) -> void:
 		if int(cargo["wood"])+int(cargo["meat"])==0:return
 		job["from"]="depot";job["to"]="wood" if int(cargo["wood"])>0 else "meat";job["progress"]=0.0;job["phase"]="travel";return
 	if job["phase"]=="travel":
-		job["progress"]=minf(1,float(job["progress"])+delta/maxf(.1,path_length(carrier_route(area))/4.6))
+		job["progress"]=minf(1,float(job["progress"])+delta/maxf(.1,float(carrier_seconds[job["from"]+":"+job["to"]])))
 		if float(job["progress"])<1:return
 		job["phase"]="load" if job["to"]=="depot" else "unload";return
 	if job["phase"]=="unload":

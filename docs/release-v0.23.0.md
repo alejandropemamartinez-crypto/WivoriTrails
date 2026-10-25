@@ -76,5 +76,11 @@ interfaces en ambas alturas, guardado y reanudación. La grabación usa frames
 reales del motor y cortes entre actividades y el progreso ganado en esa prueba.
 Las comprobaciones de escritorio y CI no miden el rendimiento en un teléfono físico.
 
+Las rutas y duraciones de los NPC se reutilizan en lugar de recalcularse en cada
+paso. En la comprobación extrema de dos horas sin jugar y seis pueblos con todo
+el personal, el cálculo bajó de 11,49 a 8,67 segundos en este entorno y produjo
+las mismas 931.902 monedas. Ese caso todavía puede demorar la carga inicial;
+no es una medición de FPS ni un tiempo garantizado en Android.
+
 APK ARM64 **0.23.0**, código **27**, paquete `sv.apenalegaltech.wivoritrails` y
 misma firma de prueba para actualizar conservando la partida.
