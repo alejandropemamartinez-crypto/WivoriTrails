@@ -1,4 +1,4 @@
-# Wivori Trails · 0.22.0 · Mercado del Norte
+# Wivori Trails · 0.23.0 · Mercado del Norte
 
 Juego de recolección, comercio y automatización en la nieve para Android,
 en Godot **4.4.1**. Cortá pinos con el hacha, cazá osos polares con la hoz y
@@ -6,24 +6,31 @@ llevá la carga a dos puestos con filas de clientes. Gastá las monedas en un
 leñador, un cazador y tres tramos de ferrocarril que automatizan el transporte
 y la venta. **El protagonista siempre se mueve bajo tu control.**
 
-## Cosechar → vender → automatizar
+## Acercate → trabajá → contratá
 
-El joystick camina y **Correr** se mantiene con otro dedo. Cerca de los pinos,
-el botón cambia a **Hacha**; cerca de los osos, a **Hoz**. Mantenelo para golpear.
-La mochila tiene 16 espacios, ampliables. Acercate a cada puesto y pulsá
-**Entregar**: los pedidos consumen existencias y pagan al completarse.
+Usá el joystick y mantené **Correr** con otro dedo si querés acelerar. Acercarte
+a un pino activa el hacha; acercarte a un oso activa la hoz. Los golpes, la
+recogida y la entrega en los puestos son automáticos. No hay botón de golpear.
+El personaje nunca decide adónde caminar por vos.
 
-**Taller** permite comprar trabajadores, herramientas, mochila y vías. Los
-trabajadores llevan mercancía al depósito. Antes del tren, retirás esa carga
-con **Cargar** y la llevás al puesto. Tres tramos cierran el circuito y ponen
-la locomotora a trabajar: carga en el depósito y abastece ambos puestos.
+Hay osos polares normales (4 golpes, 6 carnes), blindados (9, 9) y acorazados
+(16, 12), con armadura original unida al cuerpo animado. Las herramientas
+mejoradas reducen los golpes. La mochila empieza con 16 espacios compartidos.
 
-**Ruta** muestra cuatro metas comerciales, el precio del pasaje y el botón
-para abrir cada pueblo. El primero pide 40 unidades vendidas, ambos empleados,
-los tres tramos y 80 monedas para viajar. Los mercados anteriores siguen
-vendiendo mientras explorás. Las partidas antiguas conservan sus destinos.
+**Taller** muestra qué ventas desbloquean cada oficio y su precio en monedas.
+Podés contratar hasta tres leñadores, tres cazadores, dos cajeros, un porteador
+y dos centinelas. Cada recolector tiene su ruta y su carga. Cada cajero atiende
+un puesto aunque te alejés; sin cajero, atendés al permanecer junto a la caja.
+El porteador reparte desde el depósito antes de que exista el tren. Los centinelas
+disparan desde torres, dejan botín para recoger y repelen robos automáticamente.
 
-[Alcance y verificación de 0.22.0](docs/release-v0.22.0.md).
+Tres tramos de vías cierran el circuito de la locomotora: carga del depósito y
+abastece madera y carne. La demanda de los clientes aumenta al ampliar el equipo.
+**Ruta** muestra cinco metas y el precio del pasaje. El primer pueblo exige 40
+productos vendidos, un leñador, un cazador, ambos cajeros, tres tramos y 80 monedas
+para viajar. Las torres y el porteador son mejoras adicionales.
+
+[Requisitos, precios, migración y verificación de 0.23.0](docs/release-v0.23.0.md).
 
 ## Refugios del Norte
 
@@ -127,7 +134,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.22.0 usa código 26, el paquete
+verifica paquete, versión y certificado. 0.23.0 usa código 27, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 

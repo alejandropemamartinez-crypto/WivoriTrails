@@ -14,6 +14,16 @@ var node_ready: Dictionary={"wood":[],"meat":[]}
 var node_tweens: Dictionary={}
 var customers: Dictionary={}
 var workers: Dictionary={}
+var cashiers: Dictionary={}
+var guards: Dictionary={}
+var porter: Dictionary={}
+var projectiles: Dictionary={}
+var tower_models: Array[Node3D]=[]
+var tower_count:=-1
+var site_labels: Dictionary={}
+var bear_status: Array[Label3D]=[]
+var raid_actor: Node3D
+var raid_exit:=0.0
 var rails: Array[Node3D]=[]
 var rail_count:=-1
 var train: Array[Node3D]=[]
@@ -47,7 +57,8 @@ func build(source: Node3D) -> void:
 				Art.piece(self,"stump",market.positions(product)[index])
 				var tree: Node3D=Winter.make(self,"tree",1,market.positions(product)[index]);tree.scale=Vector3.ONE*.8;trees.append(tree)
 			else:
-				var bear:=Bear.new();bear.phase=float(index)*1.7;bear.position=market.positions(product)[index];bear.rotation.y=-.6+float(index)*.65;add_child(bear);bears.append(bear)
+				var bear:=Bear.new();bear.armor_tier=index;bear.phase=float(index)*1.7;bear.position=market.positions(product)[index];bear.rotation.y=-.6+float(index)*.65;add_child(bear);bears.append(bear)
+				bear_status.append(_label(self,"",bear.position+Vector3(0,2.65,0),.016,Color("#ffdda0") if index==2 else Color("#e8f2f2")))
 			node_ready[product].append(true)
 			var regrowth: Label3D=_label(self,"",market.positions(product)[index]+Vector3(0,.7,0),.016);regrowth.visible=false;regrowth_labels[product].append(regrowth)
 	Art.piece(self,"market_depot",market.DEPOT+Vector3(0,0,-1.7))
@@ -103,13 +114,14 @@ func _worked(city: int,product: String,index: int,finished: bool) -> void:
 		var tween:=create_tween();node_tweens[key]=tween
 		tween.set_parallel();tween.tween_property(target,"rotation:z",1.15 if product=="wood" else -.8,.36).set_trans(Tween.TRANS_QUAD)
 		tween.tween_property(target,"scale",Vector3.ONE*.01,.34).set_delay(.25)
-		_float("+%d %s" % [market.yield_count(product),"MADERA" if product=="wood" else "CARNE"],market.positions(product)[index]+Vector3(0,2.5,0),Color("#fff0bd"))
+		_float("+%d %s" % [market.yield_count(product,index),"MADERA" if product=="wood" else "CARNE"],market.positions(product)[index]+Vector3(0,2.5,0),Color("#fff0bd"))
 	else:
 		var tween:=create_tween();tween.tween_property(target,"scale",Vector3.ONE*(.73 if product=="wood" else .95),.08)
 		tween.tween_property(target,"scale",Vector3.ONE*(.8 if product=="wood" else 1.0),.16).set_trans(Tween.TRANS_BACK)
 
 func _earned(city: int,product: String,amount: int,_quantity: int) -> void:
 	if city!=area:return
+	if cashiers.has(product):cashiers[product].act("collect")
 	_float("+%d MONEDAS" % amount,market.COUNTERS[product]+Vector3(0,2.4,0),Color("#ffdb85"))
 	if audio_coin!=null and not audio_coin.playing:audio_coin.play()
 func _float(text: String,at: Vector3,color_: Color) -> void:
@@ -119,7 +131,7 @@ func _float(text: String,at: Vector3,color_: Color) -> void:
 func refresh(delta: float) -> void:
 	time+=delta;var data: Dictionary=market.town(area)
 	_refresh_nodes(data)
-	_refresh_workers(delta,data);_refresh_customers(delta,data);_refresh_train(delta,data)
+	_refresh_workers(delta,data);_refresh_staff(delta,data);_refresh_customers(delta,data);_refresh_train(delta,data)
 	var signature: String=str(market.bag)
 	if signature!=hero_cargo_signature:
 		hero_cargo_signature=signature
@@ -139,6 +151,7 @@ func refresh(delta: float) -> void:
 			var sign: Dictionary=game.ui.market_labels[product]
 			sign["title"].text=("MADERA" if product=="wood" else "CARNE DE OSO")+" · %d/u" % market.unit_price(product,area)
 			sign["detail"].text="%s · Stock %d/%d" % ["FILA LLENA" if count==market.QUEUE_CAPACITY else "%d clientes" % count,quantity,market.STOCK_CAPACITY]
+			sign["staffing"].text="CAJERO AUTOMÁTICO" if market.cashier_for(product,area) else "ACERCATE PARA ATENDER"
 			depot_cargo[product].visible=int(data["depot"][product])>0
 		depot_label.text="DEPÓSITO\n%d madera · %d carne" % [data["depot"]["wood"],data["depot"]["meat"]]
 	_refresh_guide(delta)
@@ -167,8 +180,14 @@ func _refresh_nodes(data: Dictionary) -> void:
 	for product in market.PRODUCTS:
 		for index in range(market.positions(product).size()):
 			var active: bool=market.active_node(product,index,area);var node: Node3D=trees[index] if product=="wood" else bears[index]
-			var label: Label3D=regrowth_labels[product][index];label.visible=not active and not game.ui.modal.visible
+			var close: bool=game.hero.position.distance_to(market.positions(product)[index])<8.0
+			var label: Label3D=regrowth_labels[product][index];label.visible=not active and not game.ui.modal.visible and close
 			if not active:label.text="%d s" % ceili(float(data["nodes"][product][index]["respawn"]))
+			if product=="meat":
+				var status: Label3D=bear_status[index]
+				status.visible=active and not game.ui.modal.visible and close and (index>0 or int(data["nodes"][product][index]["hp"])<market.max_hp(product,index))
+				status.text=(market.BEAR_NAMES[index].to_upper()+"\n" if index>0 else "")+"%d / %d" % [data["nodes"][product][index]["hp"],market.max_hp(product,index)]
+				if int(data["field_meat"][index])>0:label.visible=not game.ui.modal.visible and close;label.text="%d CARNE · RECOGER" % data["field_meat"][index]
 			if active and not node_ready[product][index]:
 				var key: String=product+str(index)
 				if node_tweens.has(key) and node_tweens[key]!=null:node_tweens[key].kill()
@@ -178,26 +197,81 @@ func _refresh_nodes(data: Dictionary) -> void:
 			node_ready[product][index]=active
 
 func _refresh_workers(delta: float,data: Dictionary) -> void:
-	for role in market.ROLE_NAMES:
-		var worker: Dictionary=data["workers"][role]
-		if int(worker["level"])==0:continue
-		var product: String="wood" if role=="lumberjack" else "meat"
-		if not workers.has(role):
-			var actor:=Actor.new();actor.setup("worker",Color("#cb995d") if product=="wood" else Color("#5b8e9d"),"fox" if product=="wood" else "rabbit");add_child(actor)
-			actor.position=market.worker_position(role,area);actor.last_position=actor.position
-			var cargo:=Node3D.new();cargo.position=Vector3(0,.9,.4);actor.add_child(cargo);_cargo(cargo,product,2)
-			var attachment: Node3D=_tool_attachment(actor);Art.piece(attachment,"axe" if product=="wood" else "scythe")
-			workers[role]={"actor":actor,"cargo":cargo,"tool":attachment,"hit":-1}
-		var record: Dictionary=workers[role];var actor: Node3D=record["actor"];var before: Vector3=actor.position
-		actor.position=market.worker_position(role,area);var motion: Vector3=actor.position-before
+	for role in market.HARVEST_ROLES:
+		for slot in range(market.worker_count(role,area)):
+			var worker: Dictionary=market.worker_job(role,area,slot);var product: String="wood" if role=="lumberjack" else "meat"
+			var key: String=role+str(slot)
+			if not workers.has(key):
+				var actor:=Actor.new();actor.setup("worker",[Color("#cb995d"),Color("#5b8e9d"),Color("#a17b92")][slot],["fox","duck","pig"][slot] if role=="lumberjack" else ["rabbit","fox","pig"][slot]);add_child(actor)
+				actor.position=market.worker_position(role,area,slot);actor.last_position=actor.position
+				var cargo:=Node3D.new();cargo.position=Vector3(0,.9,.4);actor.add_child(cargo);_cargo(cargo,product,2)
+				var attachment: Node3D=_tool_attachment(actor);Art.piece(attachment,"axe" if product=="wood" else "scythe")
+				workers[key]={"actor":actor,"cargo":cargo,"tool":attachment,"hit":-1}
+			var record: Dictionary=workers[key];var actor: Node3D=record["actor"];var before: Vector3=actor.position
+			actor.position=market.worker_position(role,area,slot);var motion: Vector3=actor.position-before
+			if motion.length_squared()>.00001:actor.walk_to(motion.normalized(),motion.length()/maxf(.001,delta))
+			record["cargo"].visible=int(worker["cargo"])>0;actor.set_carry(int(worker["cargo"]))
+			record["tool"].visible=worker["phase"]=="work"
+			if worker["phase"]=="work":
+				var direction: Vector3=market.positions(product)[int(worker["target"])]-actor.position
+				actor.face_direction_yaw(atan2(direction.x,direction.z))
+				var hit: int=int(float(worker["clock"])*10)
+				if hit<record["hit"]:actor.act("harvest")
+				record["hit"]=hit
+
+func _refresh_staff(delta: float,data: Dictionary) -> void:
+	for product in market.PRODUCTS:
+		if not market.cashier_for(product,area) or cashiers.has(product):continue
+		var actor:=Actor.new();actor.setup("worker",Color("#a87968") if product=="wood" else Color("#779a8a"),"pig" if product=="wood" else "duck");add_child(actor)
+		actor.position=market.COUNTERS[product]+Vector3(1.45,0,-.1);actor.last_position=actor.position;actor.face_direction_yaw(-.8);cashiers[product]=actor
+		Art.piece(self,"cash_register",market.COUNTERS[product]+Vector3(.95,0,-.35))
+	if market.worker_count("porter",area)>0:
+		if porter.is_empty():
+			var actor:=Actor.new();actor.setup("worker",Color("#bb945a"),"rabbit");add_child(actor);actor.position=market.carrier_position(area);actor.last_position=actor.position
+			porter={"actor":actor,"signature":"","cargo":Node3D.new()};actor.goods_root.add_child(porter["cargo"])
+		var actor: Node3D=porter["actor"];var before: Vector3=actor.position;actor.position=market.carrier_position(area)
+		var motion: Vector3=actor.position-before
 		if motion.length_squared()>.00001:actor.walk_to(motion.normalized(),motion.length()/maxf(.001,delta))
-		record["cargo"].visible=int(worker["cargo"])>0;actor.set_carry(int(worker["cargo"]))
-		record["tool"].visible=worker["phase"]=="work"
-		if worker["phase"]=="work":
-			actor.face_direction_yaw(atan2((market.positions(product)[int(worker["target"])]-actor.position).x,(market.positions(product)[int(worker["target"])]-actor.position).z))
-			var hit: int=int(float(worker["clock"])*10)
-			if hit<record["hit"]:actor.act("harvest")
-			record["hit"]=hit
+		var cargo: Dictionary=data["carrier"]["cargo"];actor.set_carry(int(cargo["wood"])+int(cargo["meat"]))
+		if porter["signature"]!=str(cargo):
+			porter["signature"]=str(cargo)
+			for child in porter["cargo"].get_children():porter["cargo"].remove_child(child);child.queue_free()
+			for product in market.PRODUCTS:
+				var group:=Node3D.new();group.position.x=-.28 if product=="wood" else .28;porter["cargo"].add_child(group);_cargo(group,product,mini(2,int(cargo[product])))
+	var count: int=market.worker_count("sentinel",area)
+	if count!=tower_count:
+		tower_count=count
+		for model in tower_models:remove_child(model);model.queue_free()
+		tower_models.clear();site_labels.clear()
+		for index in range(2):
+			var tower: Node3D=Art.piece(self,"sentinel_tower" if index<count else "tower_site",market.TOWER_POSITIONS[index]);tower_models.append(tower)
+			if index>=count:site_labels[index]=_label(tower,"TORRE %d\n%d" % [index+1,220 if index==0 else 360],Vector3(0,1.45,0),.014)
+	for index in site_labels:site_labels[index].visible=not game.ui.modal.visible and game.hero.position.distance_to(market.TOWER_POSITIONS[index])<5.5
+	for index in range(count):
+		if not guards.has(index):
+			var actor:=Actor.new();actor.setup("worker",Color("#4d7494"),"rabbit" if index==0 else "fox");add_child(actor);actor.scale=Vector3.ONE*.82
+			actor.position=market.TOWER_POSITIONS[index]+Vector3(0,2.6,.3);actor.last_position=actor.position;Art.piece(_tool_attachment(actor),"crossbow");guards[index]=actor
+	var present: Dictionary={}
+	for shot in data["shots"]:
+		var id: int=shot["id"];present[id]=true
+		if not projectiles.has(id):
+			projectiles[id]=Art.piece(self,"bolt")
+			if guards.has(int(shot["tower"])):guards[int(shot["tower"])].act("harvest")
+		var start: Vector3=market.TOWER_POSITIONS[int(shot["tower"])]+Vector3(0,3.6,.3)
+		var destination: Vector3=(market.BEAR_POSITIONS[int(shot["target"])] if int(shot["target"])>=0 else market.DEPOT+Vector3(0,0,1))+Vector3(0,1.0,0)
+		var fraction: float=1.0-float(shot["remaining"])/float(shot["duration"])
+		var node: Node3D=projectiles[id];node.position=start.lerp(destination,fraction)+Vector3(0,sin(fraction*PI)*.3,0)
+		var direction: Vector3=destination-start;node.rotation=Vector3(-atan2(direction.y,Vector2(direction.x,direction.z).length()),atan2(direction.x,direction.z),0)
+		if guards.has(int(shot["tower"])):guards[int(shot["tower"])].face_direction_yaw(atan2(direction.x,direction.z))
+	for id in projectiles.keys():
+		if not present.has(id):projectiles[id].queue_free();projectiles.erase(id)
+	if game.state.raid_remaining>0:
+		if not is_instance_valid(raid_actor):
+			raid_actor=Actor.new();raid_actor.setup("thief",Color("#877b87"),"raccoon");add_child(raid_actor);raid_actor.position=market.DEPOT+Vector3(3,0,3);raid_actor.last_position=raid_actor.position
+		raid_exit=0;_walk(raid_actor,market.DEPOT+Vector3(.6,0,.6),delta,1.8)
+	elif is_instance_valid(raid_actor):
+		raid_exit+=delta;_walk(raid_actor,market.DEPOT+Vector3(5,0,4),delta,3.5)
+		if raid_exit>2.5:raid_actor.queue_free();raid_actor=null
 
 func _refresh_customers(delta: float,data: Dictionary) -> void:
 	var existing: Dictionary={}

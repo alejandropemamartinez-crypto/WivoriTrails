@@ -11,6 +11,24 @@ func _build_winter() -> void:
 		"wood_shop":_trade_stall(Color("#548d83"),false)
 		"meat_shop":_trade_stall(Color("#ba735b"),true)
 		"market_depot":_depot()
+		"sentinel_tower":_market_guard_tower()
+		"tower_site":
+			_box(Vector3(0,.05,0),Vector3(1.9,.10,1.9),Color("#a6bdc2"),0,.14)
+			for side in [-1.0,1.0]:_box(Vector3(side*.8,.5,-.7),Vector3(.12,1.0,.12),LOG)
+			_box(Vector3(0,.88,-.7),Vector3(1.8,.64,.12),SLATE)
+		"crossbow":
+			_box(Vector3(0,.16,.26),Vector3(.13,.22,.75),TIMBER)
+			_box(Vector3(0,.29,.34),Vector3(.13,.10,.86),DARK,1)
+			_box(Vector3(0,.24,.55),Vector3(.85,.08,.14),COPPER,1)
+			for side in [-1.0,1.0]:_box(Vector3(side*.34,.25,.47),Vector3(.34,.06,.07),DARK,1,.02,Basis(Vector3.UP,side*.55))
+		"bolt":
+			_cylinder(Vector3.ZERO,.035,.7,COPPER,1,6,Basis(Vector3.RIGHT,PI*.5))
+			_box(Vector3(0,0,.34),Vector3(.10,.10,.18),LIT,2)
+		"cash_register":
+			_box(Vector3(0,.70,0),Vector3(.85,.13,.62),LOG)
+			for x in [-.33,.33]:_box(Vector3(x,.33,0),Vector3(.10,.66,.43),DARK)
+			_box(Vector3(0,.96,0),Vector3(.47,.40,.45),COPPER,1)
+			_box(Vector3(0,1.19,0),Vector3(.35,.16,.32),DARK,1)
 		"axe":
 			_cylinder(Vector3(0,.36,0),.045,.90,TIMBER,0,8)
 			_box(Vector3(.12,.71,0),Vector3(.46,.32,.14),DARK,1,.04)
@@ -44,6 +62,19 @@ func _build_winter() -> void:
 			elif section==1:_track(points[1],points[2],built_);_track(points[2],points[3],built_)
 			else:_track(points[3],points[4],built_)
 		_ :super._build_winter()
+
+func _market_guard_tower() -> void:
+	for x in [-.72,.72]:
+		for z in [-.72,.72]:_box(Vector3(x,1.3,z),Vector3(.20,2.6,.20),TIMBER)
+	_box(Vector3(0,2.45,0),Vector3(1.95,.25,1.95),LOG)
+	for x in [-.86,.86]:
+		_box(Vector3(x,3.04,0),Vector3(.12,1.1,1.85),SLATE)
+		_box(Vector3(x,3.96,-.75),Vector3(.12,2.5,.12),LOG)
+	_box(Vector3(0,3.03,-.88),Vector3(1.85,1.0,.12),SLATE)
+	_box(Vector3(0,2.85,.90),Vector3(1.85,.30,.12),COPPER,1)
+	_box(Vector3(0,4.86,-.20),Vector3(2.35,.20,2.4),SNOW,0,.12)
+	for i in range(7):_box(Vector3(-1.12,.2+float(i)*.34,.93-float(i)*.15),Vector3(.60,.14,.30),LOG)
+	_cylinder(Vector3(0,3.1,.98),.26,.10,COPPER,1,12,Basis(Vector3.RIGHT,PI*.5))
 
 func _trade_stall(paint: Color,meat: bool) -> void:
 	_box(Vector3(0,.12,0),Vector3(4.7,.24,2.7),Color("#708d98"),0,.13)
