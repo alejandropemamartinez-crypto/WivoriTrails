@@ -56,7 +56,8 @@ func run() -> void:
 			game.state=original;game.ui.state=original;game.ui.refresh(0)
 	var initial_hero: Vector3=game.hero.position
 	await tap(game.ui.task_button);game._process(.1);game.set_process(false)
-	check(game.state.lit and not game.ui.modal.visible,"A real touch ignites the central heater without an unsolicited popup")
+	check(game.camera_detached and not game.ui.modal.visible,"A real objective touch points at the next resource without a blocking popup")
+	game.state.ignite()
 	check(game.hero.position==initial_hero,"Following a city objective never sends the protagonist running by itself")
 	await frames(3)
 	if DisplayServer.get_name()!="headless":check(game.ui.toast.is_visible_in_tree() and game.ui.toast.size.y>=game.ui.toast.get_line_height()*mini(2,game.ui.toast.get_line_count()),"A live activity notice has enough rendered height to display its text")
@@ -79,7 +80,7 @@ func run() -> void:
 	check(game.state.worker_count("lumber")==2,"Releasing the held control applies one assignment, without a duplicated tap")
 	check(game.ui.worker_rows["lumber"]["plus"]!=old_plus,"The panel displays the new level and next price once the finger is released")
 	game.ui.close();await tap(game.ui.route_button);await frames(3)
-	check(game.ui.view=="route" and game.ui.goal_rows.size()==4,"A real route touch exposes the four explicit commercial chapter requirements")
+	check(game.ui.view=="route" and game.ui.goal_rows.size()==5,"A real route touch exposes the five explicit commercial chapter requirements")
 	await shot("03_requisitos")
 	var route_scroll: ScrollContainer=game.ui.listing.get_parent();var origin:=Vector2(370,820)
 	await touch_at(origin,true,8)

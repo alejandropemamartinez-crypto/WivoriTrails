@@ -10,6 +10,28 @@ var phase:=0.0
 var hit_left:=0.0
 var fallen:=false
 var materials: Dictionary={}
+var armor_tier:=0
+
+func _plate(parent: Node3D,at: Vector3,dimensions: Vector3,color_: Color) -> void:
+	var draw:=MeshInstance3D.new();var box:=BoxMesh.new();box.size=dimensions;draw.mesh=box;draw.position=at
+	if not materials.has(color_):
+		var material:=StandardMaterial3D.new();material.albedo_color=color_;material.metallic=.35;material.roughness=.5;materials[color_]=material
+	draw.material_override=materials[color_];parent.add_child(draw)
+
+func _armor() -> void:
+	var steel: Color=Color("#547b95") if armor_tier==1 else Color("#2d536d")
+	var trim: Color=Color("#bdd1d5") if armor_tier==1 else Color("#d8a34f")
+	_ellipsoid(body,Vector3(0,1.39,-.23),Vector3(.76,.42,1.00),steel)
+	_ellipsoid(head,Vector3(0,.24,-.08),Vector3(.53,.30,.47),steel)
+	_plate(head,Vector3(0,.24,.38),Vector3(.83,.12,.13),trim)
+	_plate(body,Vector3(0,1.02,.87),Vector3(.70,.32,.17),trim)
+	for side in [-1.0,1.0]:
+		_ellipsoid(body,Vector3(side*.69,1.1,.40),Vector3(.19,.38,.43),steel)
+		_plate(body,Vector3(side*.76,1.14,.42),Vector3(.11,.18,.21),trim)
+		for z in [-.53,.14]:_ellipsoid(body,Vector3(side*.39,1.75,z),Vector3(.055,.055,.055),trim)
+	if armor_tier==2:
+		_plate(head,Vector3(0,.54,-.05),Vector3(.13,.18,.55),trim)
+		for side in [-1.0,1.0]:_ellipsoid(body,Vector3(side*.69,1.16,-.60),Vector3(.20,.30,.34),steel)
 
 func _ellipsoid(parent: Node3D,at: Vector3,scale_: Vector3,color_: Color) -> MeshInstance3D:
 	var mesh:=SphereMesh.new();mesh.radius=1;mesh.height=2;mesh.radial_segments=16;mesh.rings=8
@@ -36,6 +58,7 @@ func _ready() -> void:
 			_ellipsoid(limb,Vector3(0,-.21,0),Vector3(.22,.40,.24),Color("#dbe6e2"))
 			_ellipsoid(limb,Vector3(0,-.48,.07),Vector3(.26,.17,.33),Color("#d0deda"))
 	_ellipsoid(body,Vector3(0,1.10,-1.08),Vector3(.14,.16,.13),Color("#dce7e2"))
+	if armor_tier>0:_armor()
 	preload("res://scripts/scene_finish.gd").contact(self)
 
 func react() -> void:hit_left=.32

@@ -45,7 +45,9 @@ var camera_button: Button
 var run_button: Button
 var move_hint: Control
 var nav_buttons: Dictionary={}
-var work_button: Button
+var work_button: PanelContainer
+var work_title: Label
+var work_progress: ProgressBar
 var work_hint: Label
 var shop_rows: Dictionary={}
 var shop_balance: Label
@@ -138,20 +140,23 @@ func build(source: Node3D) -> void:
 	run_button.anchor_left=1;run_button.anchor_right=1;run_button.anchor_top=1;run_button.anchor_bottom=1
 	run_button.offset_left=-188;run_button.offset_right=-22;run_button.offset_top=-538;run_button.offset_bottom=-474
 	run_button.button_down.connect(game.begin_sprint);run_button.button_up.connect(game.end_sprint)
-	work_button=_button("ACERCATE",func():pass,GOLD,18);root.add_child(work_button)
+	work_button=_panel(GOLD);work_button.mouse_filter=Control.MOUSE_FILTER_STOP;root.add_child(work_button)
+	var action_column:=_column(work_button,5);action_column.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	work_title=_label("ACERCATE",18);work_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;action_column.add_child(work_title)
+	work_progress=ProgressBar.new();work_progress.mouse_filter=Control.MOUSE_FILTER_IGNORE;work_progress.custom_minimum_size.y=7;work_progress.show_percentage=false;_progress_skin(work_progress);action_column.add_child(work_progress)
 	work_button.anchor_left=1;work_button.anchor_right=1;work_button.anchor_top=1;work_button.anchor_bottom=1
 	work_button.offset_left=-232;work_button.offset_right=-22;work_button.offset_top=-452;work_button.offset_bottom=-356
-	work_button.button_down.connect(game.begin_work);work_button.button_up.connect(game.end_work)
 	work_hint=_wrap("",13,INK);root.add_child(work_hint);work_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;work_hint.max_lines_visible=2
 	work_hint.anchor_left=1;work_hint.anchor_right=1;work_hint.anchor_top=1;work_hint.anchor_bottom=1;work_hint.offset_left=-260;work_hint.offset_right=-22;work_hint.offset_top=-350;work_hint.offset_bottom=-312
 	for product in game.market.PRODUCTS:
 		var button:=_button("",Callable(game,"focus_trade_counter").bind(product),TEAL if product=="wood" else Color("#a6634e"),17)
-		button.custom_minimum_size=Vector2(192,64);button.size=Vector2(192,64)
+		button.custom_minimum_size=Vector2(192,82);button.size=Vector2(192,82)
 		var style:=_style(TEAL if product=="wood" else Color("#a6634e"),12);style.set_content_margin_all(7);style.shadow_size=4;button.add_theme_stylebox_override("normal",style)
 		var sign_col:=VBoxContainer.new();sign_col.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(sign_col);sign_col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var title:=_label("",18,Color("#fff0ce"));title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sign_col.add_child(title)
 		var detail:=_label("",13,Color("#edf2e9"));detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sign_col.add_child(detail)
-		root.add_child(button);market_labels[product]={"button":button,"title":title,"detail":detail}
+		var staffing:=_label("",12,Color("#fff0ce"));staffing.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sign_col.add_child(staffing)
+		root.add_child(button);market_labels[product]={"button":button,"title":title,"detail":detail,"staffing":staffing}
 	for id in state.BUILDINGS:
 		var button:=_button("",Callable(self,"show_building").bind(id),Color("#e8efec"),13)
 		button.add_theme_color_override("font_color",INK);button.custom_minimum_size=Vector2(146,37);button.size=Vector2(146,37)
@@ -254,7 +259,7 @@ func show_team() -> void:
 	refresh(0)
 
 func show_route() -> void:
-	view="route";selected="";_sheet("Tu ruta comercial","Vendé, contratá al equipo y completá las vías. El mercado anterior sigue trabajando cuando viajás.")
+	view="route";selected="";_sheet("Tu ruta comercial","Cinco metas visibles para viajar. El mercado anterior sigue trabajando con sus cajeros y transportes.")
 	var next: int=mini(state.unlocked+1,5)
 	var preview:=_info_card("PRÓXIMO: "+state.NAMES[next] if state.unlocked<5 else "LA RED DE PUERTO AURORA",state.LESSONS[next])
 	refs["next_progress"]=_wrap("",20);preview.add_child(refs["next_progress"])
@@ -272,13 +277,13 @@ func show_route() -> void:
 		if index==state.city:card.add_child(_label("ESTÁS AQUÍ",15,TEAL))
 		elif available:
 			card.add_child(_button("VIAJAR A "+state.NAMES[index].to_upper(),Callable(game,"travel").bind(index),TEAL,18))
-		else:card.add_child(_wrap("Completá las cuatro metas comerciales de "+state.NAMES[index-1]+". El pasaje cuesta %d monedas." % game.market.charter_price(index-1),16,MUTED))
+		else:card.add_child(_wrap("Completá las cinco metas comerciales de "+state.NAMES[index-1]+". El pasaje cuesta %d monedas." % game.market.charter_price(index-1),16,MUTED))
 	refresh(0)
 
 func show_market(highlight: String="") -> void:
-	view="market";selected=highlight;_sheet("Taller y ferrocarril","Los trabajadores cosechan y llevan la carga al depósito. El tren la entrega a los puestos y los clientes pagan.")
+	view="market";selected=highlight;_sheet("Tu equipo y ferrocarril","Vendé para desbloquear oficios y contratá con monedas. Cada compra suma un ayudante con una tarea real.")
 	shop_balance=_label("",24,TEAL);listing.add_child(shop_balance)
-	var ids: Array[String]=["lumberjack","hunter","rail","tool","pack","train","supplies"]
+	var ids: Array[String]=["lumberjack","cashier","hunter","porter","sentinel","rail","tool","pack","train","supplies"]
 	if highlight in ids:ids.erase(highlight);ids.push_front(highlight)
 	for id in ids:
 		var card:=_info_card("", "",Color("#f0e4c8") if id==highlight else Color("#e1e9e4"))
@@ -296,19 +301,22 @@ func _refresh_market() -> void:
 		var row: Dictionary=shop_rows[id];var price: int=market.price(id,state.city);var reason: String=market.buy_reason(id,state.city)
 		var title: String="";var detail: String=""
 		match id:
-			"lumberjack","hunter":
+			"lumberjack","hunter","cashier","porter","sentinel":
 				var level_: int=data["workers"][id]["level"]
-				title=("CONTRATAR · "+market.ROLE_NAMES[id].to_upper()) if level_==0 else "%s · NIVEL %d/3" % [market.ROLE_NAMES[id].to_upper(),level_]
-				detail="Corta pinos con su hacha y lleva la madera al depósito. El personaje sigue bajo tu control." if id=="lumberjack" else "Caza osos polares con su hoz y lleva la carne al depósito. Las mejoras aceleran su recorrido y sus golpes."
+				title="%s · %d/%d" % [market.ROLE_NAMES[id].to_upper(),level_,market.ROLE_LIMITS[id]]
+				detail={"lumberjack":"Cada contratación suma otro leñador. Cortan pinos y transportan madera al depósito.","hunter":"Cada contratación suma otro cazador. Cazan osos y recogen el botín de los centinelas para llevarlo al depósito.","cashier":"El primero atiende madera; el segundo, carne. Cobran pedidos aunque te alejés. Sin cajero, acercate al puesto para atender.","porter":"Recoge hasta 12 productos del depósito y los reparte en ambos puestos. El tren después suma más capacidad.","sentinel":"Cada contratación construye una torre con centinela. Disparan a los osos; tus cazadores recogen la carne. También ahuyentan mapaches."}[id]
 			"rail":
 				title="FERROCARRIL · %d/3 TRAMOS" % data["rails"]
 				detail=["Tramo 1: depósito y puestos de venta.","Tramo 2: curva y vía de regreso.","Tramo 3: cerrá el circuito y estrená tu tren de carga.","Tren activo: carga en el depósito y descarga en ambos puestos. Los clientes compran esa mercancía."][int(data["rails"])]
-			"tool":title="HACHA Y HOZ · NIVEL %d/3" % data["tool"];detail="Más daño por golpe. Seguí acercándote y manteniendo pulsado para trabajar."
+			"tool":title="HERRAMIENTAS · NIVEL %d/3" % data["tool"];detail="Más daño para vos y tus ayudantes. Acercate a árboles y osos: los golpes son automáticos."
 			"pack":title="MOCHILA · %d ESPACIOS" % market.bag_capacity();detail="Ocho espacios más por mejora. La madera y la carne comparten capacidad."
 			"train":title="TREN · NIVEL %d/3" % data["train_level"];detail="Más velocidad y seis espacios adicionales por producto en cada viaje."
 			"supplies":title="ABASTECER EL REFUGIO";detail="80 madera, 50 comida y 30 carbón para construir edificios. Esta compra no se revende en los puestos."
 		row["title"].text=title;row["detail"].text=detail;row["reason"].text="Disponible · %d monedas" % price if reason.is_empty() else reason
-		row["button"].text="CIRCUITO COMPLETO" if id=="rail" and market.operating(state.city) else ("CONTRATAR" if id in market.ROLE_NAMES and int(data["workers"][id]["level"])==0 else "CONSTRUIR TRAMO" if id=="rail" else "COMPRAR MEJORA")+" · %d" % price
+		if id in market.ROLE_NAMES:
+			var gate: Dictionary=market.hire_requirement(id,state.city)
+			row["reason"].text="Todas las plazas están cubiertas" if reason=="Equipo completo" else gate["text"]+"\n"+("Desbloqueado · %d monedas" % price if reason.is_empty() else reason)
+		row["button"].text="EQUIPO COMPLETO" if reason=="Equipo completo" else "CIRCUITO COMPLETO" if id=="rail" and market.operating(state.city) else ("CONTRATAR" if id in market.ROLE_NAMES else "CONSTRUIR TRAMO" if id=="rail" else "COMPRAR MEJORA")+" · %d" % price
 		row["button"].disabled=not reason.is_empty()
 
 func show_fleet() -> void:
@@ -327,8 +335,9 @@ func _send_route(index: int) -> void:
 	if state.start_expedition(index):game.save();refresh(0)
 
 func show_menu() -> void:
-	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Mercado del Norte · 0.22.0")
-	_info_card("Cosechá, vendé y automatizá","Cortá pinos con el hacha y cazá osos polares con la hoz, manteniendo el botón de acción. Llevá la carga a los clientes. Comprá un leñador, un cazador y tres tramos de vías desde TALLER.")
+	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Mercado del Norte · 0.23.0")
+	_info_card("Acercate y trabajá","Dirigí al personaje con el joystick. Los golpes, la recogida y la entrega se activan al acercarte. Los osos blindados y acorazados tienen más resistencia y dan más carne.")
+	_info_card("Tu equipo","Las ventas desbloquean oficios. Contratá leñadores, cazadores, dos cajeros, un porteador y centinelas en torres con monedas. Taller muestra cada requisito y precio. Nadie controla el movimiento de tu personaje.")
 	listing.add_child(_button("TALLER Y FERROCARRIL",show_market,TEAL,18))
 	listing.add_child(_button("HABITANTES Y EDIFICIOS",show_team,NAVY,18))
 	_info_card("Movete y construí","Usá el joystick de la izquierda para caminar. Mantené CORRER con otro dedo para acelerar. Tocá un edificio para mejorarlo o asignar habitantes.")
@@ -348,15 +357,20 @@ func refresh(delta: float) -> void:
 	weather.text="MOCHILA %d / %d" % [game.market.bag_count(),game.market.bag_capacity()]
 	comfort.text="VENDIDO %d · VÍAS %d/3" % [game.market.sold_total(state.city),game.market.town(state.city)["rails"]]
 	var task: Dictionary=game.current_task()
-	task_count.text="%s · %d/4 METAS" % ["PRÓXIMO: "+state.NAMES[state.city+1].to_upper() if state.city<5 else "META: RED COMERCIAL",game.market.goal_progress(state.city)]
-	progress.value=float(game.market.goal_progress(state.city))/4.0
+	task_count.text="%s · %d/%d METAS" % ["PRÓXIMO: "+state.NAMES[state.city+1].to_upper() if state.city<5 else "META: RED COMERCIAL",game.market.goal_progress(state.city),game.market.goals(state.city).size()]
+	progress.value=float(game.market.goal_progress(state.city))/float(game.market.goals(state.city).size())
 	task_title.text=task["title"];task_detail.text=task["detail"];task_button.text=task["button"]
 	route_button.text="RUTA · %d/6" % (state.unlocked+1)
 	camera_button.text="SEGUIRME" if game.camera_detached else "VER MERCADO" if game.hero.position.z>14 else "VER PUEBLO"
 	var context: Dictionary=game.market.context(game.hero.position,state.city)
-	work_button.text={"harvest":"HACHA\nCORTAR PINO" if context.get("product","")=="wood" else "HOZ\nCAZAR OSO","deliver":"ENTREGAR\n"+("MADERA" if context.get("product","")=="wood" else "CARNE"),"load":"CARGAR\nMOCHILA","walk":"ACERCATE"}[context["kind"]]
-	if context["kind"]=="harvest" and not context["enabled"]:work_button.text="VENDÉ\nTU CARGA"
-	work_button.disabled=not context["enabled"];work_hint.text=context["detail"];work_hint.visible=not modal.visible
+	work_title.text={"harvest":"HACHA\nAUTOMÁTICA" if context.get("product","")=="wood" else "HOZ\nAUTOMÁTICA","deliver":"ENTREGA\nAUTOMÁTICA","load":"CARGA\nAUTOMÁTICA","collect":"RECOGIDA\nAUTOMÁTICA","walk":"ACERCATE\nPARA TRABAJAR"}[context["kind"]]
+	if context["kind"] in ["harvest","collect"] and not context["enabled"]:work_title.text="VENDÉ\nTU CARGA"
+	if context["kind"]=="deliver" and not context["enabled"]:
+		var product: String=context["product"]
+		work_title.text="CAJERO\nTRABAJANDO" if game.market.cashier_for(product,state.city) else "CAJA\nATENDIENDO" if int(game.market.town(state.city)["stock"][product])>0 else "ABASTECÉ\nEL PUESTO"
+	work_progress.visible=context["kind"]=="harvest"
+	if work_progress.visible:work_progress.value=1.0-float(game.market.town(state.city)["nodes"][context["product"]][context["index"]]["hp"])/float(game.market.max_hp(context["product"],context["index"]))
+	work_button.self_modulate=Color.WHITE if context["enabled"] else Color("#d3e2de");work_hint.text=context["detail"];work_hint.visible=not modal.visible
 	task_button.self_modulate=Color.WHITE.lerp(Color("#ffe19b"),.32+.25*sin(game.elapsed*4.0)) if task["action"]=="shop" and task.has("buy") else Color.WHITE
 	if not modal.visible:return
 	if not pending_building.is_empty():
@@ -387,7 +401,7 @@ func refresh(delta: float) -> void:
 		refs["family"].disabled=full or state.family_cooldown>0 or float(state.resources["food"])<12 or not state.lit
 		refs["family_hint"].text="Mejorá los hogares para recibir más familias." if full else "Cada familia aporta dos personas. Cambiá los trabajos con − y +."
 	elif view=="route":
-		refs["next_progress"].text="%s · %d/4 metas comerciales" % [state.NAMES[state.unlocked],game.market.goal_progress(state.unlocked)]
+		refs["next_progress"].text="%s · %d/%d metas comerciales" % [state.NAMES[state.unlocked],game.market.goal_progress(state.unlocked),game.market.goals(state.unlocked).size()]
 		var goals: Array[Dictionary]=game.market.goals(state.unlocked)
 		for row in goal_rows:
 			for goal in goals:
@@ -395,8 +409,8 @@ func refresh(delta: float) -> void:
 				var done: bool=int(goal["value"])>=int(goal["goal"]);row["badge"].text="✓" if done else "○";row["count"].text="%d/%d" % [mini(int(goal["value"]),int(goal["goal"])),goal["goal"]]
 		if refs.has("open"):
 			var ready: bool=game.route_can_open()
-			refs["charter"].text="Pasaje: %d / %d monedas. Los cuatro hitos de arriba son los únicos requisitos comerciales." % [game.market.coins,game.market.charter_price(state.city)]
-			refs["open"].text="ABRIR "+state.NAMES[state.city+1].to_upper() if ready else "REUNÍ %d MONEDAS PARA VIAJAR" % game.market.charter_price(state.city) if game.market.charter_ready(state.city) else "COMPLETÁ LAS CUATRO METAS"
+			refs["charter"].text="Pasaje: %d / %d monedas. Completá las cinco metas de arriba; las torres y el porteador son mejoras adicionales." % [game.market.coins,game.market.charter_price(state.city)]
+			refs["open"].text="ABRIR "+state.NAMES[state.city+1].to_upper() if ready else "REUNÍ %d MONEDAS PARA VIAJAR" % game.market.charter_price(state.city) if game.market.charter_ready(state.city) else "COMPLETÁ LAS CINCO METAS"
 			refs["open"].disabled=not ready
 	elif view=="market":_refresh_market()
 	elif view=="fleet":

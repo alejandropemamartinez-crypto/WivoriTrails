@@ -124,16 +124,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr release/Wivori_Trails_Art_Source_v0.22.0.zip art assets/fonts assets/models assets/ui assets/textures scripts -x '*.import' '*.blend[0-9]'
+          zip -qr release/Wivori_Trails_Art_Source_v0.23.0.zip art assets/fonts assets/models assets/ui assets/textures scripts -x '*.import' '*.blend[0-9]'
       - name: Publish verified Android preview
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view v0.22.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v0.22.0 release/*.apk release/Wivori_Trails_Art_Source_v0.22.0.zip \
+          if ! gh release view v0.23.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v0.23.0 release/*.apk release/Wivori_Trails_Art_Source_v0.23.0.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-              --title "Wivori Trails 0.22.0 — hacha, hoz, clientes y tren de carga" \
-              --notes-file docs/release-v0.22.0.md
+              --title "Wivori Trails 0.23.0 — acciones por cercanía, osos blindados y oficios" \
+              --notes-file docs/release-v0.23.0.md
           fi

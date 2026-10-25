@@ -40,16 +40,19 @@ func run() -> void:
 	game=load("res://Refuge.tscn").instantiate();game.save_path=path;game.saving_enabled=false;root.add_child(game);await frames(5)
 	touch(center(game.ui.task_button),true,7);await process_frame;touch(center(game.ui.task_button),false,7);await frames(2)
 	await walk_to(game.market.TREE_POSITIONS[0]+Vector3(0,0,1.5))
-	touch(center(game.ui.work_button),true,8);await frames(18,true);touch(center(game.ui.work_button),false,8)
+	await frames(18,true)
 	await walk_to(game.market.COUNTERS["wood"])
-	touch(center(game.ui.work_button),true,8);await frames(24,true);touch(center(game.ui.work_button),false,8)
+	await frames(24,true)
 	await walk_to(game.market.BEAR_POSITIONS[0]+Vector3(0,0,1.6))
-	touch(center(game.ui.work_button),true,8);await frames(24,true);touch(center(game.ui.work_button),false,8)
+	await frames(24,true)
 	if game.market.bag["meat"]!=6 or game.market.coins<=0:push_error("The recorded manual harvest/sale did not complete");quit(1);return
-	print("RECORDED MANUAL LOOP: ",game.market.coins," earned coins; ",game.market.bag["meat"]," carried meat")
+	print("RECORDED PROXIMITY LOOP: ",game.market.coins," earned coins; ",game.market.bag["meat"]," carried meat")
+	await walk_to(game.market.COUNTERS["meat"]);await frames(8)
+	await walk_to(game.market.BEAR_POSITIONS[1]+Vector3(0,0,1.6));await frames(42,true)
+	if game.market.bag["meat"]<9:push_error("The armored bear did not yield its larger reward automatically");quit(1);return
 	game.queue_free();await frames(3)
 	game=load("res://Refuge.tscn").instantiate();game.save_path=checkpoint;game.saving_enabled=false;root.add_child(game);await frames(5)
-	if not game.market.operating(0):push_error("The earned playthrough checkpoint has no running train");quit(1);return
+	if not game.market.operating(0) or game.market.worker_count("sentinel",0)<1:push_error("The earned playthrough checkpoint has no operating railway and sentinel");quit(1);return
 	game.show_overview();await frames(10);await frames(72,true)
 	print("RECORDED TRADE MOVIE: ",frame_number," unaltered native frames; automated playthrough checkpoint")
 	game.queue_free();await frames(3);await create_timer(.1).timeout;quit()

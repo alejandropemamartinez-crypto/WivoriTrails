@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Wivori Trails — Frontier Market"
-config/description="Cortá pinos, cazá osos polares, vendé a clientes y automatizá tu mercado con trabajadores y un tren."
+config/description="Acercate para cosechar, cazar y entregar. Contratá cajeros, leñadores, cazadores, porteadores y centinelas en torres."
 run/main_scene="res://Refuge.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 run/max_fps=60

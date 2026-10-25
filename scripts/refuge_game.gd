@@ -17,6 +17,7 @@ var market=Market.new()
 var market_world: Node3D
 var working:=false
 var work_cooldown:=0.0
+var security_clock:=0.0
 var ui=UI.new()
 var camera: Camera3D
 var scenery: Node3D
@@ -103,6 +104,7 @@ func _build_world(capture_position: bool=true) -> void:
 		var at: Vector3=Market.SHOP_POSITIONS[product]
 		navigation.add_obstacle(Rect2(Vector2(at.x-2.4,at.z-1.1),Vector2(4.8,2.4)))
 	navigation.add_obstacle(Rect2(Vector2(-17.2,14.9),Vector2(4.4,2.6)))
+	for at in Market.TOWER_POSITIONS:navigation.add_obstacle(Rect2(Vector2(at.x-.9,at.z-.9),Vector2(1.8,1.8)))
 	navigation.build()
 	_trees();_mountains();_details();_weather()
 	core_light=OmniLight3D.new();core_light.position=Vector3(0,2.1,0);core_light.light_color=Color("#ffb362");core_light.light_energy=1.2;core_light.omni_range=9.0;core_light.shadow_enabled=false;core_light.visible=state.lit;scenery.add_child(core_light)
@@ -111,7 +113,7 @@ func _build_world(capture_position: bool=true) -> void:
 	var ring:=MeshInstance3D.new();var halo:=TorusMesh.new();halo.inner_radius=.44;halo.outer_radius=.49;halo.rings=24;halo.ring_segments=6
 	var gold:=StandardMaterial3D.new();gold.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;gold.albedo_color=Color("#efbe71")
 	ring.mesh=halo;ring.material_override=gold;ring.position.y=.035;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;hero.add_child(ring)
-	var count: int=mini(14,int(state.town()["people"]))
+	var count: int=mini(8,int(state.town()["people"]))
 	for index in range(count):_spawn_resident(index)
 	camera_detached=false;camera_overview=false;zoom=follow_zoom;focus=hero.position+Vector3(0,0,-1.5);camera_follow=focus
 	if ui.root!=null:
@@ -203,7 +205,6 @@ func clear_controls() -> void:
 	input_active=false;fingers.clear();sprinting=false;working=false
 	if stick!=null:stick._clear()
 	if ui.run_button!=null:ui.run_button._release_touch()
-	if ui.work_button!=null:ui.work_button._release_touch()
 func sync_controls() -> void:
 	var enabled: bool=controls_allowed()
 	if stick!=null:stick.visible=enabled
@@ -212,20 +213,27 @@ func sync_controls() -> void:
 func begin_sprint() -> void:
 	if controls_allowed():sprinting=true
 func end_sprint() -> void:sprinting=false
-func begin_work() -> void:
+func _auto_work() -> void:
+	working=false
 	if not controls_allowed():return
-	working=true;_manual_work()
-func end_work() -> void:working=false
-func _manual_work() -> void:
-	if not controls_allowed() or work_cooldown>0:return
+	var nearby: Dictionary=market.context(hero.position,state.city)
+	working=nearby["kind"]=="harvest" and nearby["enabled"]
+	if work_cooldown>0:return
 	var result: Dictionary=market.use(hero.position,state.city)
 	if result.is_empty():return
-	work_cooldown=.48 if result["kind"]=="harvest" else .65
+	if not state.lit:state.lit=true;state.changed.emit()
+	work_cooldown=.42 if result["kind"]=="harvest" else .28
 	hero.act("harvest" if result["kind"]=="harvest" else "deliver")
 	var toward: Vector3=result["at"]-hero.position
 	if toward.length_squared()>.01:hero.face_direction_yaw(atan2(toward.x,toward.z))
-	if result["kind"]!="harvest":ui.notice("%d productos %s" % [result["quantity"],"en el puesto. Los clientes pagan al completar su pedido." if result["kind"]=="deliver" else "cargados. Llevalos a los puestos."])
+	if result["kind"]!="harvest" and is_instance_valid(market_world):market_world._float("+%d %s" % [result["quantity"],"ENTREGADOS" if result["kind"]=="deliver" else "RECOGIDOS"],hero.position+Vector3(0,2.0,0),Color("#ffe0a0"))
 	save_clock=minf(save_clock,.25)
+func _security(delta: float) -> void:
+	security_clock=maxf(0,security_clock-delta)
+	var guards: int=market.worker_count("sentinel",state.city)
+	if guards==0 or state.raid_remaining<=0 or security_clock>0:return
+	security_clock=.9/float(guards)
+	if state.repel():market.guard_signal(state.city)
 
 func _restore_player_positions(saved: Dictionary) -> void:
 	player_positions.clear()
@@ -235,9 +243,8 @@ func _capture_player_position() -> void:
 	if is_instance_valid(hero) and world_city>=0 and world_city<player_positions.size():player_positions[world_city]=hero.position
 
 func _process(delta: float) -> void:
-	var step: float=minf(delta,.25);elapsed+=step;state.tick(step);market.tick(step,state.unlocked)
+	var step: float=minf(delta,.25);elapsed+=step;state.tick(step)
 	work_cooldown=maxf(0,work_cooldown-step)
-	if working and controls_allowed():_manual_work()
 	if last_lit!=state.lit:
 		last_lit=state.lit;_replace_model("core",true)
 	ground.set_shader_parameter("warm_radius",6.3+float(state.level("core"))*1.0)
@@ -262,7 +269,9 @@ func _process(delta: float) -> void:
 				camera_detached=false
 				if camera_overview:camera_overview=false;zoom=follow_zoom
 		if not camera_detached:focus=hero.position+Vector3(0,0,-1.5)
-	while residents.size()<mini(14,int(state.town()["people"])):_spawn_resident(residents.size(),true)
+	_auto_work();_security(step)
+	market.tick(step,state.unlocked,state.city if controls_allowed() else -1,hero.position,state.city if state.raid_remaining>0 else -1)
+	while residents.size()<mini(8,int(state.town()["people"])):_spawn_resident(residents.size(),true)
 	_npc_tick(step);_camera(step);_placards()
 	if is_instance_valid(market_world):market_world.refresh(step)
 	hud_clock-=step
@@ -359,8 +368,9 @@ func follow_task() -> void:
 			ui.notice("Seguí los puntos dorados usando el joystick.")
 
 func current_task() -> Dictionary:
-	if not state.lit:return state.next_task()
-	if state.raid_remaining>0:return state.next_task()
+	if state.raid_remaining>0:
+		if market.worker_count("sentinel",state.city)>0:return {"id":"trade","title":"Los centinelas protegen el depósito","detail":"Ahuyentan a los mapaches automáticamente. Podés seguir trabajando.","action":"guide","button":"VER GUARDIA","at":Market.DEPOT}
+		return state.next_task()
 	if state.city<state.unlocked:return {"id":"trade","title":state.NAMES[state.unlocked]+" está disponible","detail":"Entrá en RUTA y viajá cuando quieras. Este mercado sigue trabajando.","action":"route","button":"VIAJAR","at":Market.DEPOT}
 	return market.next_task(state.city)
 func focus_trade_counter(product: String) -> void:
@@ -377,7 +387,8 @@ func buy_market(id: String) -> bool:
 	if not market.buy(id,state.city):return false
 	if id=="supplies":
 		for key in {"wood":80,"food":50,"coal":30}:state.resources[key]+=float({"wood":80,"food":50,"coal":30}[key])
-	ui.notice("Tramo construido · %d/3. El tren se activa al cerrar el circuito." % market.town(state.city)["rails"] if id=="rail" and not market.operating(state.city) else "¡Tren en marcha! Lleva la carga del depósito a los clientes." if id=="rail" else "Mejora comprada. La próxima tarea ya está señalada.")
+	var notices: Dictionary={"lumberjack":"Leñador contratado. Lleva madera al depósito.","hunter":"Cazador contratado. Caza y recoge el botín de las torres.","cashier":"Cajero contratado. Atiende aunque vos te alejés.","porter":"Porteador contratado. Reparte del depósito a los puestos.","sentinel":"¡Torre con centinela lista! Caza osos y protege el depósito."}
+	ui.notice(notices[id] if notices.has(id) else "Tramo construido · %d/3." % market.town(state.city)["rails"] if id=="rail" and not market.operating(state.city) else "¡Tren en marcha! Abastece ambos puestos." if id=="rail" else "Mejora comprada. La próxima tarea ya está señalada.")
 	save();ui.refresh(0);return true
 
 func _on_built(id: String,area: int) -> void:
@@ -473,6 +484,8 @@ func _tap(point: Vector2) -> void:
 	var origin: Vector3=camera.project_ray_origin(point);var direction: Vector3=camera.project_ray_normal(point)
 	var hit: Variant=Plane(Vector3.UP,0).intersects_ray(origin,direction)
 	if hit==null:return
+	for at in Market.TOWER_POSITIONS:
+		if Vector2(at.x-hit.x,at.z-hit.z).length()<1.8:ui.show_market("sentinel");return
 	var nearest: String="";var distance:=INF
 	for id in state.BUILDINGS:
 		if not models[id].visible:continue
