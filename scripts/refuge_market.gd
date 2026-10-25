@@ -29,7 +29,9 @@ const ROLE_LIMITS={"lumberjack":3,"hunter":3,"cashier":2,"porter":1,"sentinel":2
 const TOWER_POSITIONS=[Vector3(16.3,0,20.2),Vector3(4.7,0,27.7)]
 const BEAR_NAMES=["Oso polar","Oso blindado","Oso acorazado"]
 const FIELD_CAPACITY=48
-const MANUAL_REACH=2.5
+const MANUAL_REACH=3.2
+const COUNTER_REACH=2.8
+const STALL_REACH=1.35
 
 var coins:=0
 var bag: Dictionary={"wood":0,"meat":0}
@@ -72,7 +74,7 @@ func _new_market() -> Dictionary:
 		"arrivals":{"wood":3.0,"meat":5.0},"service":{"wood":0.0,"meat":0.0},"sold":{"wood":0,"meat":0},"customers":0,
 		"workers":{"lumberjack":_new_worker(),"hunter":_new_worker(),"cashier":_new_worker(),"porter":_new_worker(),"sentinel":_new_worker()},
 		"extras":{"lumberjack":[_new_worker(),_new_worker()],"hunter":[_new_worker(),_new_worker()]},
-		"field_meat":[0,0,0],"shots":[],"next_shot":0,"guard_clock":[0.0,.55],
+		"field_wood":[0,0,0,0,0,0],"field_meat":[0,0,0],"shots":[],"next_shot":0,"guard_clock":[0.0,.55],
 		"carrier":{"phase":"load","from":"depot","to":"wood","progress":0.0,"cargo":{"wood":0,"meat":0}},"rails":0,"tool":1,"train_level":1,
 		"train":{"distance":0.0,"next_stop":0,"wait":0.0,"cargo":{"wood":0,"meat":0},"laps":0}}
 
@@ -96,29 +98,59 @@ func active_node(product: String,index: int,area: int) -> bool:
 func sold_total(area: int) -> int:return int(town(area)["sold"]["wood"])+int(town(area)["sold"]["meat"])
 func operating(area: int) -> bool:return int(town(area)["rails"])==3
 
+func flat_distance(a: Vector3,b: Vector3) -> float:return Vector2(a.x-b.x,a.z-b.z).length()
+func shop_bounds(product: String) -> Rect2:
+	var at: Vector3=SHOP_POSITIONS[product]
+	return Rect2(Vector2(at.x-2.4,at.z-1.1),Vector2(4.8,2.4))
+func counter_in_reach(at: Vector3,product: String) -> bool:
+	# The visible stall is a footprint, not a hidden point at its front.
+	var bounds: Rect2=shop_bounds(product);var point:=Vector2(at.x,at.z)
+	var nearest:=Vector2(clampf(point.x,bounds.position.x,bounds.end.x),clampf(point.y,bounds.position.y,bounds.end.y))
+	return point.distance_to(nearest)<=STALL_REACH or flat_distance(at,COUNTERS[product])<=COUNTER_REACH
+func ground_count(product: String,index: int,area: int) -> int:return int(town(area)["field_"+product][index])
+
 func context(at: Vector3,area: int) -> Dictionary:
-	# Counter/depot interactions take priority over a nearby harvest target.
+	# Only actionable transfers take priority. An empty depot/counter or loot
+	# that does not fit must never hide a living tree or bear in the same area.
+	var idle: Dictionary={}
 	for product in PRODUCTS:
-		if at.distance_to(COUNTERS[product])<=MANUAL_REACH:
+		if counter_in_reach(at,product):
 			var count: int=mini(int(bag[product]),STOCK_CAPACITY-int(town(area)["stock"][product]))
-			return {"kind":"deliver","product":product,"at":COUNTERS[product],"title":"ENTREGAR "+("MADERA" if product=="wood" else "CARNE"),"detail":"%d en mochila · %d/%d en el puesto" % [bag[product],town(area)["stock"][product],STOCK_CAPACITY],"enabled":count>0}
-	if at.distance_to(DEPOT)<=MANUAL_REACH:
+			var action: Dictionary={"kind":"deliver","product":product,"at":COUNTERS[product],"title":"ENTREGA AUTOMÁTICA","detail":"%d en mochila · %d/%d en el puesto" % [bag[product],town(area)["stock"][product],STOCK_CAPACITY],"enabled":count>0}
+			if int(bag[product])>0 and int(town(area)["stock"][product])>=STOCK_CAPACITY:action["detail"]="Puesto lleno · Se entrega apenas los clientes liberan espacio"
+			if action["enabled"]:return action
+			if idle.is_empty():idle=action
+	if flat_distance(at,DEPOT)<=2.5:
 		var count: int=int(town(area)["depot"]["wood"])+int(town(area)["depot"]["meat"])
-		return {"kind":"load","at":DEPOT,"title":"CARGAR MOCHILA","detail":"Depósito: %d madera · %d carne" % [town(area)["depot"]["wood"],town(area)["depot"]["meat"]],"enabled":count>0 and bag_free()>0}
-	for index in range(BEAR_POSITIONS.size()):
-		var dropped: int=town(area)["field_meat"][index]
-		if dropped>0 and at.distance_to(BEAR_POSITIONS[index])<=MANUAL_REACH:
-			return {"kind":"collect","product":"meat","index":index,"at":BEAR_POSITIONS[index],"title":"RECOGIENDO CARNE","detail":"Recogida automática · %d paquetes en el suelo" % dropped,"enabled":bag_free()>0}
+		var action: Dictionary={"kind":"load","at":DEPOT,"title":"CARGA AUTOMÁTICA","detail":"Depósito: %d madera · %d carne" % [town(area)["depot"]["wood"],town(area)["depot"]["meat"]],"enabled":count>0 and bag_free()>0}
+		if action["enabled"]:return action
+		if idle.is_empty():idle=action
+	var pickup: Dictionary={};var pickup_distance:=MANUAL_REACH
+	for product in PRODUCTS:
+		for index in range(positions(product).size()):
+			var dropped: int=ground_count(product,index,area);var distance: float=flat_distance(at,positions(product)[index])
+			if dropped<=0 or distance>pickup_distance:continue
+			pickup_distance=distance
+			pickup={"kind":"collect","product":product,"index":index,"at":positions(product)[index],"title":"RECOGIDA AUTOMÁTICA","detail":"%d %s en el suelo · Se conserva hasta recogerlo" % [dropped,"maderas" if product=="wood" else "carnes"],"enabled":bag_free()>0}
+	if not pickup.is_empty() and pickup["enabled"]:return pickup
 	var best: Dictionary={};var distance:=MANUAL_REACH
 	for product in PRODUCTS:
 		for index in range(positions(product).size()):
 			if not active_node(product,index,area):continue
-			var candidate: float=at.distance_to(positions(product)[index])
+			var candidate: float=flat_distance(at,positions(product)[index])
 			if candidate>distance:continue
-			distance=candidate
-			var room: bool=bag_free()>=yield_count(product,index)
-			best={"kind":"harvest","product":product,"index":index,"at":positions(product)[index],"title":("CORTANDO PINO" if product=="wood" else "CAZANDO · "+BEAR_NAMES[index].to_upper()) if room else "VENDÉ TU CARGA", "detail":"Automático · %d golpes · +%d %s" % [ceili(float(town(area)["nodes"][product][index]["hp"])/float(town(area)["tool"])),yield_count(product,index),"madera" if product=="wood" else "carne"] if room else "Necesitás %d espacios libres en la mochila" % yield_count(product,index),"enabled":room}
+			var room: bool=bag_free()+FIELD_CAPACITY-ground_count(product,index,area)>=yield_count(product,index)
+			var title: String="CORTANDO PINO" if product=="wood" else "CAZANDO · "+BEAR_NAMES[index].to_upper()
+			var detail: String="Automático · %d golpes" % ceili(float(town(area)["nodes"][product][index]["hp"])/float(town(area)["tool"]))
+			detail+=" · Mochila llena: el botín queda acá" if bag_free()<yield_count(product,index) else " · +%d %s" % [yield_count(product,index),"madera" if product=="wood" else "carne"]
+			var action: Dictionary={"kind":"harvest","product":product,"index":index,"at":positions(product)[index],"title":title if room else "RETIRÁ EL BOTÍN","detail":detail if room else "El suelo está lleno. Vendé tu carga y recogé el botín.","enabled":room}
+			if not room:
+				if idle.is_empty():idle=action
+				continue
+			distance=candidate;best=action
 	if not best.is_empty():return best
+	if not pickup.is_empty():return pickup
+	if not idle.is_empty():return idle
 	return {"kind":"walk","at":at,"title":"ACERCATE","detail":"Pinos a la izquierda · Osos a la derecha","enabled":false}
 
 func use(at: Vector3,area: int) -> Dictionary:
@@ -128,11 +160,13 @@ func use(at: Vector3,area: int) -> Dictionary:
 		"harvest":
 			var product: String=action["product"];var index: int=action["index"]
 			var result: Dictionary=_hit(product,index,area,int(town(area)["tool"]))
-			if result["finished"]:bag[product]=int(bag[product])+yield_count(product,index)
+			if result["finished"]:
+				var collected: int=mini(bag_free(),yield_count(product,index))
+				bag[product]+=collected;town(area)["field_"+product][index]+=yield_count(product,index)-collected
 			changed.emit();return action.merged(result)
 		"collect":
-			var index: int=action["index"];var count: int=mini(bag_free(),int(town(area)["field_meat"][index]))
-			town(area)["field_meat"][index]-=count;bag["meat"]+=count;changed.emit();return action.merged({"quantity":count})
+			var product: String=action["product"];var index: int=action["index"];var count: int=mini(bag_free(),ground_count(product,index,area))
+			town(area)["field_"+product][index]-=count;bag[product]+=count;changed.emit();return action.merged({"quantity":count})
 		"deliver":
 			var product: String=action["product"]
 			var quantity: int=mini(int(bag[product]),STOCK_CAPACITY-int(town(area)["stock"][product]))
@@ -275,6 +309,7 @@ func _hire_task(role: String,area: int) -> Dictionary:
 func _harvest_task(product: String,area: int) -> Dictionary:
 	var index:=0
 	for candidate in range(positions(product).size()):
+		if ground_count(product,candidate,area)>0 and bag_free()>0:return {"id":"trade","title":"Recogé la madera que quedó" if product=="wood" else "Recogé la carne que quedó","detail":"Acercate al botín: la recogida es automática.","action":"guide","button":"SEÑALAR","at":positions(product)[candidate]}
 		if active_node(product,candidate,area):index=candidate;break
 	return {"id":"trade","title":"Acercate al pino" if product=="wood" else "Acercate al oso polar","detail":"Los golpes y la recogida son automáticos. Vos dirigís al personaje.","action":"guide","button":"SEÑALAR","at":positions(product)[index]}
 func _delivery_task(product: String,area: int) -> Dictionary:
@@ -337,7 +372,7 @@ func _tick_town(delta: float,area: int,player_area: int,player_at: Vector3,defen
 			queue.append({"id":id,"quantity":quantity,"remaining":quantity,"arrival":2.6});data["arrivals"][product]=arrival_interval(product,area)
 		for customer in queue:customer["arrival"]=maxf(0,float(customer["arrival"])-delta)
 		data["service"][product]=maxf(0,float(data["service"][product])-delta)
-		var attended: bool=cashier_for(product,area) or area==player_area and player_at.distance_to(COUNTERS[product])<=MANUAL_REACH+.25
+		var attended: bool=cashier_for(product,area) or area==player_area and counter_in_reach(player_at,product)
 		if attended and not queue.is_empty() and float(queue[0]["arrival"])<=0 and float(data["service"][product])<=0 and int(data["stock"][product])>0:
 			data["stock"][product]-=1;queue[0]["remaining"]-=1;data["service"][product]=.38
 			if int(queue[0]["remaining"])==0:
@@ -365,14 +400,14 @@ func _tick_worker(delta: float,role: String,area: int,slot: int=0) -> void:
 		worker["target"]=(int(worker["target"])+1)%positions(product).size()
 		for offset in range(positions(product).size()):
 			var next: int=(int(worker["target"])+offset)%positions(product).size()
-			if active_node(product,next,area) or product=="meat" and int(data["field_meat"][next])>0:worker["target"]=next;break
+			if active_node(product,next,area) or ground_count(product,next,area)>0:worker["target"]=next;break
 	elif worker["phase"]=="work":
 		worker["clock"]+=delta
 		if float(worker["clock"])<.65:return
 		worker["clock"]=0.0
-		if product=="meat" and int(data["field_meat"][int(worker["target"])])>0:
-			var quantity: int=mini(12,int(data["field_meat"][int(worker["target"])]))
-			data["field_meat"][int(worker["target"]) ]-=quantity;worker["cargo"]=quantity;worker["phase"]="back";worker["progress"]=0.0;changed.emit();return
+		if ground_count(product,int(worker["target"]),area)>0:
+			var quantity: int=mini(5 if product=="wood" else 12,ground_count(product,int(worker["target"]),area))
+			data["field_"+product][int(worker["target"]) ]-=quantity;worker["cargo"]=quantity;worker["phase"]="back";worker["progress"]=0.0;changed.emit();return
 		if not active_node(product,int(worker["target"]),area):worker["phase"]="back";worker["progress"]=0.0;return
 		var hit: Dictionary=_hit(product,int(worker["target"]),area,int(data["tool"]))
 		if hit["finished"]:worker["cargo"]=yield_count(product,int(worker["target"]));worker["phase"]="back";worker["progress"]=0.0;changed.emit()
@@ -452,7 +487,7 @@ func _tick_train(delta: float,area: int) -> void:
 	train["next_stop"]=stop+1;train["wait"]=1.0
 
 func snapshot() -> Dictionary:
-	return {"schema":2,"coins":coins,"bag":bag.duplicate(),"pack_level":pack_level,"markets":markets.duplicate(true)}
+	return {"schema":3,"coins":coins,"bag":bag.duplicate(),"pack_level":pack_level,"markets":markets.duplicate(true)}
 
 func _restore_job(source: Dictionary,target: Dictionary,product: String,slot: int=0) -> void:
 	target["phase"]=source.get("phase","out") if source.get("phase") in ["out","work","back"] else "out"
@@ -462,7 +497,7 @@ func _restore_job(source: Dictionary,target: Dictionary,product: String,slot: in
 
 func restore(saved: Variant,offline_seconds: float,unlocked: int) -> void:
 	if not saved is Dictionary:return
-	var legacy: bool=saved.has("markets") and int(Store.number(saved,"schema",1,1,2))<2
+	var legacy: bool=saved.has("markets") and int(Store.number(saved,"schema",1,1,3))<2
 	coins=int(Store.number(saved,"coins",0,0,1000000000));pack_level=int(Store.number(saved,"pack_level",1,1,3))
 	var saved_bag: Dictionary=saved.get("bag",{}) if saved.get("bag") is Dictionary else {}
 	bag["wood"]=int(Store.number(saved_bag,"wood",0,0,bag_capacity()));bag["meat"]=int(Store.number(saved_bag,"meat",0,0,bag_capacity()-int(bag["wood"])))
@@ -500,8 +535,9 @@ func restore(saved: Variant,offline_seconds: float,unlocked: int) -> void:
 			for slot in range(2):
 				var source: Dictionary=jobs[slot] if slot<jobs.size() and jobs[slot] is Dictionary else {}
 				_restore_job(source,data["extras"][role][slot],"wood" if role=="lumberjack" else "meat",slot+1)
-		var field: Array=entry.get("field_meat",[]) if entry.get("field_meat") is Array else []
-		for index in range(3):data["field_meat"][index]=int(Store.number({"count":field[index]} if index<field.size() else {},"count",0,0,FIELD_CAPACITY))
+		for product in PRODUCTS:
+			var field: Array=entry.get("field_"+product,[]) if entry.get("field_"+product) is Array else []
+			for index in range(positions(product).size()):data["field_"+product][index]=int(Store.number({"count":field[index]} if index<field.size() else {},"count",0,0,FIELD_CAPACITY))
 		var clocks: Array=entry.get("guard_clock",[]) if entry.get("guard_clock") is Array else []
 		for index in range(2):data["guard_clock"][index]=Store.number({"count":clocks[index]} if index<clocks.size() else {},"count",0,0,1.1)
 		data["next_shot"]=int(Store.number(entry,"next_shot",0,0,999999999))

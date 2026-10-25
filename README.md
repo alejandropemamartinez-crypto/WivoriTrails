@@ -1,4 +1,4 @@
-# Wivori Trails · 0.23.0 · Mercado del Norte
+# Wivori Trails · 0.23.1 · Mercado del Norte
 
 Juego de recolección, comercio y automatización en la nieve para Android,
 en Godot **4.4.1**. Cortá pinos con el hacha, cazá osos polares con la hoz y
@@ -12,6 +12,13 @@ Usá el joystick y mantené **Correr** con otro dedo si querés acelerar. Acerca
 a un pino activa el hacha; acercarte a un oso activa la hoz. Los golpes, la
 recogida y la entrega en los puestos son automáticos. No hay botón de golpear.
 El personaje nunca decide adónde caminar por vos.
+
+La mochila llena no detiene los golpes: el botín que no cabe se conserva en el
+suelo hasta que vos o tus ayudantes lo recogen. La entrega funciona al acercarte
+al frente, los lados o la parte trasera del puesto. Un contorno verde señala la
+zona frontal al llevar carga. Cada golpe vuelve a animar el hacha o la hoz.
+
+[Correcciones y pruebas de 0.23.1](docs/release-v0.23.1.md).
 
 Hay osos polares normales (4 golpes, 6 carnes), blindados (9, 9) y acorazados
 (16, 12), con armadura original unida al cuerpo animado. Las herramientas
@@ -134,7 +141,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.23.0 usa código 27, el paquete
+verifica paquete, versión y certificado. 0.23.1 usa código 28, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 
