@@ -68,6 +68,11 @@ jobs:
               test -s previews/journey/06_siguiente_pueblo.png
               ;;
             trade)
+              timeout 300 xvfb-run -a -s "-screen 0 720x1600x24" \
+                godot --path . --audio-driver Dummy --resolution 720x1280 \
+                --fixed-fps 20 --script res://tests/refuge_auto_runtime_tests.gd -- "$PWD/previews/proximity" \
+                2>&1 | tee previews/proximity-runtime.log
+              test -s previews/proximity/05_entrega_por_atras.png
               timeout 240 xvfb-run -a -s "-screen 0 720x1600x24" \
                 godot --path . --audio-driver Dummy --resolution 720x1600 \
                 --script res://tests/refuge_trade_touch_tests.gd -- "$PWD/previews/trade" \

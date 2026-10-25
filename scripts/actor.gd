@@ -25,6 +25,7 @@ var last_position := Vector3.ZERO
 var action := ""
 var action_left := 0.0
 var action_duration := .8
+var strike_duration := 0.0
 var ground_sampler: Callable
 var ground_offset := 0.0
 var current_clip := ""
@@ -330,10 +331,20 @@ func set_cargo_kind(kind: String) -> void:
 
 func act(kind: String) -> void:
 	if action==kind and action_left>.12:return
+	strike_duration=0
 	action=kind
 	action_duration=1.0 if kind in ["harvest","collect","deliver","intercept"] else 1.2
 	action_left=action_duration
 	_play(kind)
+
+func strike(cadence: float) -> void:
+	# Each proximity hit is a new swing. Keeping the same non-looping clip
+	# selected used to freeze its last pose while damage continued unseen.
+	action="harvest";strike_duration=maxf(.1,cadence)
+	action_duration=strike_duration;action_left=strike_duration
+	if animator==null or not animator.has_animation("harvest"):return
+	_restore_secondary_pose()
+	current_clip="harvest";animator.play("harvest",.04);animator.seek(0,true)
 
 func walk_to(direction: Vector3, speed: float) -> void:
 	last_speed=speed
@@ -380,5 +391,7 @@ func _process(delta: float) -> void:
 	if animator!=null:
 		_restore_secondary_pose()
 		animator.speed_scale=Motion.playback_rate(speed,current_clip,species)
+		if current_clip=="harvest" and strike_duration>0 and action_left>0:
+			animator.speed_scale=animator.get_animation("harvest").length/strike_duration
 		animator.advance(delta)
 		_secondary_motion(turn_error)

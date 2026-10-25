@@ -22,6 +22,9 @@ var tower_models: Array[Node3D]=[]
 var tower_count:=-1
 var site_labels: Dictionary={}
 var bear_status: Array[Label3D]=[]
+var ground_cargo: Dictionary={"wood":[],"meat":[]}
+var ground_counts: Dictionary={"wood":[],"meat":[]}
+var delivery_zones: Dictionary={}
 var raid_actor: Node3D
 var raid_exit:=0.0
 var rails: Array[Node3D]=[]
@@ -52,6 +55,7 @@ func build(source: Node3D) -> void:
 	game=source;market=game.market;area=game.state.city
 	for product in market.PRODUCTS:
 		var shop: Node3D=Art.piece(self,product+"_shop",market.SHOP_POSITIONS[product])
+		delivery_zones[product]=_delivery_zone(market.COUNTERS[product])
 		for index in range(market.positions(product).size()):
 			if product=="wood":
 				Art.piece(self,"stump",market.positions(product)[index])
@@ -61,6 +65,8 @@ func build(source: Node3D) -> void:
 				bear_status.append(_label(self,"",bear.position+Vector3(0,2.65,0),.016,Color("#ffdda0") if index==2 else Color("#e8f2f2")))
 			node_ready[product].append(true)
 			var regrowth: Label3D=_label(self,"",market.positions(product)[index]+Vector3(0,.7,0),.016);regrowth.visible=false;regrowth_labels[product].append(regrowth)
+			var cargo:=Node3D.new();cargo.position=market.positions(product)[index]+Vector3(.7,.06,.6);add_child(cargo)
+			ground_cargo[product].append(cargo);ground_counts[product].append(-1)
 	Art.piece(self,"market_depot",market.DEPOT+Vector3(0,0,-1.7))
 	depot_label=_label(self,"DEPÓSITO",market.DEPOT+Vector3(0,4.0,-1.1),.015)
 	for product in market.PRODUCTS:
@@ -88,6 +94,17 @@ func _tool_attachment(actor: Node3D) -> Node3D:
 	# Imported wrist bones point local +Y down. Flip the authored upright
 	# shaft into the hand's frame so its blade stays above the snow.
 	var grip:=Node3D.new();grip.rotation_degrees=Vector3(180,0,-12);grip.scale=Vector3.ONE*1.25;attachment.add_child(grip);return grip
+
+func _delivery_zone(at: Vector3) -> Node3D:
+	var zone:=Node3D.new();zone.position=at;add_child(zone)
+	var material:=StandardMaterial3D.new();material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;material.albedo_color=Color("#70d9b2")
+	var mesh:=BoxMesh.new();mesh.size=Vector3(.35,.035,.09);mesh.material=material
+	var batch:=MultiMesh.new();batch.transform_format=MultiMesh.TRANSFORM_3D;batch.mesh=mesh;batch.instance_count=24
+	for index in range(24):
+		var angle: float=TAU*float(index)/24.0
+		batch.set_instance_transform(index,Transform3D(Basis(Vector3.UP,angle),Vector3(sin(angle)*market.COUNTER_REACH,.045,cos(angle)*market.COUNTER_REACH)))
+	var draw:=MultiMeshInstance3D.new();draw.multimesh=batch;draw.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;zone.add_child(draw)
+	return zone
 
 func _guide() -> void:
 	guide_pointer=preload("res://scripts/refuge_direction.gd").new();game.ui.root.add_child(guide_pointer);game.ui.root.move_child(guide_pointer,game.ui.modal.get_index())
@@ -141,8 +158,12 @@ func refresh(delta: float) -> void:
 		game.hero.set_carry(market.bag_count());hero_cargo.visible=market.bag_count()>0
 	var action: Dictionary=market.context(game.hero.position,area)
 	var tool: String="axe" if action.get("product","")=="wood" else "scythe"
-	current_tool=tool
-	for id in tool_models:tool_models[id].visible=action["kind"]=="harvest" and id==tool and not game.ui.modal.visible
+	var swinging: bool=game.hero.action=="harvest" and game.hero.action_left>0
+	if action["kind"]!="harvest" and swinging:tool=current_tool
+	else:current_tool=tool
+	for id in tool_models:tool_models[id].visible=(action["kind"]=="harvest" or swinging) and id==tool and not game.ui.modal.visible
+	for product in market.PRODUCTS:
+		delivery_zones[product].visible=not game.ui.modal.visible and int(market.bag[product])>0 and market.flat_distance(game.hero.position,market.COUNTERS[product])<10
 	ui_clock-=delta
 	if ui_clock<=0:
 		ui_clock=.2
@@ -187,7 +208,14 @@ func _refresh_nodes(data: Dictionary) -> void:
 				var status: Label3D=bear_status[index]
 				status.visible=active and not game.ui.modal.visible and close and (index>0 or int(data["nodes"][product][index]["hp"])<market.max_hp(product,index))
 				status.text=(market.BEAR_NAMES[index].to_upper()+"\n" if index>0 else "")+"%d / %d" % [data["nodes"][product][index]["hp"],market.max_hp(product,index)]
-				if int(data["field_meat"][index])>0:label.visible=not game.ui.modal.visible and close;label.text="%d CARNE · RECOGER" % data["field_meat"][index]
+			var dropped: int=market.ground_count(product,index,area)
+			if dropped>0:label.visible=not game.ui.modal.visible and close;label.text="%d %s · AUTOMÁTICO" % [dropped,"MADERA" if product=="wood" else "CARNE"]
+			var cargo: Node3D=ground_cargo[product][index]
+			if ground_counts[product][index]!=dropped:
+				for child in cargo.get_children():cargo.remove_child(child);child.queue_free()
+				if dropped>0:_cargo(cargo,product,mini(4,dropped))
+				ground_counts[product][index]=dropped
+			cargo.visible=dropped>0
 			if active and not node_ready[product][index]:
 				var key: String=product+str(index)
 				if node_tweens.has(key) and node_tweens[key]!=null:node_tweens[key].kill()

@@ -91,7 +91,7 @@ func build(source: Node3D) -> void:
 	var header_backdrop:=ColorRect.new();header_backdrop.color=Color("#d5e6eb");header_backdrop.anchor_right=1;header_backdrop.offset_bottom=214;root.add_child(header_backdrop)
 	var header:=HBoxContainer.new();header.add_theme_constant_override("separation",14);_place(header,22,18,-22,74)
 	var names:=_column(header,0);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	names.add_child(_label("WIVORI  /  REFUGIOS DEL NORTE",12,Color("#486777")))
+	names.add_child(_label("WIVORI  /  AUTOMÁTICO · 0.23.1",12,Color("#486777")))
 	city_name=_label("",27);names.add_child(city_name)
 	chapter=_label("",15);chapter.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;header.add_child(chapter)
 	var menu:=_button("···",show_menu,NAVY,28);menu.custom_minimum_size=Vector2(58,54);header.add_child(menu)
@@ -335,7 +335,7 @@ func _send_route(index: int) -> void:
 	if state.start_expedition(index):game.save();refresh(0)
 
 func show_menu() -> void:
-	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Mercado del Norte · 0.23.0")
+	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Mercado del Norte · 0.23.1")
 	_info_card("Acercate y trabajá","Dirigí al personaje con el joystick. Los golpes, la recogida y la entrega se activan al acercarte. Los osos blindados y acorazados tienen más resistencia y dan más carne.")
 	_info_card("Tu equipo","Las ventas desbloquean oficios. Contratá leñadores, cazadores, dos cajeros, un porteador y centinelas en torres con monedas. Taller muestra cada requisito y precio. Nadie controla el movimiento de tu personaje.")
 	listing.add_child(_button("TALLER Y FERROCARRIL",show_market,TEAL,18))
@@ -368,6 +368,7 @@ func refresh(delta: float) -> void:
 	if context["kind"]=="deliver" and not context["enabled"]:
 		var product: String=context["product"]
 		work_title.text="CAJERO\nTRABAJANDO" if game.market.cashier_for(product,state.city) else "CAJA\nATENDIENDO" if int(game.market.town(state.city)["stock"][product])>0 else "ABASTECÉ\nEL PUESTO"
+		if int(game.market.bag[product])>0 and int(game.market.town(state.city)["stock"][product])>=game.market.STOCK_CAPACITY:work_title.text="PUESTO LLENO\nENTREGA EN ESPERA"
 	work_progress.visible=context["kind"]=="harvest"
 	if work_progress.visible:work_progress.value=1.0-float(game.market.town(state.city)["nodes"][context["product"]][context["index"]]["hp"])/float(game.market.max_hp(context["product"],context["index"]))
 	work_button.self_modulate=Color.WHITE if context["enabled"] else Color("#d3e2de");work_hint.text=context["detail"];work_hint.visible=not modal.visible

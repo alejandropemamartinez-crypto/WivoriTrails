@@ -33,7 +33,7 @@ func run() -> void:
 	market.tick(20)
 	check(market.active_node("wood",0,0) and market.active_node("meat",2,0),"Trees and every armored bear respawn")
 	market.bag={"wood":15,"meat":0};var before: Dictionary=market.snapshot();market.use(market.BEAR_POSITIONS[2],0)
-	check(market.snapshot()==before,"A full bag never destroys an armored bear or loses its larger reward")
+	check(market.bag_count()==15 and market.town(0)["nodes"]["meat"][2]["hp"]==15,"A nearly full bag still allows a scythe hit without changing or losing inventory")
 	check(market.next_task(0)["at"]==market.COUNTERS["wood"],"A full bag is guided to a selling counter")
 	var hires=Market.new();hires.coins=9999
 	check(not hires.buy("lumberjack",0) and hires.buy_reason("lumberjack",0).contains("4"),"Money alone cannot bypass the visible sales unlock")

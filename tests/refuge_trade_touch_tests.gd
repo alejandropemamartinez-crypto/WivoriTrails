@@ -133,7 +133,7 @@ func run() -> void:
 	game.ui.close();game.saving_enabled=true;check(game.save(),"The real earned progress writes through the atomic save")
 	var stored: Dictionary=preload("res://scripts/save_store.gd").load_data(path)
 	if not output.is_empty():preload("res://scripts/save_store.gd").write_data(output.path_join("playthrough_save.json"),stored)
-	check(stored["market"]["schema"]==2 and stored["market"]["markets"][0]["workers"]["sentinel"]["level"]==2,"The save retains all paid crew, towers and logistic progress")
+	check(stored["market"]["schema"]==3 and stored["market"]["markets"][0]["workers"]["sentinel"]["level"]==2,"The save retains all paid crew, towers, ground loot and logistic progress")
 	game._notification(Node.NOTIFICATION_APPLICATION_PAUSED);game._notification(Node.NOTIFICATION_APPLICATION_RESUMED);game.set_process(false);await frames(3)
 	check(game.market.operating(0) and game.stick.visible and game.market.worker_count("cashier",0)==2,"Android resume preserves automation and fresh movement controls")
 	game.queue_free();await frames();viewport.queue_free();await frames();await create_timer(.1).timeout

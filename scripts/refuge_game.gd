@@ -101,8 +101,7 @@ func _build_world(capture_position: bool=true) -> void:
 		navigation.add_obstacle(Rect2(Vector2(at.x-2.6,at.z-2.0),Vector2(5.2,4.0)))
 		_replace_model(id)
 	for product in Market.PRODUCTS:
-		var at: Vector3=Market.SHOP_POSITIONS[product]
-		navigation.add_obstacle(Rect2(Vector2(at.x-2.4,at.z-1.1),Vector2(4.8,2.4)))
+		navigation.add_obstacle(market.shop_bounds(product))
 	navigation.add_obstacle(Rect2(Vector2(-17.2,14.9),Vector2(4.4,2.6)))
 	for at in Market.TOWER_POSITIONS:navigation.add_obstacle(Rect2(Vector2(at.x-.9,at.z-.9),Vector2(1.8,1.8)))
 	navigation.build()
@@ -218,12 +217,14 @@ func _auto_work() -> void:
 	if not controls_allowed():return
 	var nearby: Dictionary=market.context(hero.position,state.city)
 	working=nearby["kind"]=="harvest" and nearby["enabled"]
-	if work_cooldown>0:return
+	# Loading, pickup and delivery must react immediately, even when the
+	# protagonist has just swung a tool. Only hits share the hit cooldown.
+	if nearby["kind"]=="harvest" and work_cooldown>0:return
 	var result: Dictionary=market.use(hero.position,state.city)
 	if result.is_empty():return
 	if not state.lit:state.lit=true;state.changed.emit()
-	work_cooldown=.42 if result["kind"]=="harvest" else .28
-	hero.act("harvest" if result["kind"]=="harvest" else "deliver")
+	if result["kind"]=="harvest":work_cooldown=.42;hero.strike(.42)
+	else:hero.act("deliver")
 	var toward: Vector3=result["at"]-hero.position
 	if toward.length_squared()>.01:hero.face_direction_yaw(atan2(toward.x,toward.z))
 	if result["kind"]!="harvest" and is_instance_valid(market_world):market_world._float("+%d %s" % [result["quantity"],"ENTREGADOS" if result["kind"]=="deliver" else "RECOGIDOS"],hero.position+Vector3(0,2.0,0),Color("#ffe0a0"))
