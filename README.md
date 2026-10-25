@@ -1,15 +1,36 @@
-# Wivori Trails · 0.21.1 · Refugios del Norte
+# Wivori Trails · 0.22.0 · Mercado del Norte
 
-Juego de gestión de refugios en la nieve para Android, en Godot **4.4.1**.
-Encendés un corazón térmico, construís hogares y asignás habitantes para producir
-madera, comida, carbón y metal. Una lista visible abre cada nuevo refugio.
+Juego de recolección, comercio y automatización en la nieve para Android,
+en Godot **4.4.1**. Cortá pinos con el hacha, cazá osos polares con la hoz y
+llevá la carga a dos puestos con filas de clientes. Gastá las monedas en un
+leñador, un cazador y tres tramos de ferrocarril que automatizan el transporte
+y la venta. **El protagonista siempre se mueve bajo tu control.**
+
+## Cosechar → vender → automatizar
+
+El joystick camina y **Correr** se mantiene con otro dedo. Cerca de los pinos,
+el botón cambia a **Hacha**; cerca de los osos, a **Hoz**. Mantenelo para golpear.
+La mochila tiene 16 espacios, ampliables. Acercate a cada puesto y pulsá
+**Entregar**: los pedidos consumen existencias y pagan al completarse.
+
+**Taller** permite comprar trabajadores, herramientas, mochila y vías. Los
+trabajadores llevan mercancía al depósito. Antes del tren, retirás esa carga
+con **Cargar** y la llevás al puesto. Tres tramos cierran el circuito y ponen
+la locomotora a trabajar: carga en el depósito y abastece ambos puestos.
+
+**Ruta** muestra cuatro metas comerciales, el precio del pasaje y el botón
+para abrir cada pueblo. El primero pide 40 unidades vendidas, ambos empleados,
+los tres tramos y 80 monedas para viajar. Los mercados anteriores siguen
+vendiendo mientras explorás. Las partidas antiguas conservan sus destinos.
+
+[Alcance y verificación de 0.22.0](docs/release-v0.22.0.md).
 
 ## Refugios del Norte
 
 La aplicación comienza en `Refuge.tscn`. Tocá edificios para construir, mejorar
 y asignar trabajadores; arrastrá el terreno para desplazar la cámara y pellizcá
-para acercarla. **Equipo** muestra habitantes, plazas y puestos de trabajo.
-**Ruta** muestra cada requisito, el cargamento que falta y la acción para viajar.
+para acercarla. **Taller → Habitantes y edificios** muestra plazas y puestos de trabajo.
+**Ruta** muestra las metas comerciales y la acción para viajar. El desarrollo del refugio sigue disponible como actividad adicional.
 
 | Refugio | Nueva decisión |
 | --- | --- |
@@ -83,6 +104,8 @@ Para las comprobaciones con gráficos activos:
 
 ```sh
 godot --path . --resolution 720x1600 --audio-driver Dummy \
+  --script res://tests/refuge_trade_touch_tests.gd -- /tmp/mercado-capturas
+godot --path . --resolution 720x1600 --audio-driver Dummy \
   --script res://tests/refuge_movement_tests.gd
 godot --path . --resolution 720x1600 --audio-driver Dummy \
   --script res://tests/refuge_ui_tests.gd
@@ -104,7 +127,7 @@ nativas de interfaz y capturas en 720×1280 y 720×1600.
 ## Android y arte
 
 El flujo Android importa, arranca el juego, ejecuta las pruebas, exporta ARM64 y
-verifica paquete, versión y certificado. 0.21.1 usa código 25, el paquete
+verifica paquete, versión y certificado. 0.22.0 usa código 26, el paquete
 `sv.apenalegaltech.wivoritrails` y la misma firma de prueba de 0.16.0 para
 actualizar conservando el guardado v8. [Firma de prueba](tools/android/README.md).
 

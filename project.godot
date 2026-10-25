@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Wivori Trails — Frontier Market"
-config/description="Construí refugios en la nieve, organizá habitantes y conectá una red de pueblos."
+config/description="Cortá pinos, cazá osos polares, vendé a clientes y automatizá tu mercado con trabajadores y un tren."
 run/main_scene="res://Refuge.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 run/max_fps=60

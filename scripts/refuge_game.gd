@@ -6,11 +6,17 @@ const UI=preload("res://scripts/refuge_ui.gd")
 const Actor=preload("res://scripts/actor.gd")
 const Nav=preload("res://scripts/navigation.gd")
 const Store=preload("res://scripts/save_store.gd")
+const Market=preload("res://scripts/refuge_market.gd")
+const MarketWorld=preload("res://scripts/refuge_market_world.gd")
 const SAVE_PATH="user://wivori_refuge_save.json"
 const WALK_SPEED=6.8
 const RUN_SPEED=8.6
 var save_path:=SAVE_PATH
 var state=State.new()
+var market=Market.new()
+var market_world: Node3D
+var working:=false
+var work_cooldown:=0.0
 var ui=UI.new()
 var camera: Camera3D
 var scenery: Node3D
@@ -49,16 +55,25 @@ var player_positions: Array[Vector3]=[]
 func _ready() -> void:
 	var saved: Dictionary=Store.load_data(save_path)
 	_restore_player_positions(saved);state.restore(saved)
+	_restore_market(saved)
 	_lighting();_build_world();ui.build(self);_make_stick()
+	market_world=MarketWorld.new();scenery.add_child(market_world);market_world.build(self)
 	_connect_state()
 	last_lit=state.lit;last_city=state.city
 	if not state.offline_gains.is_empty():ui.notice("Tus habitantes trabajaron: +"+state.cost_text(state.offline_gains))
+	if market.offline_coins>0:ui.notice("Tu red vendió mientras no estabas: +%d monedas." % market.offline_coins)
 	# Commit the offline settlement before the player can close/reopen it.
 	save();_camera(1);ui.refresh(0)
 
 func _connect_state() -> void:
 	state.built.connect(_on_built);state.opened.connect(_on_opened);state.message.connect(ui.notice)
 	state.changed.connect(func():save_clock=minf(save_clock,.25))
+	market.changed.connect(func():save_clock=minf(save_clock,.25))
+
+func _restore_market(saved: Dictionary) -> void:
+	var timestamp: float=Time.get_unix_time_from_system()
+	var offline: float=clampf(timestamp-Store.number(saved,"last_saved",timestamp,0,4102444800),0,7200)
+	market.restore(saved.get("market",{}),offline,state.unlocked)
 
 func _lighting() -> void:
 	var world_environment:=WorldEnvironment.new();var settings:=Environment.new()
@@ -79,11 +94,15 @@ func _build_world(capture_position: bool=true) -> void:
 	ground=ShaderMaterial.new();ground.shader=preload("res://scripts/refuge_ground.gdshader")
 	ground.set_shader_parameter("snow_tint",[Color("#a5bece"),Color("#b9c6bf"),Color("#98bdce"),Color("#9db0c1"),Color("#a0b9c4"),Color("#a4b9d2")][state.city]);plane.material_override=ground;scenery.add_child(plane)
 	ground.set_shader_parameter("warm_radius",6.3+float(state.level("core")));ground.set_shader_parameter("warmth",1.0 if state.lit else .12)
-	navigation=Nav.new();navigation.land_radius=Vector2(21,24)
+	navigation=Nav.new();navigation.land_radius=Vector2(30,34)
 	for id in state.BUILDINGS:
 		var at: Vector3=state.BUILDINGS[id]["at"]
 		navigation.add_obstacle(Rect2(Vector2(at.x-2.6,at.z-2.0),Vector2(5.2,4.0)))
 		_replace_model(id)
+	for product in Market.PRODUCTS:
+		var at: Vector3=Market.SHOP_POSITIONS[product]
+		navigation.add_obstacle(Rect2(Vector2(at.x-2.4,at.z-1.1),Vector2(4.8,2.4)))
+	navigation.add_obstacle(Rect2(Vector2(-17.2,14.9),Vector2(4.4,2.6)))
 	navigation.build()
 	_trees();_mountains();_details();_weather()
 	core_light=OmniLight3D.new();core_light.position=Vector3(0,2.1,0);core_light.light_color=Color("#ffb362");core_light.light_energy=1.2;core_light.omni_range=9.0;core_light.shadow_enabled=false;core_light.visible=state.lit;scenery.add_child(core_light)
@@ -95,6 +114,8 @@ func _build_world(capture_position: bool=true) -> void:
 	var count: int=mini(14,int(state.town()["people"]))
 	for index in range(count):_spawn_resident(index)
 	camera_detached=false;camera_overview=false;zoom=follow_zoom;focus=hero.position+Vector3(0,0,-1.5);camera_follow=focus
+	if ui.root!=null:
+		market_world=MarketWorld.new();scenery.add_child(market_world);market_world.build(self)
 
 func _spawn_resident(index: int,arriving: bool=false) -> void:
 	var actor:=Actor.new();actor.setup("worker",[Color("#a57651"),Color("#527a86"),Color("#657b66"),Color("#9a6f60")][index%4],["rabbit","fox","duck","pig"][index%4]);scenery.add_child(actor)
@@ -127,7 +148,7 @@ func _trees() -> void:
 		var radius: float=20.0+float(index%5)*1.3
 		var at:=Vector3(cos(angle)*radius,0,sin(angle)*radius*.83-1.0)
 		# The front gate and route landmarks remain visible between trees.
-		if at.z>14 and absf(at.x)<10:continue
+		if at.z>14 and absf(at.x)<22:continue
 		var scale_: float=.75+float(index%7)*.095
 		transforms.append(Transform3D(Basis(Vector3.UP,float(index)*.7).scaled(Vector3.ONE*scale_),at))
 	_batch(mesh,transforms,scenery);scenery.remove_child(source);source.queue_free()
@@ -139,6 +160,7 @@ func _mountains() -> void:
 	var source=Art.make(scenery,"rock");var transforms: Array[Transform3D]=[]
 	for index in range(22):
 		var angle: float=float(index)*2.1
+		if sin(angle)*20.0>15:continue
 		transforms.append(Transform3D(Basis(Vector3.UP,angle).scaled(Vector3.ONE*(.5+float(index%3)*.22)),Vector3(cos(angle)*18.3,0,sin(angle)*20.0)))
 	_batch(source.draw.mesh,transforms,scenery);scenery.remove_child(source);source.queue_free()
 
@@ -152,9 +174,9 @@ func _details() -> void:
 		for z in range(10):transforms.append(Transform3D(Basis(Vector3.RIGHT,PI*.5),Vector3(side*2.1,.10,-7.0+z)))
 	_batch(pipe_mesh,transforms,scenery)
 	if state.city in [2,5]:
-		var water:=MeshInstance3D.new();var surface:=PlaneMesh.new();surface.size=Vector2(22,13);water.mesh=surface;water.position=Vector3(-4,-.05,23)
+		var water:=MeshInstance3D.new();var surface:=PlaneMesh.new();surface.size=Vector2(14,22);water.mesh=surface;water.position=Vector3(-28,-.05,7)
 		preload("res://scripts/scene_finish.gd").water(water);scenery.add_child(water)
-		preload("res://scripts/art_library.gd").place(scenery,"route_ferry",Vector3(-4,.05,19),Vector3.ONE*.8)
+		preload("res://scripts/art_library.gd").place(scenery,"route_ferry",Vector3(-24,.05,7),Vector3.ONE*.8)
 	if state.city==1:
 		for at in [Vector3(-16,0,0),Vector3(-16,0,7)]:Art.make(scenery,"kitchen",2,at)
 	if state.city==3:
@@ -178,27 +200,44 @@ func _make_stick() -> void:
 
 func controls_allowed() -> bool:return not suspended and ui.modal!=null and not ui.modal.visible
 func clear_controls() -> void:
-	input_active=false;fingers.clear();sprinting=false
+	input_active=false;fingers.clear();sprinting=false;working=false
 	if stick!=null:stick._clear()
 	if ui.run_button!=null:ui.run_button._release_touch()
+	if ui.work_button!=null:ui.work_button._release_touch()
 func sync_controls() -> void:
 	var enabled: bool=controls_allowed()
 	if stick!=null:stick.visible=enabled
-	for node in [ui.camera_button,ui.run_button,ui.move_hint]:
+	for node in [ui.camera_button,ui.run_button,ui.work_button,ui.work_hint,ui.move_hint]:
 		if node!=null:node.visible=enabled
 func begin_sprint() -> void:
 	if controls_allowed():sprinting=true
 func end_sprint() -> void:sprinting=false
+func begin_work() -> void:
+	if not controls_allowed():return
+	working=true;_manual_work()
+func end_work() -> void:working=false
+func _manual_work() -> void:
+	if not controls_allowed() or work_cooldown>0:return
+	var result: Dictionary=market.use(hero.position,state.city)
+	if result.is_empty():return
+	work_cooldown=.48 if result["kind"]=="harvest" else .65
+	hero.act("harvest" if result["kind"]=="harvest" else "deliver")
+	var toward: Vector3=result["at"]-hero.position
+	if toward.length_squared()>.01:hero.face_direction_yaw(atan2(toward.x,toward.z))
+	if result["kind"]!="harvest":ui.notice("%d productos %s" % [result["quantity"],"en el puesto. Los clientes pagan al completar su pedido." if result["kind"]=="deliver" else "cargados. Llevalos a los puestos."])
+	save_clock=minf(save_clock,.25)
 
 func _restore_player_positions(saved: Dictionary) -> void:
 	player_positions.clear()
 	var positions: Array=saved.get("hero_positions",[]) if saved.get("hero_positions") is Array else []
-	for area in range(state.NAMES.size()):player_positions.append(Store.position(positions[area] if area<positions.size() else null,Vector3(0,0,4.1)))
+	for area in range(state.NAMES.size()):player_positions.append(Store.position(positions[area] if area<positions.size() else null,Vector3(-1,0,23.0)))
 func _capture_player_position() -> void:
 	if is_instance_valid(hero) and world_city>=0 and world_city<player_positions.size():player_positions[world_city]=hero.position
 
 func _process(delta: float) -> void:
-	var step: float=minf(delta,.25);elapsed+=step;state.tick(step)
+	var step: float=minf(delta,.25);elapsed+=step;state.tick(step);market.tick(step,state.unlocked)
+	work_cooldown=maxf(0,work_cooldown-step)
+	if working and controls_allowed():_manual_work()
 	if last_lit!=state.lit:
 		last_lit=state.lit;_replace_model("core",true)
 	ground.set_shader_parameter("warm_radius",6.3+float(state.level("core"))*1.0)
@@ -225,6 +264,7 @@ func _process(delta: float) -> void:
 		if not camera_detached:focus=hero.position+Vector3(0,0,-1.5)
 	while residents.size()<mini(14,int(state.town()["people"])):_spawn_resident(residents.size(),true)
 	_npc_tick(step);_camera(step);_placards()
+	if is_instance_valid(market_world):market_world.refresh(step)
 	hud_clock-=step
 	if hud_clock<=0:hud_clock=.12;ui.refresh(.12)
 	save_clock-=step
@@ -271,17 +311,22 @@ func _camera(delta: float) -> void:
 
 func _placards() -> void:
 	var height: float=ui.root.size.y
-	var task: Dictionary=state.next_task()
+	var task: Dictionary=current_task()
+	var occupied: Array[Rect2]=[]
 	for id in ui.placards:
 		var button: Button=ui.placards[id]
 		var discovered: bool=int(state.BUILDINGS[id]["unlock"])<=state.level("core")+1 or state.level(id)>0
 		var at: Vector3=state.BUILDINGS[id]["at"]+Vector3(0,5.0 if state.level(id)>0 else .8,0)
 		if id=="watch" and state.level(id)>0:at.y=6.3
 		var point: Vector2=camera.unproject_position(at)-button.size*.5
-		point.x=clampf(point.x,14,ui.root.size.x-button.size.x-14);button.position=point
-		button.visible=not ui.modal.visible and discovered and point.y>278 and point.y+button.size.y<height-321 and point.x>-30 and point.x+button.size.x<ui.root.size.x+30
-		for control in [stick,ui.camera_button,ui.run_button,ui.move_hint]:
+		button.position=point
+		button.visible=not ui.modal.visible and discovered and point.y>278 and point.y+button.size.y<height-321 and point.x>=14 and point.x+button.size.x<=ui.root.size.x-14
+		for control in [stick,ui.camera_button,ui.run_button,ui.work_button,ui.move_hint]:
 			if control!=null and control.visible and button.get_global_rect().intersects(control.get_global_rect().grow(8)):button.visible=false;break
+		if button.visible:
+			for bounds in occupied:
+				if bounds.grow(6).intersects(button.get_global_rect()):button.visible=false;break
+		if button.visible:occupied.append(button.get_global_rect())
 		var building: bool=not state.construction.is_empty() and state.construction["id"]==id and int(state.construction["city"])==state.city
 		button.text=("%s · %d s" % [state.BUILDINGS[id]["short"],ceili(float(state.construction["remaining"]))]) if building else ("%s · %d" % [state.BUILDINGS[id]["short"],state.level(id)]) if state.level(id)>0 else "+ "+state.BUILDINGS[id]["short"]
 		button.self_modulate=Color("#ffe0a3") if id==task["id"] else Color.WHITE
@@ -294,20 +339,46 @@ func center_camera() -> void:
 	if is_instance_valid(hero):focus=hero.position+Vector3(0,0,-1.5)
 	sync_controls()
 func show_overview() -> void:
-	clear_controls();camera_detached=true;camera_overview=true;zoom=36;focus=Vector3(0,0,1.8);sync_controls()
+	clear_controls();camera_detached=true;camera_overview=true;zoom=39 if hero.position.z>14 else 36;focus=Vector3(0,0,22 if hero.position.z>14 else 1.8);sync_controls()
 func toggle_camera_view() -> void:
 	if camera_detached:center_camera()
 	else:show_overview()
 
 func follow_task() -> void:
-	var task: Dictionary=state.next_task()
+	var task: Dictionary=current_task()
 	match task["action"]:
-		"ignite":state.ignite();save();focus_building("core")
+		"ignite":state.ignite();save();ui.notice("¡Mercado abierto! Cortá pinos y seguí la flecha.")
 		"repel":state.repel();save()
 		"building":ui.show_building(task["id"])
 		"team":ui.show_team()
 		"route":ui.show_route()
 		"fleet":ui.show_fleet()
+		"shop":ui.show_market(task.get("buy",""))
+		"guide":
+			clear_controls();camera_detached=true;camera_overview=false;focus=task["at"];zoom=follow_zoom
+			ui.notice("Seguí los puntos dorados usando el joystick.")
+
+func current_task() -> Dictionary:
+	if not state.lit:return state.next_task()
+	if state.raid_remaining>0:return state.next_task()
+	if state.city<state.unlocked:return {"id":"trade","title":state.NAMES[state.unlocked]+" está disponible","detail":"Entrá en RUTA y viajá cuando quieras. Este mercado sigue trabajando.","action":"route","button":"VIAJAR","at":Market.DEPOT}
+	return market.next_task(state.city)
+func focus_trade_counter(product: String) -> void:
+	clear_controls();camera_detached=true;camera_overview=false;focus=Market.COUNTERS[product]
+func route_can_open() -> bool:
+	return state.city==state.unlocked and state.city<5 and ((market.charter_ready(state.city) and market.coins>=market.charter_price(state.city)) or (state.ready_next() and state.affordable(state.passage_cost())))
+func open_trade_route() -> bool:
+	if not route_can_open():return false
+	if market.charter_ready(state.city) and market.coins>=market.charter_price(state.city):
+		market.pay(market.charter_price(state.city));state.unlocked+=1;state.changed.emit();state.opened.emit(state.unlocked)
+	else:state.open_next()
+	save();return true
+func buy_market(id: String) -> bool:
+	if not market.buy(id,state.city):return false
+	if id=="supplies":
+		for key in {"wood":80,"food":50,"coal":30}:state.resources[key]+=float({"wood":80,"food":50,"coal":30}[key])
+	ui.notice("Tramo construido · %d/3. El tren se activa al cerrar el circuito." % market.town(state.city)["rails"] if id=="rail" and not market.operating(state.city) else "¡Tren en marcha! Lleva la carga del depósito a los clientes." if id=="rail" else "Mejora comprada. La próxima tarea ya está señalada.")
+	save();ui.refresh(0);return true
 
 func _on_built(id: String,area: int) -> void:
 	if area==state.city:
@@ -332,6 +403,7 @@ func save() -> bool:
 	var data: Dictionary=state.snapshot();var positions: Array=[]
 	for at in player_positions:positions.append([at.x,at.z])
 	data["hero_positions"]=positions
+	data["market"]=market.snapshot()
 	var ok: bool=Store.write_data(save_path,data)
 	if not ok and ui.root!=null:ui.notice("No se pudo guardar. Revisá el espacio del dispositivo.")
 	return ok
@@ -343,8 +415,10 @@ func _notification(what: int) -> void:
 	elif what==NOTIFICATION_APPLICATION_RESUMED and suspended:
 		suspended=false
 		var saved: Dictionary=Store.load_data(save_path)
-		var resumed=State.new();resumed.restore(saved);state=resumed;ui.state=resumed;_connect_state();_restore_player_positions(saved)
+		var resumed=State.new();resumed.restore(saved);state=resumed;ui.state=resumed;_restore_player_positions(saved)
+		market=Market.new();_restore_market(saved);_connect_state()
 		ui.close();_build_world(false);center_camera();last_lit=state.lit;save();set_process(true)
+		if market.offline_coins>0:ui.notice("Tu tren vendió durante tu ausencia: +%d monedas." % market.offline_coins)
 		if not state.offline_gains.is_empty():ui.notice("Durante tu ausencia: +"+state.cost_text(state.offline_gains))
 	elif what==NOTIFICATION_WM_GO_BACK_REQUEST:
 		if ui.modal!=null and ui.modal.visible:ui.close()

@@ -45,6 +45,11 @@ var camera_button: Button
 var run_button: Button
 var move_hint: Control
 var nav_buttons: Dictionary={}
+var work_button: Button
+var work_hint: Label
+var shop_rows: Dictionary={}
+var shop_balance: Label
+var market_labels: Dictionary={}
 
 func _label(text_: String,size_: int=20,color_: Color=INK) -> Label:
 	var label:=Label.new();label.text=text_;label.add_theme_font_override("font",BOLD if size_>=19 else MEDIUM)
@@ -89,15 +94,15 @@ func build(source: Node3D) -> void:
 	chapter=_label("",15);chapter.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;header.add_child(chapter)
 	var menu:=_button("···",show_menu,NAVY,28);menu.custom_minimum_size=Vector2(58,54);header.add_child(menu)
 	var resources:=HBoxContainer.new();resources.add_theme_constant_override("separation",8);_place(resources,20,88,-20,154)
-	for key in state.RESOURCE_NAMES:
+	for key in ["coins","wood","meat"]:
 		var card:=_panel(NAVY);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;resources.add_child(card)
 		var style:=_style(NAVY,17);style.content_margin_left=10;style.content_margin_right=8;style.content_margin_top=8;style.content_margin_bottom=8;card.add_theme_stylebox_override("panel",style)
 		var row:=_row(card,8);row.add_child(_icon(key,31));var col:=_column(row,0);col.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		resource_labels[key]=_label("0",21,Color("#fff3d8"));col.add_child(resource_labels[key]);col.add_child(_label(state.RESOURCE_NAMES[key],12,Color("#b9cfdb")))
+		resource_labels[key]=_label("0",24,Color("#fff3d8"));col.add_child(resource_labels[key]);col.add_child(_label({"coins":"MONEDAS","wood":"MOCHILA · MADERA","meat":"MOCHILA · CARNE"}[key],12,Color("#b9cfdb")))
 		card.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND
 		card.gui_input.connect(func(event: InputEvent):
 			if event is InputEventScreenTouch and event.pressed or event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
-				card.accept_event();show_building({"wood":"lumber","food":"kitchen","coal":"coal","iron":"mine"}[key]))
+				card.accept_event();show_market())
 	var status_card:=_panel(PAPER);var status_style:=_style(PAPER,12);status_style.content_margin_left=12;status_style.content_margin_right=12;status_style.content_margin_top=5;status_style.content_margin_bottom=5;status_style.shadow_size=2
 	status_card.add_theme_stylebox_override("panel",status_style);_place(status_card,20,164,-20,208)
 	var status:=_row(status_card,10)
@@ -110,7 +115,7 @@ func build(source: Node3D) -> void:
 	toast.custom_minimum_size.y=44;toast.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var toast_card:=_panel(Color("#38596c"));var toast_style:=_style(Color("#38596c"));toast_style.content_margin_top=8;toast_style.content_margin_bottom=8;toast_card.add_theme_stylebox_override("panel",toast_style)
 	toast_card.mouse_filter=Control.MOUSE_FILTER_IGNORE;toast_card.add_child(toast);_place(toast_card,35,216,-35,276);toast_card.visible=false
-	task_card=_panel(PAPER);_bottom(task_card,20,-306,-20,-114)
+	task_card=_panel(PAPER);_bottom(task_card,20,-282,-20,-114)
 	var col:=_column(task_card,7);var heading:=_row(col,10)
 	task_count=_label("",13,Color("#54847e"));task_count.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(task_count)
 	progress=ProgressBar.new();progress.show_percentage=false;progress.custom_minimum_size=Vector2(120,7);progress.size_flags_vertical=Control.SIZE_SHRINK_CENTER;heading.add_child(progress);_progress_skin(progress)
@@ -119,7 +124,7 @@ func build(source: Node3D) -> void:
 	task_detail=_wrap("",16,MUTED);task_detail.max_lines_visible=2;text.add_child(task_detail)
 	task_button=_button("IR",game.follow_task,GOLD,18);task_button.custom_minimum_size=Vector2(156,79);task_row.add_child(task_button)
 	var nav:=HBoxContainer.new();nav.add_theme_constant_override("separation",10);_bottom(nav,20,-94,-20,-20)
-	for item in [["CENTRAR",Callable(self,"home"),"home"],["EQUIPO",Callable(self,"show_team"),"team"],["RUTA",Callable(self,"show_route"),"route"]]:
+	for item in [["CENTRAR",Callable(self,"home"),"home"],["TALLER",Callable(self,"show_market"),"team"],["RUTA",Callable(self,"show_route"),"route"]]:
 		var button:=_button(item[0],item[1],NAVY,18);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;nav.add_child(button)
 		nav_buttons[item[2]]=button
 		if item[0]=="RUTA":route_button=button
@@ -128,11 +133,25 @@ func build(source: Node3D) -> void:
 	move_hint.anchor_top=1;move_hint.anchor_bottom=1;move_hint.offset_left=22;move_hint.offset_right=212;move_hint.offset_top=-548;move_hint.offset_bottom=-520
 	camera_button=_button("VER PUEBLO",game.toggle_camera_view,NAVY,16);root.add_child(camera_button)
 	camera_button.anchor_left=1;camera_button.anchor_right=1;camera_button.anchor_top=1;camera_button.anchor_bottom=1
-	camera_button.offset_left=-188;camera_button.offset_right=-22;camera_button.offset_top=-516;camera_button.offset_bottom=-452
+	camera_button.offset_left=-188;camera_button.offset_right=-22;camera_button.offset_top=-620;camera_button.offset_bottom=-556
 	run_button=_button("CORRER",func():pass,GOLD,17);root.add_child(run_button)
 	run_button.anchor_left=1;run_button.anchor_right=1;run_button.anchor_top=1;run_button.anchor_bottom=1
-	run_button.offset_left=-188;run_button.offset_right=-22;run_button.offset_top=-430;run_button.offset_bottom=-366
+	run_button.offset_left=-188;run_button.offset_right=-22;run_button.offset_top=-538;run_button.offset_bottom=-474
 	run_button.button_down.connect(game.begin_sprint);run_button.button_up.connect(game.end_sprint)
+	work_button=_button("ACERCATE",func():pass,GOLD,18);root.add_child(work_button)
+	work_button.anchor_left=1;work_button.anchor_right=1;work_button.anchor_top=1;work_button.anchor_bottom=1
+	work_button.offset_left=-232;work_button.offset_right=-22;work_button.offset_top=-452;work_button.offset_bottom=-356
+	work_button.button_down.connect(game.begin_work);work_button.button_up.connect(game.end_work)
+	work_hint=_wrap("",13,INK);root.add_child(work_hint);work_hint.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;work_hint.max_lines_visible=2
+	work_hint.anchor_left=1;work_hint.anchor_right=1;work_hint.anchor_top=1;work_hint.anchor_bottom=1;work_hint.offset_left=-260;work_hint.offset_right=-22;work_hint.offset_top=-350;work_hint.offset_bottom=-312
+	for product in game.market.PRODUCTS:
+		var button:=_button("",Callable(game,"focus_trade_counter").bind(product),TEAL if product=="wood" else Color("#a6634e"),17)
+		button.custom_minimum_size=Vector2(192,64);button.size=Vector2(192,64)
+		var style:=_style(TEAL if product=="wood" else Color("#a6634e"),12);style.set_content_margin_all(7);style.shadow_size=4;button.add_theme_stylebox_override("normal",style)
+		var sign_col:=VBoxContainer.new();sign_col.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(sign_col);sign_col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var title:=_label("",18,Color("#fff0ce"));title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sign_col.add_child(title)
+		var detail:=_label("",13,Color("#edf2e9"));detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sign_col.add_child(detail)
+		root.add_child(button);market_labels[product]={"button":button,"title":title,"detail":detail}
 	for id in state.BUILDINGS:
 		var button:=_button("",Callable(self,"show_building").bind(id),Color("#e8efec"),13)
 		button.add_theme_color_override("font_color",INK);button.custom_minimum_size=Vector2(146,37);button.size=Vector2(146,37)
@@ -158,7 +177,7 @@ func home() -> void:
 
 func _sheet(title: String,subtitle: String="") -> void:
 	if modal_card!=null:modal.remove_child(modal_card);modal_card.queue_free()
-	refs.clear();worker_rows.clear();goal_rows.clear();route_rows.clear();build_bar=null
+	refs.clear();worker_rows.clear();goal_rows.clear();route_rows.clear();shop_rows.clear();build_bar=null
 	modal_card=_panel(PAPER);modal.add_child(modal_card);modal_card.anchor_left=.035;modal_card.anchor_right=.965;modal_card.anchor_top=.10;modal_card.anchor_bottom=.92
 	modal_card.mouse_filter=Control.MOUSE_FILTER_STOP
 	var col:=_column(modal_card,14);var header:=_row(col,8);var names:=_column(header,4);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -228,32 +247,69 @@ func show_team() -> void:
 	refs["free"]=_wrap("",17,MUTED);census.add_child(refs["free"])
 	refs["family"]=_button("",func():if state.receive_family():game.save();refresh(0),GOLD,19);census.add_child(refs["family"])
 	refs["family_hint"]=_wrap("",15,MUTED);census.add_child(refs["family_hint"])
+	_info_card("ALMACÉN DEL REFUGIO",state.cost_text(state.resources))
 	for id in state.BUILDINGS:
 		if state.BUILDINGS[id].has("resource") and state.level(id)>0:_add_worker_row(id,listing)
 	listing.add_child(_button("MEJORAR LOS HOGARES",Callable(self,"show_building").bind("shelter"),NAVY,18))
 	refresh(0)
 
 func show_route() -> void:
-	view="route";selected="";_sheet("Refugios del Norte","Seis etapas en orden. Tus otros refugios producen al %d %% mientras explorás." % roundi(state.background_rate()*100.0))
+	view="route";selected="";_sheet("Tu ruta comercial","Vendé, contratá al equipo y completá las vías. El mercado anterior sigue trabajando cuando viajás.")
 	var next: int=mini(state.unlocked+1,5)
 	var preview:=_info_card("PRÓXIMO: "+state.NAMES[next] if state.unlocked<5 else "LA RED DE PUERTO AURORA",state.LESSONS[next])
 	refs["next_progress"]=_wrap("",20);preview.add_child(refs["next_progress"])
-	var route_goals: Array[Dictionary]=state.goals(state.unlocked)
+	var route_goals: Array[Dictionary]=game.market.goals(state.unlocked)
 	for goal in route_goals:
 		var row:=_row(preview,10);var badge:=_label("",18,TEAL);badge.custom_minimum_size.x=40;row.add_child(badge)
 		var text:=_wrap(goal["title"],17);row.add_child(text);var count:=_label("",17);row.add_child(count)
 		goal_rows.append({"id":goal["id"],"badge":badge,"count":count})
 	if state.city==state.unlocked and state.city<5:
-		preview.add_child(_wrap("Cargamento para fundar el próximo refugio",16,MUTED));_cost_row(state.passage_cost(),preview)
-		refs["open"]=_button("",func():if state.open_next():game.save();show_route(),GOLD,19);preview.add_child(refs["open"])
+		refs["charter"]=_wrap("",18,TEAL);preview.add_child(refs["charter"])
+		refs["open"]=_button("",func():if game.open_trade_route():show_route(),GOLD,19);preview.add_child(refs["open"])
 	for index in range(state.NAMES.size()):
 		var card:=_info_card("%02d  %s" % [index+1,state.NAMES[index]],state.LESSONS[index],Color("#e3e9e5") if index<=state.unlocked else Color("#e1e5e6"))
 		var available: bool=index<=state.unlocked
 		if index==state.city:card.add_child(_label("ESTÁS AQUÍ",15,TEAL))
 		elif available:
 			card.add_child(_button("VIAJAR A "+state.NAMES[index].to_upper(),Callable(game,"travel").bind(index),TEAL,18))
-		else:card.add_child(_wrap("Completá los hitos de "+state.NAMES[index-1]+" para abrir esta zona.",16,MUTED))
+		else:card.add_child(_wrap("Completá las cuatro metas comerciales de "+state.NAMES[index-1]+". El pasaje cuesta %d monedas." % game.market.charter_price(index-1),16,MUTED))
 	refresh(0)
+
+func show_market(highlight: String="") -> void:
+	view="market";selected=highlight;_sheet("Taller y ferrocarril","Los trabajadores cosechan y llevan la carga al depósito. El tren la entrega a los puestos y los clientes pagan.")
+	shop_balance=_label("",24,TEAL);listing.add_child(shop_balance)
+	var ids: Array[String]=["lumberjack","hunter","rail","tool","pack","train","supplies"]
+	if highlight in ids:ids.erase(highlight);ids.push_front(highlight)
+	for id in ids:
+		var card:=_info_card("", "",Color("#f0e4c8") if id==highlight else Color("#e1e9e4"))
+		var title: Label=card.get_child(0);var detail:=_wrap("",17,MUTED);card.add_child(detail)
+		var reason:=_wrap("",16,TEAL);card.add_child(reason)
+		var button:=_button("",Callable(game,"buy_market").bind(id),GOLD,18);card.add_child(button)
+		shop_rows[id]={"title":title,"detail":detail,"reason":reason,"button":button}
+	listing.add_child(_button("HABITANTES Y EDIFICIOS",show_team,NAVY,18))
+	refresh(0)
+
+func _refresh_market() -> void:
+	var market=game.market;var data: Dictionary=market.town(state.city)
+	shop_balance.text="%d MONEDAS · %d PRODUCTOS VENDIDOS" % [market.coins,market.sold_total(state.city)]
+	for id in shop_rows:
+		var row: Dictionary=shop_rows[id];var price: int=market.price(id,state.city);var reason: String=market.buy_reason(id,state.city)
+		var title: String="";var detail: String=""
+		match id:
+			"lumberjack","hunter":
+				var level_: int=data["workers"][id]["level"]
+				title=("CONTRATAR · "+market.ROLE_NAMES[id].to_upper()) if level_==0 else "%s · NIVEL %d/3" % [market.ROLE_NAMES[id].to_upper(),level_]
+				detail="Corta pinos con su hacha y lleva la madera al depósito. El personaje sigue bajo tu control." if id=="lumberjack" else "Caza osos polares con su hoz y lleva la carne al depósito. Las mejoras aceleran su recorrido y sus golpes."
+			"rail":
+				title="FERROCARRIL · %d/3 TRAMOS" % data["rails"]
+				detail=["Tramo 1: depósito y puestos de venta.","Tramo 2: curva y vía de regreso.","Tramo 3: cerrá el circuito y estrená tu tren de carga.","Tren activo: carga en el depósito y descarga en ambos puestos. Los clientes compran esa mercancía."][int(data["rails"])]
+			"tool":title="HACHA Y HOZ · NIVEL %d/3" % data["tool"];detail="Más daño por golpe. Seguí acercándote y manteniendo pulsado para trabajar."
+			"pack":title="MOCHILA · %d ESPACIOS" % market.bag_capacity();detail="Ocho espacios más por mejora. La madera y la carne comparten capacidad."
+			"train":title="TREN · NIVEL %d/3" % data["train_level"];detail="Más velocidad y seis espacios adicionales por producto en cada viaje."
+			"supplies":title="ABASTECER EL REFUGIO";detail="80 madera, 50 comida y 30 carbón para construir edificios. Esta compra no se revende en los puestos."
+		row["title"].text=title;row["detail"].text=detail;row["reason"].text="Disponible · %d monedas" % price if reason.is_empty() else reason
+		row["button"].text="CIRCUITO COMPLETO" if id=="rail" and market.operating(state.city) else ("CONTRATAR" if id in market.ROLE_NAMES and int(data["workers"][id]["level"])==0 else "CONSTRUIR TRAMO" if id=="rail" else "COMPRAR MEJORA")+" · %d" % price
+		row["button"].disabled=not reason.is_empty()
 
 func show_fleet() -> void:
 	view="fleet";selected="";_sheet("Expediciones","Dos habitantes salen de viaje. El cargamento se recibe al terminar, una sola vez.")
@@ -271,7 +327,10 @@ func _send_route(index: int) -> void:
 	if state.start_expedition(index):game.save();refresh(0)
 
 func show_menu() -> void:
-	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Refugios del Norte · 0.21.1")
+	view="menu";selected="";_sheet("Tu aventura","Wivori Trails · Mercado del Norte · 0.22.0")
+	_info_card("Cosechá, vendé y automatizá","Cortá pinos con el hacha y cazá osos polares con la hoz, manteniendo el botón de acción. Llevá la carga a los clientes. Comprá un leñador, un cazador y tres tramos de vías desde TALLER.")
+	listing.add_child(_button("TALLER Y FERROCARRIL",show_market,TEAL,18))
+	listing.add_child(_button("HABITANTES Y EDIFICIOS",show_team,NAVY,18))
 	_info_card("Movete y construí","Usá el joystick de la izquierda para caminar. Mantené CORRER con otro dedo para acelerar. Tocá un edificio para mejorarlo o asignar habitantes.")
 	_info_card("Cámara libre","Arrastrá el terreno para mirar otra zona y pellizcá para acercarte. CENTRAR vuelve a seguir al personaje. VER PUEBLO abre la vista general; el joystick sigue disponible.")
 	listing.add_child(_button("EXPEDICIONES",show_fleet,NAVY,19))
@@ -284,16 +343,21 @@ func refresh(delta: float) -> void:
 	toast_time=maxf(0,toast_time-delta)
 	if toast_time<=0:toast.get_parent().visible=false
 	for key in resource_labels:
-		var number: float=float(state.resources[key]);resource_labels[key].text=("%.1f mil" % (number/1000.0)) if number>=10000 else str(floori(number))
+		var number: float=float(game.market.coins) if key=="coins" else float(game.market.bag[key]);resource_labels[key].text=("%.1f mil" % (number/1000.0)) if number>=10000 else str(floori(number))
 	city_name.text=state.NAMES[state.city];chapter.text="REFUGIO\n%02d / 06" % (state.city+1)
-	weather.text="%d°  ·  %s" % [state.temperature(),"VENTISCA · %d s" % ceili(state.storm_in()) if state.storm() else "Nieve ligera"]
-	comfort.text="CALOR %d%%  ·  %d/%d" % [roundi(state.warmth()),state.town()["people"],state.capacity()]
-	var task: Dictionary=state.next_task()
-	task_count.text="%s · %d/%d HITOS" % ["PRÓXIMO: "+state.NAMES[state.city+1].to_upper() if state.city<5 else "META: RED COMERCIAL",state.goal_progress(),state.goals().size()]
-	progress.value=float(state.goal_progress())/float(state.goals().size())
+	weather.text="MOCHILA %d / %d" % [game.market.bag_count(),game.market.bag_capacity()]
+	comfort.text="VENDIDO %d · VÍAS %d/3" % [game.market.sold_total(state.city),game.market.town(state.city)["rails"]]
+	var task: Dictionary=game.current_task()
+	task_count.text="%s · %d/4 METAS" % ["PRÓXIMO: "+state.NAMES[state.city+1].to_upper() if state.city<5 else "META: RED COMERCIAL",game.market.goal_progress(state.city)]
+	progress.value=float(game.market.goal_progress(state.city))/4.0
 	task_title.text=task["title"];task_detail.text=task["detail"];task_button.text=task["button"]
 	route_button.text="RUTA · %d/6" % (state.unlocked+1)
-	camera_button.text="SEGUIRME" if game.camera_detached else "VER PUEBLO"
+	camera_button.text="SEGUIRME" if game.camera_detached else "VER MERCADO" if game.hero.position.z>14 else "VER PUEBLO"
+	var context: Dictionary=game.market.context(game.hero.position,state.city)
+	work_button.text={"harvest":"HACHA\nCORTAR PINO" if context.get("product","")=="wood" else "HOZ\nCAZAR OSO","deliver":"ENTREGAR\n"+("MADERA" if context.get("product","")=="wood" else "CARNE"),"load":"CARGAR\nMOCHILA","walk":"ACERCATE"}[context["kind"]]
+	if context["kind"]=="harvest" and not context["enabled"]:work_button.text="VENDÉ\nTU CARGA"
+	work_button.disabled=not context["enabled"];work_hint.text=context["detail"];work_hint.visible=not modal.visible
+	task_button.self_modulate=Color.WHITE.lerp(Color("#ffe19b"),.32+.25*sin(game.elapsed*4.0)) if task["action"]=="shop" and task.has("buy") else Color.WHITE
 	if not modal.visible:return
 	if not pending_building.is_empty():
 		var held: bool=Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -323,15 +387,18 @@ func refresh(delta: float) -> void:
 		refs["family"].disabled=full or state.family_cooldown>0 or float(state.resources["food"])<12 or not state.lit
 		refs["family_hint"].text="Mejorá los hogares para recibir más familias." if full else "Cada familia aporta dos personas. Cambiá los trabajos con − y +."
 	elif view=="route":
-		refs["next_progress"].text="%s · %d/%d hitos completos" % [state.NAMES[state.unlocked],state.goal_progress(state.unlocked),state.goals(state.unlocked).size()]
-		var goals: Array[Dictionary]=state.goals(state.unlocked)
+		refs["next_progress"].text="%s · %d/4 metas comerciales" % [state.NAMES[state.unlocked],game.market.goal_progress(state.unlocked)]
+		var goals: Array[Dictionary]=game.market.goals(state.unlocked)
 		for row in goal_rows:
 			for goal in goals:
 				if goal["id"]!=row["id"]:continue
 				var done: bool=int(goal["value"])>=int(goal["goal"]);row["badge"].text="✓" if done else "○";row["count"].text="%d/%d" % [mini(int(goal["value"]),int(goal["goal"])),goal["goal"]]
 		if refs.has("open"):
-			refs["open"].text="ABRIR "+state.NAMES[state.city+1].to_upper() if state.ready_next() else "COMPLETÁ LOS HITOS DE ARRIBA"
-			refs["open"].disabled=not state.ready_next() or not state.affordable(state.passage_cost())
+			var ready: bool=game.route_can_open()
+			refs["charter"].text="Pasaje: %d / %d monedas. Los cuatro hitos de arriba son los únicos requisitos comerciales." % [game.market.coins,game.market.charter_price(state.city)]
+			refs["open"].text="ABRIR "+state.NAMES[state.city+1].to_upper() if ready else "REUNÍ %d MONEDAS PARA VIAJAR" % game.market.charter_price(state.city) if game.market.charter_ready(state.city) else "COMPLETÁ LAS CUATRO METAS"
+			refs["open"].disabled=not ready
+	elif view=="market":_refresh_market()
 	elif view=="fleet":
 		refs["voyage"].text="%s · %d s restantes" % [state.ROUTES[int(state.expedition["index"])]["name"],ceili(float(state.expedition["remaining"]))] if not state.expedition.is_empty() else "Elegí una ruta · %d/3 distintas completadas" % state.completed_routes.size()
 		for row in route_rows:
