@@ -21,6 +21,7 @@ func run() -> void:
 	check(market.bag["wood"]==5 and not market.active_node("wood",0,0),"One pine yields five real backpack logs and enters regrowth")
 	market.use(market.COUNTERS["wood"],0);market.tick(4)
 	check(market.coins==0 and market.town(0)["stock"]["wood"]==5,"An unattended register does not sell before a cashier is hired")
+	check(market.next_task(0)["title"].contains("Atendé la caja"),"The objective asks for attendance when stock is waiting at an unstaffed register")
 	market.tick(4,0,0,market.COUNTERS["wood"])
 	check(market.coins==20 and market.town(0)["sold"]["wood"]==5,"Standing at the counter completes orders and pays exactly for five logs")
 	check(market.bag_count()==0,"Delivery transfers cargo rather than copying it")
@@ -55,6 +56,7 @@ func run() -> void:
 	hires.town(0)["stock"]={"wood":0,"meat":0};var paid: int=hires.coins
 	hires.tick(60)
 	check(hires.coins>paid and int(hires.town(0)["carrier"]["cargo"]["wood"])+int(hires.town(0)["carrier"]["cargo"]["meat"])<=12,"The porter transports bounded cargo that cashiers sell, before a train exists")
+	check(not hires.next_task(0)["title"].contains("Retirá la carga"),"A hired porter removes the outdated instruction to transport its depot goods manually")
 	check(not hires.operating(0),"Foot delivery does not secretly construct a railway")
 	var guards=Market.new();guards.town(0)["workers"]["sentinel"]["level"]=1
 	guards.tick(.1);check(guards.town(0)["nodes"]["meat"][2]["hp"]==16 and guards.town(0)["shots"].size()==1,"A tower launches an actual delayed shot before damage is applied")

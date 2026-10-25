@@ -315,7 +315,7 @@ func _refresh_market() -> void:
 		row["title"].text=title;row["detail"].text=detail;row["reason"].text="Disponible · %d monedas" % price if reason.is_empty() else reason
 		if id in market.ROLE_NAMES:
 			var gate: Dictionary=market.hire_requirement(id,state.city)
-			row["reason"].text=gate["text"]+"\n"+("Desbloqueado · %d monedas" % price if reason.is_empty() else reason)
+			row["reason"].text="Todas las plazas están cubiertas" if reason=="Equipo completo" else gate["text"]+"\n"+("Desbloqueado · %d monedas" % price if reason.is_empty() else reason)
 		row["button"].text="EQUIPO COMPLETO" if reason=="Equipo completo" else "CIRCUITO COMPLETO" if id=="rail" and market.operating(state.city) else ("CONTRATAR" if id in market.ROLE_NAMES else "CONSTRUIR TRAMO" if id=="rail" else "COMPRAR MEJORA")+" · %d" % price
 		row["button"].disabled=not reason.is_empty()
 

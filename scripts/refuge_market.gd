@@ -250,7 +250,9 @@ func next_task(area: int) -> Dictionary:
 	for product in PRODUCTS:
 		if int(data["sold"][product])>=4:continue
 		if int(bag[product])>0:return _delivery_task(product,area)
-		if int(data["stock"][product])>0:return {"id":"trade","title":"Los clientes están comprando","detail":"Cada pedido completo paga monedas. Podés seguir cosechando.","action":"guide","button":"VER FILA","at":COUNTERS[product]}
+		if int(data["stock"][product])>0:
+			if not cashier_for(product,area):return {"id":"trade","title":"Atendé la caja de "+("madera" if product=="wood" else "carne"),"detail":"Quedate cerca para cobrar los pedidos. Un cajero podrá atender cuando te alejés.","action":"guide","button":"VER CAJA","at":COUNTERS[product]}
+			return {"id":"trade","title":"Los clientes están comprando","detail":"Tu cajero cobra los pedidos. Podés seguir cosechando.","action":"guide","button":"VER FILA","at":COUNTERS[product]}
 		return _harvest_task(product,area)
 	for requirement in [["lumberjack",1],["cashier",1],["hunter",1],["cashier",2]]:
 		var role: String=requirement[0]
@@ -281,7 +283,7 @@ func _funding_task(area: int,title: String,target: int) -> Dictionary:
 	for product in PRODUCTS:
 		if int(bag[product])>0:return _delivery_task(product,area)
 	var available: int=int(town(area)["depot"]["wood"])+int(town(area)["depot"]["meat"])
-	if available>0:return {"id":"trade","title":"Retirá la carga de tus trabajadores","detail":"Depósito → mochila → puestos. El tren hará este recorrido por vos.","action":"guide","button":"VER DEPÓSITO","at":DEPOT}
+	if available>0 and worker_count("porter",area)==0 and not operating(area):return {"id":"trade","title":"Retirá la carga de tus trabajadores","detail":"Acercate al depósito y luego a los puestos. Podés contratar un porteador.","action":"guide","button":"VER DEPÓSITO","at":DEPOT}
 	var task: Dictionary=_harvest_task("meat" if int(town(area)["stock"]["meat"])<6 else "wood",area)
 	task["title"]=title;task["detail"]="%d/%d monedas. Seguí cosechando y vendiendo." % [coins,target];return task
 
