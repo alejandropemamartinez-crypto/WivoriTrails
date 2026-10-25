@@ -312,16 +312,21 @@ func _camera(delta: float) -> void:
 func _placards() -> void:
 	var height: float=ui.root.size.y
 	var task: Dictionary=current_task()
+	var occupied: Array[Rect2]=[]
 	for id in ui.placards:
 		var button: Button=ui.placards[id]
 		var discovered: bool=int(state.BUILDINGS[id]["unlock"])<=state.level("core")+1 or state.level(id)>0
 		var at: Vector3=state.BUILDINGS[id]["at"]+Vector3(0,5.0 if state.level(id)>0 else .8,0)
 		if id=="watch" and state.level(id)>0:at.y=6.3
 		var point: Vector2=camera.unproject_position(at)-button.size*.5
-		point.x=clampf(point.x,14,ui.root.size.x-button.size.x-14);button.position=point
-		button.visible=not ui.modal.visible and discovered and point.y>278 and point.y+button.size.y<height-321 and point.x>-30 and point.x+button.size.x<ui.root.size.x+30
+		button.position=point
+		button.visible=not ui.modal.visible and discovered and point.y>278 and point.y+button.size.y<height-321 and point.x>=14 and point.x+button.size.x<=ui.root.size.x-14
 		for control in [stick,ui.camera_button,ui.run_button,ui.work_button,ui.move_hint]:
 			if control!=null and control.visible and button.get_global_rect().intersects(control.get_global_rect().grow(8)):button.visible=false;break
+		if button.visible:
+			for bounds in occupied:
+				if bounds.grow(6).intersects(button.get_global_rect()):button.visible=false;break
+		if button.visible:occupied.append(button.get_global_rect())
 		var building: bool=not state.construction.is_empty() and state.construction["id"]==id and int(state.construction["city"])==state.city
 		button.text=("%s · %d s" % [state.BUILDINGS[id]["short"],ceili(float(state.construction["remaining"]))]) if building else ("%s · %d" % [state.BUILDINGS[id]["short"],state.level(id)]) if state.level(id)>0 else "+ "+state.BUILDINGS[id]["short"]
 		button.self_modulate=Color("#ffe0a3") if id==task["id"] else Color.WHITE
@@ -342,7 +347,7 @@ func toggle_camera_view() -> void:
 func follow_task() -> void:
 	var task: Dictionary=current_task()
 	match task["action"]:
-		"ignite":state.ignite();save();ui.notice("Cortá pinos y cazá osos. Usá las monedas de las ventas para contratar trabajadores.")
+		"ignite":state.ignite();save();ui.notice("¡Mercado abierto! Cortá pinos y seguí la flecha.")
 		"repel":state.repel();save()
 		"building":ui.show_building(task["id"])
 		"team":ui.show_team()
@@ -351,7 +356,7 @@ func follow_task() -> void:
 		"shop":ui.show_market(task.get("buy",""))
 		"guide":
 			clear_controls();camera_detached=true;camera_overview=false;focus=task["at"];zoom=follow_zoom
-			ui.notice("Seguí los puntos dorados con el joystick. Tu personaje se mueve cuando vos lo dirigís.")
+			ui.notice("Seguí los puntos dorados usando el joystick.")
 
 func current_task() -> Dictionary:
 	if not state.lit:return state.next_task()

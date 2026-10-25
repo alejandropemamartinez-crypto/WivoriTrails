@@ -115,7 +115,7 @@ func build(source: Node3D) -> void:
 	toast.custom_minimum_size.y=44;toast.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var toast_card:=_panel(Color("#38596c"));var toast_style:=_style(Color("#38596c"));toast_style.content_margin_top=8;toast_style.content_margin_bottom=8;toast_card.add_theme_stylebox_override("panel",toast_style)
 	toast_card.mouse_filter=Control.MOUSE_FILTER_IGNORE;toast_card.add_child(toast);_place(toast_card,35,216,-35,276);toast_card.visible=false
-	task_card=_panel(PAPER);_bottom(task_card,20,-306,-20,-114)
+	task_card=_panel(PAPER);_bottom(task_card,20,-282,-20,-114)
 	var col:=_column(task_card,7);var heading:=_row(col,10)
 	task_count=_label("",13,Color("#54847e"));task_count.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(task_count)
 	progress=ProgressBar.new();progress.show_percentage=false;progress.custom_minimum_size=Vector2(120,7);progress.size_flags_vertical=Control.SIZE_SHRINK_CENTER;heading.add_child(progress);_progress_skin(progress)

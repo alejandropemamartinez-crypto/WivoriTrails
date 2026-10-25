@@ -51,7 +51,7 @@ func build(source: Node3D) -> void:
 			node_ready[product].append(true)
 			var regrowth: Label3D=_label(self,"",market.positions(product)[index]+Vector3(0,.7,0),.016);regrowth.visible=false;regrowth_labels[product].append(regrowth)
 	Art.piece(self,"market_depot",market.DEPOT+Vector3(0,0,-1.7))
-	depot_label=_label(self,"DEPÓSITO",market.DEPOT+Vector3(0,3.1,-1.1),.018)
+	depot_label=_label(self,"DEPÓSITO",market.DEPOT+Vector3(0,4.0,-1.1),.015)
 	for product in market.PRODUCTS:
 		var node:=Node3D.new();node.position=market.DEPOT+Vector3(-.85 if product=="wood" else .85,.5,-1.6);add_child(node);depot_cargo[product]=node
 		_cargo(node,product,3);node.visible=false
@@ -74,7 +74,7 @@ func _cargo(parent: Node3D,product: String,count: int) -> void:
 		item.position=Vector3(float(index%2)*.43-.22,float(index/2)*.30,0);item.scale=Vector3.ONE*.66
 func _tool_attachment(actor: Node3D) -> Node3D:
 	var attachment:=BoneAttachment3D.new();attachment.bone_name="hand.R";actor.skeleton.add_child(attachment)
-	var grip:=Node3D.new();grip.rotation_degrees=Vector3(0,0,12);grip.scale=Vector3.ONE*.85;attachment.add_child(grip);return grip
+	var grip:=Node3D.new();grip.rotation_degrees=Vector3(0,0,12);grip.scale=Vector3.ONE*1.25;attachment.add_child(grip);return grip
 
 func _guide() -> void:
 	guide_pointer=preload("res://scripts/refuge_direction.gd").new();game.ui.root.add_child(guide_pointer);game.ui.root.move_child(guide_pointer,game.ui.modal.get_index())
@@ -152,6 +152,10 @@ func refresh(delta: float) -> void:
 		if meat_sign.position.y+meat_sign.size.y>=game.ui.root.size.y-312:meat_sign.visible=false
 		for control in [game.stick,game.ui.work_button,game.ui.run_button,game.ui.camera_button]:
 			if control.visible and meat_sign.get_global_rect().intersects(control.get_global_rect().grow(6)):meat_sign.visible=false;break
+	for button in game.ui.placards.values():
+		if not button.visible:continue
+		for sign in [wood_sign,meat_sign]:
+			if sign.visible and sign.get_global_rect().grow(6).intersects(button.get_global_rect()):button.visible=false;break
 	for index in range(floaters.size()-1,-1,-1):
 		var effect: Dictionary=floaters[index];effect["time"]-=delta;effect["node"].position.y+=delta*.75
 		effect["node"].modulate.a=minf(1,float(effect["time"])*2)

@@ -43,7 +43,7 @@ func run() -> void:
 	touch(center(game.ui.work_button),true,8);await frames(18,true);touch(center(game.ui.work_button),false,8)
 	await walk_to(game.market.COUNTERS["wood"])
 	touch(center(game.ui.work_button),true,8);await frames(24,true);touch(center(game.ui.work_button),false,8)
-	await walk_to(game.market.BEAR_POSITIONS[0]+Vector3(0,0,-1.5))
+	await walk_to(game.market.BEAR_POSITIONS[0]+Vector3(0,0,1.6))
 	touch(center(game.ui.work_button),true,8);await frames(24,true);touch(center(game.ui.work_button),false,8)
 	if game.market.bag["meat"]!=6 or game.market.coins<=0:push_error("The recorded manual harvest/sale did not complete");quit(1);return
 	print("RECORDED MANUAL LOOP: ",game.market.coins," earned coins; ",game.market.bag["meat"]," carried meat")

@@ -13,7 +13,8 @@ func _build_winter() -> void:
 		"market_depot":_depot()
 		"axe":
 			_cylinder(Vector3(0,.36,0),.045,.90,TIMBER,0,8)
-			_box(Vector3(.12,.71,0),Vector3(.42,.29,.12),Color("#b9d3db"),1,.04)
+			_box(Vector3(.12,.71,0),Vector3(.46,.32,.14),DARK,1,.04)
+			_box(Vector3(.14,.72,.075),Vector3(.37,.23,.035),Color("#b9d3db"),1,.02)
 			_box(Vector3(.30,.70,0),Vector3(.065,.33,.13),SNOW,1,.02)
 			for y in [.02,.11,.20]:_box(Vector3(0,y,0),Vector3(.10,.05,.11),COPPER)
 		"scythe":
@@ -24,7 +25,9 @@ func _build_winter() -> void:
 				var a: float=float(index)/10.0*1.75;var b: float=float(index+1)/10.0*1.75
 				var p:=Vector3(sin(a)*.62,.80+cos(a)*.25,0);var q:=Vector3(sin(b)*.62,.80+cos(b)*.25,0)
 				var width: float=.14*(1.0-float(index)/12.0)
-				_box((p+q)*.5,Vector3(p.distance_to(q)+.025,width,.055),Color("#d2e4e9"),1,.01,Basis(Vector3.BACK,atan2(q.y-p.y,q.x-p.x)))
+				var basis_:=Basis(Vector3.BACK,atan2(q.y-p.y,q.x-p.x))
+				_box((p+q)*.5,Vector3(p.distance_to(q)+.035,width+.045,.075),DARK,1,.01,basis_)
+				_box((p+q)*.5+Vector3(0,0,.045),Vector3(p.distance_to(q)+.02,width,.025),Color("#d2e4e9"),1,.01,basis_)
 		"cargo_meat":
 			_box(Vector3(0,.18,0),Vector3(.78,.35,.60),Color("#c29176"),0,.12)
 			_box(Vector3(0,.37,0),Vector3(.80,.06,.62),Color("#f0d6b4"),0,.02)
