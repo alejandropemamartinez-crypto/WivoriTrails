@@ -8,6 +8,12 @@ func _draw() -> void:
 	var factor: float=minf(size.x,size.y)/40.0
 	draw_set_transform((size-Vector2.ONE*40.0*factor)*.5,0,Vector2.ONE*factor)
 	match kind:
+		"coins":
+			draw_circle(Vector2(20,20),16,Color("#d0963d"));draw_circle(Vector2(20,19),13,Color("#f7d78b"));draw_arc(Vector2(20,19),10,0,TAU,24,Color("#b77833"),2,true)
+			draw_line(Vector2(20,11),Vector2(20,27),Color("#a77335"),3,true);draw_line(Vector2(15,15),Vector2(24,15),Color("#a77335"),3,true);draw_line(Vector2(16,24),Vector2(25,24),Color("#a77335"),3,true)
+		"meat":
+			draw_style_box(_box(Color("#bb886b")),Rect2(5,9,30,25));draw_style_box(_box(Color("#ecd3af")),Rect2(5,7,30,7))
+			draw_rect(Rect2(17,8,6,26),Color("#729884"));draw_rect(Rect2(6,20,28,5),Color("#729884"))
 		"wood":
 			draw_style_box(_box(Color("#a76d42")),Rect2(7,11,23,20))
 			draw_circle(Vector2(29,21),10,Color("#dfaf70"));draw_arc(Vector2(29,21),6,0,TAU,18,Color("#946340"),2,true)

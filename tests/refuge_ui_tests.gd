@@ -79,7 +79,7 @@ func run() -> void:
 	check(game.state.worker_count("lumber")==2,"Releasing the held control applies one assignment, without a duplicated tap")
 	check(game.ui.worker_rows["lumber"]["plus"]!=old_plus,"The panel displays the new level and next price once the finger is released")
 	game.ui.close();await tap(game.ui.route_button);await frames(3)
-	check(game.ui.view=="route" and game.ui.goal_rows.size()==5,"A real route touch exposes all five explicit chapter requirements")
+	check(game.ui.view=="route" and game.ui.goal_rows.size()==4,"A real route touch exposes the four explicit commercial chapter requirements")
 	await shot("03_requisitos")
 	var route_scroll: ScrollContainer=game.ui.listing.get_parent();var origin:=Vector2(370,820)
 	await touch_at(origin,true,8)

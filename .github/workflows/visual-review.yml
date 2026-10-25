@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        review: [preview, controls, campaign-720x1280, campaign-720x1600, coastal-720x1280, coastal-720x1600, refuge-720x1280, refuge-720x1600]
+        review: [preview, controls, campaign-720x1280, campaign-720x1600, coastal-720x1280, coastal-720x1600, refuge-720x1280, refuge-720x1600, trade]
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -66,6 +66,14 @@ jobs:
                 --script res://tests/journey_ui_tests.gd -- "$PWD/previews/journey" \
                 2>&1 | tee previews/journey-ui.log
               test -s previews/journey/06_siguiente_pueblo.png
+              ;;
+            trade)
+              timeout 240 xvfb-run -a -s "-screen 0 720x1600x24" \
+                godot --path . --audio-driver Dummy --resolution 720x1600 \
+                --script res://tests/refuge_trade_touch_tests.gd -- "$PWD/previews/trade" \
+                2>&1 | tee previews/trade-touch.log
+              test -s previews/trade/04_tren_y_automatizacion.png
+              test -s previews/trade/06_siguiente_pueblo.png
               ;;
             refuge-*)
               resolution="${REVIEW_GROUP#*-}"

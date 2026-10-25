@@ -21,6 +21,10 @@ void fragment(){
 	vec3 path=mix(vec3(.37,.41,.42),vec3(.58,.59,.55),edge);
 	vec3 color=mix(snow,earth,melted*.92);
 	color=mix(color,path,paths*melted*.8);
+	// Shovelled market lanes connect depot, queues and the two sales counters.
+	float lane=(1.-smoothstep(.65,1.1,abs(p.y-20.3)))*(1.-smoothstep(17.5,19.,abs(p.x)));
+	float queue_lane=(1.-smoothstep(.45,.85,min(abs(p.x+6.),abs(p.x-2.5))))*smoothstep(18.5,20.,p.y)*(1.-smoothstep(28.,29.,p.y));
+	color=mix(color,mix(snow,vec3(.52,.64,.65),.48),max(lane,queue_lane)*.75);
 	color+=vec3(.065,.026,0.)*melted*(1.-smoothstep(0.,5.0,radius));
 	ALBEDO=color;ROUGHNESS=.95;
 }
