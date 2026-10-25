@@ -74,7 +74,9 @@ func _cargo(parent: Node3D,product: String,count: int) -> void:
 		item.position=Vector3(float(index%2)*.43-.22,float(index/2)*.30,0);item.scale=Vector3.ONE*.66
 func _tool_attachment(actor: Node3D) -> Node3D:
 	var attachment:=BoneAttachment3D.new();attachment.bone_name="hand.R";actor.skeleton.add_child(attachment)
-	var grip:=Node3D.new();grip.rotation_degrees=Vector3(0,0,12);grip.scale=Vector3.ONE*1.25;attachment.add_child(grip);return grip
+	# Imported wrist bones point local +Y down. Flip the authored upright
+	# shaft into the hand's frame so its blade stays above the snow.
+	var grip:=Node3D.new();grip.rotation_degrees=Vector3(180,0,-12);grip.scale=Vector3.ONE*1.25;attachment.add_child(grip);return grip
 
 func _guide() -> void:
 	guide_pointer=preload("res://scripts/refuge_direction.gd").new();game.ui.root.add_child(guide_pointer);game.ui.root.move_child(guide_pointer,game.ui.modal.get_index())

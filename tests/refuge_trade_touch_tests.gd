@@ -59,6 +59,8 @@ func run() -> void:
 	check(game.hero.position==start and game.market.bag_count()==0,"SEÑALAR only marks the task and never walks or harvests for the hero")
 	game.center_camera();check(await walk_to(game.market.TREE_POSITIONS[0]+Vector3(0,0,1.3)),"Real joystick gestures reach the first pine from spawn")
 	check(game.ui.work_button.text.contains("HACHA") and not game.ui.work_button.disabled,"The nearby pine exposes an enabled, contextual axe button")
+	var grip: Node3D=game.market_world.hero_tool
+	check(grip.to_global(Vector3(0,.8,0)).y>grip.global_position.y+.35,"The held tool points above the wrist and snow instead of disappearing underground")
 	await hold_work(1.15)
 	check(game.market.bag["wood"]==5 and not game.market.active_node("wood",0,0),"Holding the axe with a real second finger cuts one pine into carried logs")
 	check(not game.working and game.stick.axis==Vector2.ZERO,"Releasing the work finger stops the action without sticking the joystick")
